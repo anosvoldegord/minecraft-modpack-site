@@ -9,7 +9,7 @@ type ModInfo = { project_id: string; title: string; icon_url: string; descriptio
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string } };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения" },
@@ -26,6 +26,15 @@ const CATEGORIES = [
   { id: "utility", label: "Утилиты" },
   { id: "quests", label: "Квесты" },
   { id: "game-mechanics", label: "Механики" },
+];
+
+const FRAMES = [
+  { id: "default", label: "Без рамки", icon: "" },
+  { id: "flowers", label: "Цветочная", icon: "/frames/flowers.png" },
+  { id: "gold", label: "Золотая", icon: "/frames/gold.png" },
+  { id: "neon", label: "Неоновая", icon: "/frames/neon.png" },
+  { id: "halloween", label: "Хэллоуин", icon: "/frames/halloween.png" },
+  { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -55,6 +64,20 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value
             </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+};
+
+const AvatarWithFrame = ({ url, frame, size = "w-10 h-10" }: { url?: string, frame?: string, size?: string }) => {
+  const frameFile = FRAMES.find(f => f.id === frame)?.icon;
+  return (
+    <div className={`relative ${size} shrink-0`}>
+      <div className="w-full h-full rounded-full bg-zinc-800 overflow-hidden relative">
+        {url ? <Image src={url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+      </div>
+      {frameFile && (
+        <Image src={frameFile} alt="frame" fill className="absolute inset-0 object-cover scale-125 pointer-events-none" unoptimized />
       )}
     </div>
   );
@@ -107,7 +130,6 @@ export default function Home() {
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   
-  // Стейт для полноэкранного просмотра сборки
   const [viewingPack, setViewingPack] = useState<PublishedPack | null>(null);
   const [likedPacks, setLikedPacks] = useState<string[]>([]);
 
@@ -122,7 +144,7 @@ export default function Home() {
     if (error) { setDbError(error.message); return; }
     if (data) { setProfile(data); } 
     else {
-      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null };
+      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default" };
       const { error: insertError } = await supabase.from('profiles').insert(newProfile);
       if (insertError) setDbError(insertError.message);
       else setProfile(newProfile);
@@ -159,7 +181,7 @@ export default function Home() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок" });
+      const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" });
       if (updateError) throw updateError;
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
       fetchProfile(user.id);
@@ -216,7 +238,13 @@ export default function Home() {
 
   const saveProfile = async (updates: any) => {
     if (!user) return;
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username, title: profile?.title || "Новичок", avatar_url: profile?.avatar_url || null });
+    const { error } = await supabase.from('profiles').upsert({ 
+      id: user.id, 
+      username: updates.username, 
+      title: profile?.title || "Новичок", 
+      avatar_url: profile?.avatar_url || null,
+      frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default"
+    });
     if (error) showToast("Ошибка сохранения: " + error.message, "error");
     else {
       setProfile((prev: any) => ({ ...prev, ...updates }));
@@ -265,12 +293,12 @@ export default function Home() {
       if (!packs || packs.length === 0) { setCatalog([]); return; }
 
       const userIds = [...new Set(packs.map(p => p.user_id))];
-      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, avatar_url, title').in('id', userIds);
+      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, avatar_url, title, frame').in('id', userIds);
       if (profilesError) throw profilesError;
 
       const combined = packs.map(pack => {
         const author = profiles?.find(pr => pr.id === pack.user_id);
-        return { ...pack, profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок' } };
+        return { ...pack, profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок', frame: 'default' } };
       });
       setCatalog(combined as any);
     } catch (err: any) { setCatalogError(err.message || "Ошибка каталога"); }
@@ -459,7 +487,6 @@ export default function Home() {
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
 
-  // Функция для получения ID видео YouTube
   const getYouTubeID = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -615,9 +642,7 @@ export default function Home() {
 
                   <div className="p-5 flex flex-col gap-3 flex-1">
                     <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
-                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
-                      </div>
+                      <AvatarWithFrame url={pack.profiles?.avatar_url} frame={pack.profiles?.frame} size="w-10 h-10" />
                       <div>
                         <div className="font-bold text-xs text-green-400">{pack.profiles?.username || "Игрок"}</div>
                         <div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
@@ -660,9 +685,7 @@ export default function Home() {
               )}
 
               <div className="flex flex-col items-center gap-4 mb-8">
-                <div className="w-32 h-32 rounded-full bg-zinc-800 border-4 border-green-500 overflow-hidden relative shadow-[0_0_30px_rgba(34,197,94,0.4)]">
-                   {profile?.avatar_url ? <Image src={profile.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}
-                </div>
+                <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-32 h-32" />
                 <div className="text-xl font-bold text-green-400">{profile?.title || "Новичок"}</div>
               </div>
 
@@ -679,6 +702,16 @@ export default function Home() {
                       {isUploading ? "Загрузка..." : "Выбрать фото"}
                     </label>
                   </div>
+                </div>
+                <div>
+                  <label className="text-sm text-zinc-400 mb-1 block">Рамка профиля</label>
+                  <select 
+                    value={profile?.frame || "default"} 
+                    onChange={(e) => { setProfile({...profile, frame: e.target.value}); saveProfile({ username: profile.username, frame: e.target.value }); }}
+                    className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white appearance-none cursor-pointer"
+                  >
+                    {FRAMES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
                 </div>
                 <button onClick={() => saveProfile({ username: profile.username })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
               </div>
@@ -754,11 +787,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ПОЛНОЭКРАННЫЙ ПРОСМОТР СБОРКИ ИЗ КАТАЛОГА */}
       {viewingPack && (
         <div className="fixed inset-0 bg-[#09090b] z-[70] overflow-y-auto w-full h-full flex flex-col animate-in fade-in duration-200">
           
-          {/* Шапка с обложкой */}
           <div className="w-full h-[40vh] min-h-[300px] relative shrink-0">
             {viewingPack.cover_url ? <Image src={viewingPack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-8xl opacity-10 bg-zinc-900">🖼️</div>}
             <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent"></div>
@@ -769,9 +800,7 @@ export default function Home() {
               <h1 className="text-5xl font-black text-white drop-shadow-2xl mb-4">{viewingPack.name}</h1>
               <div className="flex items-center gap-4 text-zinc-300">
                 <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-white/20">
-                    {viewingPack.profiles?.avatar_url ? <Image src={viewingPack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
-                  </div>
+                  <AvatarWithFrame url={viewingPack.profiles?.avatar_url} frame={viewingPack.profiles?.frame} size="w-10 h-10" />
                   <span className="font-bold text-sm text-white">{viewingPack.profiles?.username || "Игрок"}</span>
                 </div>
                 <div className="bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-bold">
@@ -782,10 +811,8 @@ export default function Home() {
           </div>
 
           <div className="max-w-6xl mx-auto w-full px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Левая колонка (контент) */}
             <div className="lg:col-span-2 space-y-12">
               
-              {/* Видео (если есть) */}
               {viewingPack.video_url && getYouTubeID(viewingPack.video_url) && (
                 <div className="w-full aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
                   <iframe 
@@ -798,7 +825,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Скриншоты */}
               {viewingPack.screenshots && viewingPack.screenshots.length > 0 && (
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Скриншоты</h3>
@@ -812,7 +838,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Описание */}
               <div>
                 <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Описание</h3>
                 <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-[#121214] p-8 rounded-3xl border border-white/5 shadow-xl leading-relaxed whitespace-pre-wrap">
@@ -820,7 +845,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Список модов (плиточки) */}
               <div>
                 <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                   <h3 className="text-xl font-bold text-white">Моды в сборке ({Object.keys(viewingPack.artifacts).length})</h3>
@@ -842,7 +866,6 @@ export default function Home() {
 
             </div>
 
-            {/* Правая колонка (Инфо и кнопки) */}
             <div className="space-y-6">
               <div className="bg-[#121214] p-6 rounded-3xl border border-white/10 shadow-xl sticky top-8">
                 <div className="flex items-center justify-between mb-6">
