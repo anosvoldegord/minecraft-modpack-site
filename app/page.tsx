@@ -72,8 +72,8 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value
 const AvatarWithFrame = ({ url, frame, size = "w-10 h-10" }: { url?: string, frame?: string, size?: string }) => {
   const frameFile = FRAMES.find(f => f.id === frame)?.icon;
   return (
-    <div className={`relative ${size} shrink-0`}>
-      <div className="w-full h-full rounded-full bg-zinc-800 overflow-hidden relative">
+    <div className={`relative ${size} shrink-0 rounded-full overflow-hidden border border-white/10`}>
+      <div className="w-full h-full bg-zinc-800 relative">
         {url ? <Image src={url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
       </div>
       {frameFile && (
