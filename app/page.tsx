@@ -81,6 +81,7 @@ export default function Home() {
   const [totalHits, setTotalHits] = useState(0);
   
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
   const [modVersions, setModVersions] = useState<any[]>([]);
@@ -193,9 +194,44 @@ export default function Home() {
     fetchCatalog();
   }, [user]);
 
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ КАТАЛОГА
   const fetchCatalog = async () => {
-    const { data } = await supabase.from('published_packs').select(`*, profiles(username, avatar_url, title)`).order('created_at', { ascending: false });
-    if (data) setCatalog(data as any);
+    setCatalogError(null);
+    try {
+      // 1. Сначала грузим только сборки (без связи с профилем)
+      const { data: packs, error: packsError } = await supabase
+        .from('published_packs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (packsError) throw packsError;
+      if (!packs || packs.length === 0) { setCatalog([]); return; }
+
+      // 2. Достаем ID всех авторов
+      const userIds = [...new Set(packs.map(p => p.user_id))];
+
+      // 3. Грузим их профили отдельно
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, title')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // 4. Склеиваем всё вместе
+      const combined = packs.map(pack => {
+        const author = profiles?.find(pr => pr.id === pack.user_id);
+        return {
+          ...pack,
+          profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок' }
+        };
+      });
+
+      setCatalog(combined as any);
+    } catch (err: any) {
+      setCatalogError(err.message || "Ошибка загрузки каталога");
+      console.error("Ошибка каталога:", err);
+    }
   };
 
   const fetchFromDB = async () => {
@@ -231,16 +267,17 @@ export default function Home() {
   const publishPack = async () => {
     if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return alert("Сначала добавьте моды в сборку.");
     try {
-      await supabase.from('published_packs').insert({
+      const { error } = await supabase.from('published_packs').insert({
         user_id: user.id,
         name: activePack.name,
         game_version: activePack.gameVersion,
         loader: activePack.loader,
         artifacts: activePack.artifacts
       });
+      if (error) throw error;
       alert("Сборка опубликована в каталоге!");
       fetchCatalog();
-    } catch(e) { alert("Ошибка публикации"); }
+    } catch(e: any) { alert("Ошибка публикации: " + e.message); }
   };
 
   const importPack = async (pack: PublishedPack) => {
@@ -453,6 +490,14 @@ export default function Home() {
         {view === "catalog" && (
           <div className="flex-1 overflow-y-auto p-8">
             <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
+            
+            {/* ВЫВОД ОШИБКИ КАТАЛОГА, ЕСЛИ ОНА ЕСТЬ */}
+            {catalogError && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
+                Ошибка загрузки каталога: {catalogError}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {catalog.map(pack => (
                 <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white">
@@ -474,7 +519,7 @@ export default function Home() {
                   <button onClick={() => importPack(pack)} className="mt-4 w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
                 </div>
               ))}
-              {catalog.length === 0 && <div className="text-zinc-500">Пока никто не опубликовал сборки. Будьте первым!</div>}
+              {catalog.length === 0 && !catalogError && <div className="text-zinc-500">Пока никто не опубликовал сборки. Будьте первым!</div>}
             </div>
           </div>
         )}
