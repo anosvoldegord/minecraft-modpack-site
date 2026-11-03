@@ -60,10 +60,12 @@ export default function Home() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalHits, setTotalHits] = useState(0);
+  
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
   const [modVersions, setModVersions] = useState<any[]>([]);
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -139,13 +141,10 @@ export default function Home() {
     setIsAdding(mod.project_id);
     try {
       let verRes: any = specificVersion;
-      
-      // ИСПРАВЛЕНИЕ ОШИБКИ ТИПОВ:
       if (!verRes) {
         const versionsData = await (await fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
         verRes = versionsData[0];
       }
-      
       if (!verRes) return alert("Версия не найдена");
       
       const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url, file_url: verRes.files[0]?.url, file_name: verRes.files[0]?.filename, version_number: verRes.version_number } };
@@ -155,7 +154,7 @@ export default function Home() {
           if (dep.dependency_type === "required" && dep.project_id) {
             const libProj = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}`)).json();
             const libVersions = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
-            const libVer = libVersions[0]; // ИСПРАВЛЕНИЕ
+            const libVer = libVersions[0];
             if (libVer) newArtifacts[dep.project_id] = { project_id: dep.project_id, version_id: libVer.id, title: libProj.title, isLibrary: true, icon_url: libProj.icon_url, file_url: libVer.files[0]?.url, file_name: libVer.files[0]?.filename, version_number: libVer.version_number };
           }
         }
@@ -181,9 +180,7 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden">
       <aside className={`bg-[#0c0c0e] border-r border-white/5 flex flex-col shrink-0 transition-all ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
-        <div className="p-6 flex justify-between items-center">
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1>
-        </div>
+        <div className="p-6 flex justify-between items-center"><h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1></div>
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {modpacks.map(pack => (
             <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`p-4 rounded-2xl cursor-pointer ${activePackId === pack.id ? "bg-white/10" : "hover:bg-white/5"}`}>
@@ -205,8 +202,8 @@ export default function Home() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="p-6 border-b border-white/5 flex flex-col gap-4 bg-[#09090b]/80 backdrop-blur-xl">
+      <main className="flex-1 flex flex-col min-w-0 relative">
+        <header className="p-6 border-b border-white/5 flex flex-col gap-4 bg-[#09090b]/80 backdrop-blur-xl z-10">
           <div className="flex items-center justify-between gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/5 p-3 rounded-xl shrink-0">Меню</button>
             <input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50" />
@@ -242,6 +239,85 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* ПАНЕЛЬ СБОРКИ (ВЫЕЗЖАЮЩАЯ) */}
+      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e] border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="p-6 border-b border-white/5 flex justify-between items-center">
+          <h2 className="text-2xl font-black">Сборка</h2>
+          <button onClick={() => setIsPackOpen(false)} className="bg-white/5 hover:bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {modsList.map(mod => (
+            <div key={mod.project_id} className="flex items-center justify-between bg-white/[0.02] p-3 rounded-xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden relative"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
+                <span className="text-sm font-bold truncate">{mod.title}</span>
+              </div>
+              <button onClick={() => removeArtifact(mod.project_id)} className="text-red-500 hover:text-red-400">✕</button>
+            </div>
+          ))}
+          {modsList.length === 0 && <div className="text-center text-zinc-600 mt-10">Пусто</div>}
+        </div>
+        <div className="p-6 border-t border-white/5">
+          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 text-black py-4 rounded-xl font-bold text-lg">{isDownloading ? "Скачивание..." : "Скачать .zip"}</button>
+        </div>
+      </div>
+
+      {/* МОДАЛЬНОЕ ОКНО С ОПИСАНИЕМ И ГАЛЕРЕЕЙ */}
+      {selectedMod && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setSelectedMod(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-8 border-b border-white/5 flex items-start gap-8 bg-gradient-to-br from-white/[0.04] to-transparent relative">
+              <div className="w-32 h-32 rounded-3xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
+              <div className="flex-1">
+                <h2 className="text-4xl font-black">{selectedMod.title}</h2>
+                <p className="text-zinc-400 mt-4 leading-relaxed text-base max-w-2xl">{selectedMod.description}</p>
+                <div className="flex gap-6 mt-6 text-sm font-medium text-zinc-400"><span className="flex items-center gap-2">⬇ {selectedMod.downloads.toLocaleString()}</span></div>
+              </div>
+              <button onClick={() => setSelectedMod(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 w-12 h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 space-y-8">
+                {selectedMod.gallery && selectedMod.gallery.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Галерея</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedMod.gallery.map((img, idx) => (
+                        <div key={idx} className="rounded-xl overflow-hidden relative border border-white/10 shadow-lg aspect-video group"><Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized /></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedMod.body && (
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
+                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
+                      {selectedMod.body.split('\n').map((paragraph, idx) => (<p key={idx} className="mb-4 last:mb-0 whitespace-pre-wrap">{paragraph}</p>))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии для {activePack?.gameVersion}</h3>
+                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка версий...</div>) : modVersions.length === 0 ? (<div className="text-center text-zinc-500 text-sm bg-white/[0.02] rounded-xl border border-white/5 py-10">Нет версий</div>) : (
+                  <div className="flex flex-col gap-3">
+                    {modVersions.map(v => (
+                      <div key={v.id} className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                        <div className="font-bold text-sm text-zinc-200">{v.name}</div>
+                        <div className="text-xs text-zinc-500 mt-1 font-medium">{v.version_number}</div>
+                        <button onClick={() => handleAddMod(selectedMod, v)} disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]} className="mt-3 w-full bg-white/5 hover:bg-green-500 hover:text-black text-zinc-300 disabled:bg-white/[0.02] disabled:text-zinc-600 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200">
+                          {activePack?.artifacts[selectedMod.project_id] ? "Уже в сборке" : "Добавить"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
