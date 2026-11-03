@@ -56,7 +56,6 @@ const CATEGORIES = [
 
 const ITEMS_PER_PAGE = 20;
 
-// Кастомный выпадающий список
 const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -133,6 +132,7 @@ export default function Home() {
   
   const searchRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
@@ -215,6 +215,72 @@ export default function Home() {
       prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
     );
     setCurrentPage(1);
+  };
+
+  // --- ФУНКЦИЯ ИМПОРТА СБОРКИ ---
+  const handleImportZip = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      const zip = new JSZip();
+      const loadedZip = await zip.loadAsync(file);
+      const newArtifacts: Record<string, Artifact> = {};
+
+      // Ищем все .jar файлы внутри архива (в папке mods или в корне)
+      const jarFiles = Object.values(loadedZip.files).filter(f => !f.dir && f.name.endsWith('.jar'));
+
+      if (jarFiles.length === 0) {
+        alert("В архиве не найдено .jar файлов. Убедитесь, что это сборка модов.");
+        return;
+      }
+
+      // Пытаемся найти информацию о каждом моде через Modrinth API
+      for (const jar of jarFiles) {
+        const cleanName = jar.name.replace('.jar', '').split('-')[0].toLowerCase();
+        
+        try {
+          // Ищем мод по названию файла (это приблизительно, но часто работает)
+          const res = await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(cleanName)}&limit=1&facets=[["project_type:mod"]]`);
+          const data = await res.json();
+          
+          if (data.hits && data.hits.length > 0) {
+            const hit = data.hits[0];
+            // Если название похоже, добавляем
+            newArtifacts[hit.project_id] = {
+              project_id: hit.project_id,
+              version_id: "imported", // Не знаем точную версию из файла
+              title: hit.title,
+              isLibrary: hit.categories?.includes('library') || false,
+              icon_url: hit.icon_url,
+              file_name: jar.name,
+              version_number: "Из импорта",
+            };
+          }
+        } catch (err) {
+          console.error("Не удалось найти мод:", cleanName, err);
+        }
+      }
+
+      // Добавляем найденные моды в текущую сборку
+      setModpacks(prev => prev.map(pack => {
+        if (pack.id !== activePackId) return pack;
+        const merged = { ...pack.artifacts };
+        for (const [key, value] of Object.entries(newArtifacts)) {
+          if (!merged[key]) merged[key] = value;
+        }
+        return { ...pack, artifacts: merged };
+      }));
+
+      alert(`Импорт завершен! Найдено и добавлено модов: ${Object.keys(newArtifacts).length} из ${jarFiles.length} файлов.`);
+    } catch (error) {
+      console.error("Ошибка импорта:", error);
+      alert("Не удалось прочитать архив. Возможно, файл поврежден.");
+    } finally {
+      setIsLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   useEffect(() => {
@@ -440,6 +506,14 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden selection:bg-green-500/30">
       
+      <input 
+        type="file" 
+        accept=".zip" 
+        ref={fileInputRef} 
+        onChange={handleImportZip} 
+        className="hidden" 
+      />
+
       <aside className={`bg-[#0c0c0e] border-r border-white/5 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
         <div className="p-6 flex items-center justify-between min-w-[18rem]">
           <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1>
@@ -540,6 +614,15 @@ export default function Home() {
 
             <div className="flex items-center gap-4 shrink-0">
               
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-white/5 hover:bg-white/10 text-zinc-300 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 border border-white/10"
+                title="Импортировать сборку из ZIP"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Импорт
+              </button>
+
               <CustomSelect 
                 value={activePack.gameVersion}
                 onChange={(val) => { updateActivePack({ gameVersion: val, artifacts: {} }); setCurrentPage(1); }}
