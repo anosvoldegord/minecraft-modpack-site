@@ -82,6 +82,11 @@ export default function Home() {
   
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  // НОВЫЕ СТЕЙТЫ ДЛЯ ФИЛЬТРОВ КАТАЛОГА
+  const [catalogVersion, setCatalogVersion] = useState<string>("all");
+  const [catalogLoader, setCatalogLoader] = useState<string>("all");
+  const [catalogSort, setCatalogSort] = useState<string>("newest");
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
   const [modVersions, setModVersions] = useState<any[]>([]);
@@ -292,13 +297,12 @@ export default function Home() {
     setView("mods");
   };
 
-  // НОВАЯ ФУНКЦИЯ: Удаление сборки из каталога
   const deleteFromCatalog = async (id: string) => {
     if (confirm("Вы уверены, что хотите удалить эту сборку из каталога?")) {
       try {
         const { error } = await supabase.from('published_packs').delete().eq('id', id);
         if (error) throw error;
-        fetchCatalog(); // Обновляем список
+        fetchCatalog();
       } catch (e: any) {
         alert("Ошибка удаления: " + e.message);
       }
@@ -389,6 +393,19 @@ export default function Home() {
   const modsList = artifactList.filter(a => !a.isLibrary);
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
+
+  // ФИЛЬТРАЦИЯ И СОРТИРОВКА КАТАЛОГА
+  let filteredCatalog = catalog.filter(pack => {
+    const matchVersion = catalogVersion === "all" || pack.game_version === catalogVersion;
+    const matchLoader = catalogLoader === "all" || pack.loader === catalogLoader;
+    return matchVersion && matchLoader;
+  });
+
+  if (catalogSort === "downloads") {
+    filteredCatalog.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+  } else if (catalogSort === "newest") {
+    // Уже отсортировано по дате из базы
+  }
 
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
@@ -496,8 +513,36 @@ export default function Home() {
 
         {view === "catalog" && (
           <div className="flex-1 overflow-y-auto p-8">
-            <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
+            <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
+            {/* ПАНЕЛЬ ФИЛЬТРОВ В КАТАЛОГЕ */}
+            <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-zinc-400 font-bold ml-1">Версия игры</span>
+                <CustomSelect 
+                  value={catalogVersion} 
+                  onChange={setCatalogVersion} 
+                  options={[{ value: "all", label: "Все версии" }, { value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-zinc-400 font-bold ml-1">Загрузчик</span>
+                <CustomSelect 
+                  value={catalogLoader} 
+                  onChange={setCatalogLoader} 
+                  options={[{ value: "all", label: "Все" }, { value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-zinc-400 font-bold ml-1">Сортировка</span>
+                <CustomSelect 
+                  value={catalogSort} 
+                  onChange={setCatalogSort} 
+                  options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }]} 
+                />
+              </div>
+            </div>
+
             {catalogError && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
                 Ошибка загрузки каталога: {catalogError}
@@ -505,10 +550,9 @@ export default function Home() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {catalog.map(pack => (
+              {filteredCatalog.map(pack => (
                 <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white relative group">
                   
-                  {/* Кнопка удаления, видна только автору */}
                   {user && user.id === pack.user_id && (
                     <button 
                       onClick={() => deleteFromCatalog(pack.id)} 
@@ -537,7 +581,7 @@ export default function Home() {
                   <button onClick={() => importPack(pack)} className="mt-4 w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
                 </div>
               ))}
-              {catalog.length === 0 && !catalogError && <div className="text-zinc-500">Пока никто не опубликовал сборки. Будьте первым!</div>}
+              {filteredCatalog.length === 0 && !catalogError && <div className="text-zinc-500 col-span-full">По вашему запросу ничего не найдено.</div>}
             </div>
           </div>
         )}
