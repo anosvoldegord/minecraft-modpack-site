@@ -8,30 +8,30 @@ import { supabase } from "./supabase";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; profiles: { username: string; avatar_url: string; title: string } };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; description?: string; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
-  { id: "adventure", label: "Приключения", labelEn: "Adventure" },
-  { id: "technology", label: "Технологии", labelEn: "Technology" },
-  { id: "magic", label: "Магия", labelEn: "Magic" },
-  { id: "mobs", label: "Животные и Мобы", labelEn: "Mobs" },
-  { id: "worldgen", label: "Генерация мира", labelEn: "Worldgen" },
-  { id: "equipment", label: "Снаряжение", labelEn: "Equipment" },
-  { id: "decoration", label: "Декор", labelEn: "Decoration" },
-  { id: "optimization", label: "Оптимизация", labelEn: "Optimization" },
-  { id: "storage", label: "Хранение", labelEn: "Storage" },
-  { id: "food", label: "Еда", labelEn: "Food" },
-  { id: "library", label: "Библиотеки", labelEn: "Library" },
-  { id: "utility", label: "Утилиты", labelEn: "Utility" },
-  { id: "quests", label: "Квесты", labelEn: "Quests" },
-  { id: "game-mechanics", label: "Механики", labelEn: "Game Mechanics" },
+  { id: "adventure", label: "Приключения" },
+  { id: "technology", label: "Технологии" },
+  { id: "magic", label: "Магия" },
+  { id: "mobs", label: "Животные и Мобы" },
+  { id: "worldgen", label: "Генерация мира" },
+  { id: "equipment", label: "Снаряжение" },
+  { id: "decoration", label: "Декор" },
+  { id: "optimization", label: "Оптимизация" },
+  { id: "storage", label: "Хранение" },
+  { id: "food", label: "Еда" },
+  { id: "library", label: "Библиотеки" },
+  { id: "utility", label: "Утилиты" },
+  { id: "quests", label: "Квесты" },
+  { id: "game-mechanics", label: "Механики" },
 ];
 
 const ITEMS_PER_PAGE = 20;
 const CATALOG_PER_PAGE = 8;
 
-const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
+const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -42,12 +42,12 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
   const selectedOption = options.find(o => o.value === value);
   return (
     <div className={`relative z-50 ${widthClass}`} ref={ref}>
-      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-black/30 backdrop-blur-md hover:bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50 text-white">
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-black/30 backdrop-blur-md hover:bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50 text-white">
         <span className="truncate">{selectedOption?.label || value}</span>
         <svg className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </button>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
           {options.map((opt) => (
             <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/10 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}>
               {opt.label}
@@ -62,9 +62,11 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => {
   useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-  const bgColor = type === 'success' ? 'bg-green-500/90' : type === 'error' ? 'bg-red-500/90' : 'bg-blue-500/90';
+  const bgColor = type === 'success' ? 'bg-[#0c0c0e] border-green-500/50 text-green-400' : type === 'error' ? 'bg-[#0c0c0e] border-red-500/50 text-red-400' : 'bg-[#0c0c0e] border-white/20 text-white';
   return (
-    <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl text-white font-bold shadow-2xl z-[100] animate-in slide-in-from-bottom-5 ${bgColor}`}>
+    <div className={`fixed top-6 right-6 px-6 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl z-[100] animate-in slide-in-from-top-5 flex items-center gap-3 font-bold ${bgColor}`}>
+      {type === 'success' && <span>✅</span>}
+      {type === 'error' && <span>❌</span>}
       {message}
     </div>
   );
@@ -78,7 +80,6 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [langRu, setLangRu] = useState(true);
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -106,6 +107,9 @@ export default function Home() {
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   
+  // Стейт для просмотра чужой сборки
+  const [viewingPack, setViewingPack] = useState<PublishedPack | null>(null);
+
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -114,13 +118,9 @@ export default function Home() {
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error) {
-      setDbError(error.message);
-      return;
-    }
-    if (data) {
-      setProfile(data);
-    } else {
+    if (error) { setDbError(error.message); return; }
+    if (data) { setProfile(data); } 
+    else {
       const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null };
       const { error: insertError } = await supabase.from('profiles').insert(newProfile);
       if (insertError) setDbError(insertError.message);
@@ -142,73 +142,48 @@ export default function Home() {
   }, []);
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const file = e.target.files?.[0]; if (!file || !user) return;
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      const { error: updateError } = await supabase.from('profiles').upsert({ 
-        id: user.id, 
-        avatar_url: data.publicUrl,
-        username: profile?.username || "Игрок",
-        title: profile?.title || "Новичок"
-      });
+      const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок" });
       if (updateError) throw updateError;
-
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
       fetchProfile(user.id);
       showToast("Аватарка обновлена!", "success");
-    } catch (error: any) {
-      showToast(error.message || "Ошибка загрузки аватарки", "error");
-    } finally {
-      setIsUploading(false);
-    }
+    } catch (error: any) { showToast(error.message || "Ошибка загрузки", "error"); } 
+    finally { setIsUploading(false); }
   };
 
   const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const file = e.target.files?.[0]; if (!file || !user) return;
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
-      
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-
       const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
-      // Обновляем обложку в активной локальной сборке
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
       saveToDB(newPacks, packId);
       
-      // Если сборка уже опубликована, обновляем и там (по имени и id пользователя)
       if (activePack?.id === packId) {
           await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('user_id', user.id).eq('name', activePack.name);
           fetchCatalog();
       }
-      
       showToast("Обложка загружена!", "success");
-    } catch (error: any) {
-      showToast("Ошибка загрузки обложки: " + error.message, "error");
-    }
+    } catch (error: any) { showToast("Ошибка загрузки обложки: " + error.message, "error"); }
   };
 
   const saveProfile = async (updates: any) => {
     if (!user) return;
-    const { error } = await supabase.from('profiles').upsert({ 
-      id: user.id, 
-      username: updates.username,
-      title: profile?.title || "Новичок",
-      avatar_url: profile?.avatar_url || null
-    });
-
-    if (error) showToast("Ошибка сохранения профиля: " + error.message, "error");
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username, title: profile?.title || "Новичок", avatar_url: profile?.avatar_url || null });
+    if (error) showToast("Ошибка сохранения: " + error.message, "error");
     else {
       setProfile((prev: any) => ({ ...prev, ...updates }));
       fetchProfile(user.id);
@@ -242,11 +217,8 @@ export default function Home() {
         const author = profiles?.find(pr => pr.id === pack.user_id);
         return { ...pack, profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок' } };
       });
-
       setCatalog(combined as any);
-    } catch (err: any) {
-      setCatalogError(err.message || "Ошибка загрузки каталога");
-    }
+    } catch (err: any) { setCatalogError(err.message || "Ошибка каталога"); }
   };
 
   const fetchFromDB = async () => {
@@ -268,15 +240,9 @@ export default function Home() {
     const newId = crypto.randomUUID();
     const newPack = { id: newId, name: isInitial ? "Моя сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
     const newPacks = [...modpacks, newPack];
-    setModpacks(newPacks);
-    setActivePackId(newId);
-    setIsSidebarOpen(true);
-    
-    if (currentUser) {
-      try { await supabase.from('modpacks').insert({ id: newId, user_id: currentUser.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} }); } catch(e) {}
-    } else {
-      localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks));
-    }
+    setModpacks(newPacks); setActivePackId(newId); setIsSidebarOpen(true);
+    if (currentUser) { try { await supabase.from('modpacks').insert({ id: newId, user_id: currentUser.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} }); } catch(e) {} } 
+    else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); }
   };
 
   const publishPack = async () => {
@@ -300,29 +266,24 @@ export default function Home() {
     const newId = crypto.randomUUID();
     const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts, cover_url: pack.cover_url };
     const newPacks = [...modpacks, newPack];
-    setModpacks(newPacks);
-    setActivePackId(newId);
-    saveToDB(newPacks, newId);
-    
+    setModpacks(newPacks); setActivePackId(newId); saveToDB(newPacks, newId);
     try {
       await supabase.from('published_packs').update({ downloads: (pack.downloads || 0) + 1 }).eq('id', pack.id);
       fetchCatalog();
     } catch(e) { console.error(e); }
-
     showToast("Сборка добавлена в ваш личный кабинет!", "success");
     setView("mods");
   };
 
-  const deleteFromCatalog = async (id: string) => {
+  const deleteFromCatalog = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm("Вы уверены, что хотите удалить эту сборку из каталога?")) {
       try {
         const { error } = await supabase.from('published_packs').delete().eq('id', id);
         if (error) throw error;
         fetchCatalog();
         showToast("Сборка удалена из каталога", "success");
-      } catch (e: any) {
-        showToast("Ошибка удаления: " + e.message, "error");
-      }
+      } catch (e: any) { showToast("Ошибка удаления: " + e.message, "error"); }
     }
   };
 
@@ -555,18 +516,18 @@ export default function Home() {
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка загрузки каталога: {catalogError}</div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {/* ТЕПЕРЬ КАРТОЧКИ ШИРЕ (до 2-х в ряд на больших экранах) И С ОБЛОЖКАМИ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
               {paginatedCatalog.map(pack => (
-                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden">
+                <div key={pack.id} onClick={() => setViewingPack(pack)} className="bg-[#121214]/80 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-green-500/50 transition-all hover:-translate-y-1">
                   
-                  {/* ОБЛОЖКА СБОРКИ */}
-                  <div className="w-full h-40 bg-zinc-800 relative border-b border-white/10">
-                    {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">🖼️</div>}
+                  <div className="w-full h-52 bg-zinc-800 relative border-b border-white/10">
+                    {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-6xl opacity-10">🖼️</div>}
                     
                     {user && user.id === pack.user_id && (
                       <button 
-                        onClick={() => deleteFromCatalog(pack.id)} 
-                        className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 bg-black/50 hover:bg-black/80 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 z-10"
+                        onClick={(e) => deleteFromCatalog(pack.id, e)} 
+                        className="absolute top-4 right-4 text-zinc-300 hover:text-red-500 bg-black/60 hover:bg-black/90 p-2.5 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10"
                         title="Удалить из каталога"
                       >
                         ✕
@@ -574,35 +535,33 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="p-5 flex flex-col gap-4 flex-1">
-                    <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative">
-                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
+                  <div className="p-6 flex flex-col gap-4 flex-1">
+                    <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
+                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
                       </div>
                       <div>
-                        <div className="font-bold text-xs text-green-400">{pack.profiles?.username || "Игрок"}</div>
-                        <div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
+                        <div className="font-bold text-sm text-green-400">{pack.profiles?.username || "Игрок"}</div>
+                        <div className="text-xs text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
                       </div>
                     </div>
-                    <h3 className="text-lg font-bold pr-6 leading-tight">{pack.name}</h3>
-                    <div className="text-xs text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
-                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2">
+                    <h3 className="text-2xl font-bold pr-6 leading-tight">{pack.name}</h3>
+                    <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
+                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-4 border-t border-white/10">
                       <span>Модов: {Object.keys(pack.artifacts).length}</span>
-                      <span className="text-green-400">⬇ {pack.downloads || 0}</span>
+                      <span className="text-green-400 text-lg font-bold">⬇ {pack.downloads || 0}</span>
                     </div>
-                    <button onClick={() => importPack(pack)} className="w-full bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold transition-colors">Скачать себе</button>
                   </div>
                 </div>
               ))}
               {filteredCatalog.length === 0 && !catalogError && <div className="text-zinc-500 col-span-full">По вашему запросу ничего не найдено.</div>}
             </div>
 
-            {/* ПАГИНАЦИЯ КАТАЛОГА */}
             {totalCatalogPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
-                <button onClick={() => setCatalogPage(p => Math.max(1, p - 1))} disabled={catalogPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-xl font-bold text-sm transition-colors disabled:opacity-30">← Назад</button>
-                <span className="text-sm text-zinc-400 mx-4">Страница {catalogPage} из {totalCatalogPages}</span>
-                <button onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))} disabled={catalogPage === totalCatalogPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-xl font-bold text-sm transition-colors disabled:opacity-30">Вперед →</button>
+                <button onClick={() => setCatalogPage(p => Math.max(1, p - 1))} disabled={catalogPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">← Назад</button>
+                <span className="text-sm text-zinc-400 mx-4 font-bold">Стр. {catalogPage} из {totalCatalogPages}</span>
+                <button onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))} disabled={catalogPage === totalCatalogPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button>
               </div>
             )}
           </div>
@@ -647,22 +606,21 @@ export default function Home() {
         )}
       </main>
 
-      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-black/80 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-2xl font-black text-white">Моя сборка</h2>
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         
-        {/* БЛОК ЗАГРУЗКИ ОБЛОЖКИ ДЛЯ СБОРКИ */}
         <div className="p-6 border-b border-white/10 bg-black/20">
-          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка сборки (для каталога)</label>
+          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка сборки</label>
           <div className="flex items-center gap-4">
-            <div className="w-24 h-16 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
-               {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🖼️</div>}
+            <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
+               {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
             </div>
             <div className="flex-1">
                <input type="file" id="cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
-               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
+               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
                  Загрузить обложку
                </label>
             </div>
@@ -690,6 +648,65 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* МОДАЛЬНОЕ ОКНО ПРОСМОТРА СБОРКИ ИЗ КАТАЛОГА */}
+      {viewingPack && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-6" onClick={() => setViewingPack(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            
+            {/* Обложка в модалке */}
+            <div className="w-full h-64 md:h-80 bg-zinc-800 relative border-b border-white/10 shrink-0">
+              {viewingPack.cover_url ? <Image src={viewingPack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-8xl opacity-10">🖼️</div>}
+              <button onClick={() => setViewingPack(null)} className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 w-12 h-12 rounded-full flex items-center justify-center transition-colors backdrop-blur-md">✕</button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 space-y-8">
+                <div>
+                  <h2 className="text-4xl font-black text-white mb-4">{viewingPack.name}</h2>
+                  <div className="flex items-center gap-3 mb-6">
+                     <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
+                        {viewingPack.profiles?.avatar_url ? <Image src={viewingPack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+                     </div>
+                     <div>
+                        <div className="font-bold text-sm text-green-400">{viewingPack.profiles?.username || "Игрок"}</div>
+                        <div className="text-xs text-zinc-400">{viewingPack.profiles?.title || "Новичок"}</div>
+                     </div>
+                  </div>
+                  
+                  <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
+                  <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
+                    {viewingPack.description || "Автор пока не добавил описание к этой сборке."}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 h-fit">
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Информация</h3>
+                <div className="space-y-4 text-sm">
+                  <div className="flex justify-between border-b border-white/10 pb-2">
+                    <span className="text-zinc-400">Версия игры:</span>
+                    <span className="font-bold text-white">{viewingPack.game_version}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/10 pb-2">
+                    <span className="text-zinc-400">Загрузчик:</span>
+                    <span className="font-bold text-white">{viewingPack.loader.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/10 pb-2">
+                    <span className="text-zinc-400">Модов в сборке:</span>
+                    <span className="font-bold text-white">{Object.keys(viewingPack.artifacts).length}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/10 pb-2">
+                    <span className="text-zinc-400">Скачиваний:</span>
+                    <span className="font-bold text-green-400">{viewingPack.downloads || 0}</span>
+                  </div>
+                </div>
+                <button onClick={() => { importPack(viewingPack); setViewingPack(null); }} className="mt-8 w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)]">Скачать себе</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedMod && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setSelectedMod(null)}>
