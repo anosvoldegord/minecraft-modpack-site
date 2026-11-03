@@ -243,13 +243,20 @@ export default function Home() {
     } catch(e) { alert("Ошибка публикации"); }
   };
 
-  const importPack = (pack: PublishedPack) => {
+  const importPack = async (pack: PublishedPack) => {
     const newId = crypto.randomUUID();
     const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks);
     setActivePackId(newId);
     saveToDB(newPacks, newId);
+    
+    // Увеличиваем счетчик скачиваний
+    try {
+      await supabase.from('published_packs').update({ downloads: (pack.downloads || 0) + 1 }).eq('id', pack.id);
+      fetchCatalog(); // Обновляем каталог, чтобы счетчик сразу изменился на экране
+    } catch(e) { console.error(e); }
+
     alert("Сборка добавлена в ваш личный кабинет!");
     setView("mods");
   };
@@ -460,8 +467,11 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-bold">{pack.name}</h3>
                   <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
-                  <div className="text-sm text-zinc-300">Модов: {Object.keys(pack.artifacts).length}</div>
-                  <button onClick={() => importPack(pack)} className="mt-auto w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
+                  <div className="text-sm text-zinc-300 flex justify-between items-center mt-2">
+                    <span>Модов: {Object.keys(pack.artifacts).length}</span>
+                    <span className="text-green-400">⬇ {pack.downloads || 0}</span>
+                  </div>
+                  <button onClick={() => importPack(pack)} className="mt-4 w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
                 </div>
               ))}
               {catalog.length === 0 && <div className="text-zinc-500">Пока никто не опубликовал сборки. Будьте первым!</div>}
