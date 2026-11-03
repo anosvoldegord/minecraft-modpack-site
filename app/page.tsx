@@ -136,13 +136,10 @@ export default function Home() {
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
-  // Загрузка данных пользователя и сборок
   useEffect(() => {
-    // Проверяем сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
-        // Если нет входа, пробуем загрузить из localStorage (как гостевой режим)
         const saved = localStorage.getItem("modbuilder_packs");
         if (saved) {
           try {
@@ -157,7 +154,6 @@ export default function Home() {
       }
     });
 
-    // Слушаем изменения авторизации
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (event === 'SIGNED_OUT') {
@@ -169,14 +165,12 @@ export default function Home() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Загрузка сборок из базы при входе
   useEffect(() => {
     if (user) {
       fetchModpacksFromDB();
     }
   }, [user]);
 
-  // Сохранение в базу (или localStorage для гостей)
   const saveToDB = async (updatedPacks: Modpack[], currentActiveId: string) => {
     if (!user) {
       localStorage.setItem("modbuilder_packs", JSON.stringify(updatedPacks));
@@ -184,7 +178,6 @@ export default function Home() {
       return;
     }
 
-    // Находим измененную сборку и сохраняем её в Supabase
     const pack = updatedPacks.find(p => p.id === currentActiveId);
     if (!pack) return;
 
@@ -219,7 +212,6 @@ export default function Home() {
         setModpacks(formatted);
         setActivePackId(formatted[0].id);
       } else {
-        // Если сборок нет, создаем первую
         createNewPack(true);
       }
     } catch (error) {
@@ -972,4 +964,4 @@ export default function Home() {
       `}} />
     </div>
   );
-} 
+}
