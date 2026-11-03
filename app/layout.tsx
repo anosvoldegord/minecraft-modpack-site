@@ -6,8 +6,11 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ModBuilder — Сборщик модов Minecraft",
-  description: "Создавайте сборки модов для Minecraft в один клик",
+  title: "ModBuilder",
+  description: "Сборщик модов Minecraft",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
