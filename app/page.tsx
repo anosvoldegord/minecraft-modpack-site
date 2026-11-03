@@ -54,6 +54,8 @@ export default function Home() {
   const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,13 +71,19 @@ export default function Home() {
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); });
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { setUser(session?.user ?? null); });
+    // Включаем сохранение сессии
+    supabase.auth.getSession().then(({ data: { session } }) => { 
+      setUser(session?.user ?? null); 
+      setIsLoggingIn(false);
+    });
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { 
+      setUser(session?.user ?? null); 
+      if (event === 'SIGNED_IN') setIsLoggingIn(false);
+    });
     return () => authListener.subscription.unsubscribe();
   }, []);
 
@@ -168,8 +176,9 @@ export default function Home() {
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   const downloadModpack = async () => { if (!activePack) return; const list = Object.values(activePack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${activePack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
 
-  const login = () => supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } });
+  const login = () => { setIsLoggingIn(true); supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } }); };
   const logout = () => supabase.auth.signOut();
+  
   if (!isLoaded) return <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">Загрузка...</div>;
 
   const artifactList = activePack ? Object.values(activePack.artifacts) : [];
@@ -178,8 +187,24 @@ export default function Home() {
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden">
-      <aside className={`bg-[#0c0c0e] border-r border-white/5 flex flex-col shrink-0 transition-all ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
+    <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden relative">
+      
+      {/* Анимированный фон */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      {/* Экран загрузки при входе */}
+      {isLoggingIn && (
+        <div className="fixed inset-0 z-[100] bg-[#09090b]/90 backdrop-blur-xl flex flex-col items-center justify-center">
+          <div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div>
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход через GitHub...</h2>
+          <p className="text-zinc-500 mt-2">Пожалуйста, подтвердите вход в открывшемся окне</p>
+        </div>
+      )}
+
+      <aside className={`bg-[#0c0c0e]/80 backdrop-blur-md border-r border-white/5 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
         <div className="p-6 flex justify-between items-center"><h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1></div>
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {modpacks.map(pack => (
@@ -202,8 +227,8 @@ export default function Home() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 relative">
-        <header className="p-6 border-b border-white/5 flex flex-col gap-4 bg-[#09090b]/80 backdrop-blur-xl z-10">
+      <main className="flex-1 flex flex-col min-w-0 relative z-10">
+        <header className="p-6 border-b border-white/5 flex flex-col gap-4 bg-[#09090b]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/5 p-3 rounded-xl shrink-0">Меню</button>
             <input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50" />
@@ -224,13 +249,13 @@ export default function Home() {
           {isLoading ? <div className="text-center py-20 text-green-500">Загрузка...</div> : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
               {results.map(mod => (
-                <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl hover:bg-white/[0.06] cursor-pointer flex flex-col gap-4">
+                <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-[#0c0c0e]/60 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:bg-white/[0.06] cursor-pointer flex flex-col gap-4 shadow-lg hover:shadow-green-900/20 transition-all hover:-translate-y-1">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
                     <div><h3 className="font-bold text-lg truncate">{mod.title}</h3><div className="text-xs text-zinc-400">⬇ {mod.downloads.toLocaleString()}</div></div>
                   </div>
                   <p className="text-sm text-zinc-400 line-clamp-3 flex-1">{mod.description}</p>
-                  <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/5 hover:bg-green-500 hover:text-black py-2 rounded-xl font-bold text-sm">
+                  <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/5 hover:bg-green-500 hover:text-black py-2 rounded-xl font-bold text-sm transition-colors">
                     {isAdding === mod.project_id ? "..." : activePack?.artifacts[mod.project_id] ? "Добавлено" : "+ В сборку"}
                   </button>
                 </div>
@@ -240,8 +265,8 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ПАНЕЛЬ СБОРКИ (ВЫЕЗЖАЮЩАЯ) */}
-      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e] border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
+      {/* ПАНЕЛЬ СБОРКИ */}
+      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <h2 className="text-2xl font-black">Сборка</h2>
           <button onClick={() => setIsPackOpen(false)} className="bg-white/5 hover:bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
@@ -259,11 +284,11 @@ export default function Home() {
           {modsList.length === 0 && <div className="text-center text-zinc-600 mt-10">Пусто</div>}
         </div>
         <div className="p-6 border-t border-white/5">
-          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 text-black py-4 rounded-xl font-bold text-lg">{isDownloading ? "Скачивание..." : "Скачать .zip"}</button>
+          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 text-black py-4 rounded-xl font-bold text-lg hover:bg-green-400 transition-colors">{isDownloading ? "Скачивание..." : "Скачать .zip"}</button>
         </div>
       </div>
 
-      {/* МОДАЛЬНОЕ ОКНО С ОПИСАНИЕМ И ГАЛЕРЕЕЙ */}
+      {/* МОДАЛЬНОЕ ОКНО С ОПИСАНИЕМ */}
       {selectedMod && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setSelectedMod(null)}>
           <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -291,7 +316,10 @@ export default function Home() {
                 )}
                 {selectedMod.body && (
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
+                    <div className="flex justify-between items-center mb-4">
+                       <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Описание</h3>
+                       <a href={`https://translate.google.com/?sl=en&tl=ru&text=${encodeURIComponent(selectedMod.body)}&op=translate`} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">Перевести на русский</a>
+                    </div>
                     <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
                       {selectedMod.body.split('\n').map((paragraph, idx) => (<p key={idx} className="mb-4 last:mb-0 whitespace-pre-wrap">{paragraph}</p>))}
                     </div>
