@@ -28,10 +28,10 @@ const CATEGORIES = [
   { id: "game-mechanics", label: "Механики" },
 ];
 
+// Убрали золотую рамку (у неё был белый фон)
 const FRAMES = [
   { id: "default", label: "Без рамки", icon: "" },
   { id: "flowers", label: "Цветочная", icon: "/frames/flowers.png" },
-  { id: "gold", label: "Золотая", icon: "/frames/gold.png" },
   { id: "neon", label: "Неоновая", icon: "/frames/neon.png" },
   { id: "halloween", label: "Хэллоуин", icon: "/frames/halloween.png" },
   { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
@@ -548,10 +548,13 @@ export default function Home() {
 
         <div className="p-5 mt-auto">
            {user ? (
-             <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-center">
-               <div className="text-green-400 text-xs mb-1">Вы вошли:</div>
-               <div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div>
-               <button onClick={logout} className="mt-2 text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg w-full text-sm transition-colors">Выйти</button>
+             <div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3">
+               <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" />
+               <div className="flex-1 min-w-0">
+                 <div className="text-green-400 text-xs mb-0.5">Вы вошли:</div>
+                 <div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div>
+               </div>
+               <button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button>
              </div>
            ) : (
              <button onClick={login} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти</button>
@@ -703,16 +706,30 @@ export default function Home() {
                     </label>
                   </div>
                 </div>
+                
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Рамка профиля</label>
-                  <select 
-                    value={profile?.frame || "default"} 
-                    onChange={(e) => { setProfile({...profile, frame: e.target.value}); saveProfile({ username: profile.username, frame: e.target.value }); }}
-                    className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white appearance-none cursor-pointer"
-                  >
-                    {FRAMES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                  </select>
+                  <label className="text-sm text-zinc-400 mb-3 block font-bold">Рамка профиля (Инвентарь)</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {FRAMES.map(f => (
+                      <button 
+                        key={f.id} 
+                        onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }}
+                        className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-2 ${profile?.frame === f.id ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
+                        title={f.label}
+                      >
+                        {f.icon ? (
+                          <div className="w-10 h-10 relative">
+                            <Image src={f.icon} alt={f.label} fill className="object-contain" unoptimized />
+                          </div>
+                        ) : (
+                          <div className="text-2xl opacity-50">🚫</div>
+                        )}
+                        <span className="text-[10px] text-zinc-400 mt-1 text-center leading-tight">{f.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
                 <button onClick={() => saveProfile({ username: profile.username })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
               </div>
             </div>
@@ -800,7 +817,7 @@ export default function Home() {
               <h1 className="text-5xl font-black text-white drop-shadow-2xl mb-4">{viewingPack.name}</h1>
               <div className="flex items-center gap-4 text-zinc-300">
                 <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
-                  <AvatarWithFrame url={viewingPack.profiles?.avatar_url} frame={viewingPack.profiles?.frame} size="w-10 h-10" />
+                  <AvatarWithFrame url={viewingPack.profiles?.avatar_url} frame={viewingPack.profiles?.frame} size="w-8 h-8" />
                   <span className="font-bold text-sm text-white">{viewingPack.profiles?.username || "Игрок"}</span>
                 </div>
                 <div className="bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-bold">
