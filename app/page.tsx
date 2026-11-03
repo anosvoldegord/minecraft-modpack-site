@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import JSZip from "jszip";
 import Image from "next/image";
+import { supabase } from "./supabase";
 
 type ModInfo = {
   project_id: string;
@@ -102,11 +103,10 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
 };
 
 export default function Home() {
-  const [modpacks, setModpacks] = useState<Modpack[]>([
-    { id: "1", name: "Моя первая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} }
-  ]);
-  const [activePackId, setActivePackId] = useState<string>("1");
+  const [modpacks, setModpacks] = useState<Modpack[]>([]);
+  const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
   const [query, setQuery] = useState("");
   const [searchInBody, setSearchInBody] = useState(false);
@@ -136,47 +136,116 @@ export default function Home() {
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
+  // Загрузка данных пользователя и сборок
   useEffect(() => {
-    const saved = localStorage.getItem("modbuilder_packs");
-    const savedActiveId = localStorage.getItem("modbuilder_active_id");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) {
-          setModpacks(parsed);
-          if (savedActiveId && parsed.find((p: any) => p.id === savedActiveId)) {
-            setActivePackId(savedActiveId);
-          } else {
-            setActivePackId(parsed[0].id);
-          }
+    // Проверяем сессию
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        // Если нет входа, пробуем загрузить из localStorage (как гостевой режим)
+        const saved = localStorage.getItem("modbuilder_packs");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.length > 0) {
+              setModpacks(parsed);
+              setActivePackId(parsed[0].id);
+            }
+          } catch (e) {}
         }
-      } catch (e) {
-        console.error("Ошибка загрузки сборок", e);
+        setIsLoaded(true);
       }
-    }
-    setIsLoaded(true);
+    });
+
+    // Слушаем изменения авторизации
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === 'SIGNED_OUT') {
+        setModpacks([]);
+        setActivePackId("");
+      }
+    });
+
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
+  // Загрузка сборок из базы при входе
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("modbuilder_packs", JSON.stringify(modpacks));
-      localStorage.setItem("modbuilder_active_id", activePackId);
+    if (user) {
+      fetchModpacksFromDB();
     }
-  }, [modpacks, activePackId, isLoaded]);
+  }, [user]);
+
+  // Сохранение в базу (или localStorage для гостей)
+  const saveToDB = async (updatedPacks: Modpack[], currentActiveId: string) => {
+    if (!user) {
+      localStorage.setItem("modbuilder_packs", JSON.stringify(updatedPacks));
+      localStorage.setItem("modbuilder_active_id", currentActiveId);
+      return;
+    }
+
+    // Находим измененную сборку и сохраняем её в Supabase
+    const pack = updatedPacks.find(p => p.id === currentActiveId);
+    if (!pack) return;
+
+    try {
+      const { error } = await supabase.from('modpacks').upsert({
+        id: pack.id,
+        user_id: user.id,
+        name: pack.name,
+        game_version: pack.gameVersion,
+        loader: pack.loader,
+        artifacts: pack.artifacts
+      });
+      if (error) console.error("Ошибка сохранения:", error);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchModpacksFromDB = async () => {
+    try {
+      const { data, error } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const formatted = data.map(d => ({
+          id: d.id,
+          name: d.name,
+          gameVersion: d.game_version,
+          loader: d.loader,
+          artifacts: d.artifacts || {}
+        }));
+        setModpacks(formatted);
+        setActivePackId(formatted[0].id);
+      } else {
+        // Если сборок нет, создаем первую
+        createNewPack(true);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки:", error);
+    } finally {
+      setIsLoaded(true);
+    }
+  };
 
   const updateActivePack = (updates: Partial<Modpack>) => {
-    setModpacks(prev => prev.map(p => p.id === activePackId ? { ...p, ...updates } : p));
+    const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, ...updates } : p);
+    setModpacks(newPacks);
+    saveToDB(newPacks, activePackId);
   };
 
-  const createNewPack = () => {
-    const newId = Date.now().toString();
-    const newPack = { id: newId, name: "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
-    setModpacks([...modpacks, newPack]);
+  const createNewPack = async (isInitial = false) => {
+    const newId = isInitial ? crypto.randomUUID() : Date.now().toString();
+    const newPack = { id: newId, name: isInitial ? "Моя первая сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
+    const newPacks = [...modpacks, newPack];
+    setModpacks(newPacks);
     setActivePackId(newId);
     setIsSidebarOpen(true);
+    saveToDB(newPacks, newId);
   };
 
-  const deletePack = (id: string, e: React.MouseEvent) => {
+  const deletePack = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (modpacks.length === 1) {
       alert("Нельзя удалить последнюю сборку.");
@@ -186,6 +255,12 @@ export default function Home() {
       const newPacks = modpacks.filter(p => p.id !== id);
       setModpacks(newPacks);
       if (activePackId === id) setActivePackId(newPacks[0].id);
+      
+      if (user) {
+        await supabase.from('modpacks').delete().eq('id', id);
+      } else {
+        saveToDB(newPacks, newPacks[0].id);
+      }
     }
   };
 
@@ -197,17 +272,22 @@ export default function Home() {
 
   const saveRename = () => {
     if (editingPackId && editNameValue.trim()) {
-      setModpacks(prev => prev.map(p => p.id === editingPackId ? { ...p, name: editNameValue.trim() } : p));
+      const newPacks = modpacks.map(p => p.id === editingPackId ? { ...p, name: editNameValue.trim() } : p);
+      setModpacks(newPacks);
+      saveToDB(newPacks, activePackId);
     }
     setEditingPackId(null);
   };
 
-  const clearAllData = () => {
-    if (confirm("Удалить ВСЕ сборки и начать с нуля? Это действие нельзя отменить.")) {
-      localStorage.removeItem("modbuilder_packs");
-      localStorage.removeItem("modbuilder_active_id");
-      window.location.reload();
-    }
+  const loginWithGitHub = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: window.location.origin }
+    });
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   const toggleCategory = (catId: string) => {
@@ -215,72 +295,6 @@ export default function Home() {
       prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
     );
     setCurrentPage(1);
-  };
-
-  // --- ФУНКЦИЯ ИМПОРТА СБОРКИ ---
-  const handleImportZip = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsLoading(true);
-    try {
-      const zip = new JSZip();
-      const loadedZip = await zip.loadAsync(file);
-      const newArtifacts: Record<string, Artifact> = {};
-
-      // Ищем все .jar файлы внутри архива (в папке mods или в корне)
-      const jarFiles = Object.values(loadedZip.files).filter(f => !f.dir && f.name.endsWith('.jar'));
-
-      if (jarFiles.length === 0) {
-        alert("В архиве не найдено .jar файлов. Убедитесь, что это сборка модов.");
-        return;
-      }
-
-      // Пытаемся найти информацию о каждом моде через Modrinth API
-      for (const jar of jarFiles) {
-        const cleanName = jar.name.replace('.jar', '').split('-')[0].toLowerCase();
-        
-        try {
-          // Ищем мод по названию файла (это приблизительно, но часто работает)
-          const res = await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(cleanName)}&limit=1&facets=[["project_type:mod"]]`);
-          const data = await res.json();
-          
-          if (data.hits && data.hits.length > 0) {
-            const hit = data.hits[0];
-            // Если название похоже, добавляем
-            newArtifacts[hit.project_id] = {
-              project_id: hit.project_id,
-              version_id: "imported", // Не знаем точную версию из файла
-              title: hit.title,
-              isLibrary: hit.categories?.includes('library') || false,
-              icon_url: hit.icon_url,
-              file_name: jar.name,
-              version_number: "Из импорта",
-            };
-          }
-        } catch (err) {
-          console.error("Не удалось найти мод:", cleanName, err);
-        }
-      }
-
-      // Добавляем найденные моды в текущую сборку
-      setModpacks(prev => prev.map(pack => {
-        if (pack.id !== activePackId) return pack;
-        const merged = { ...pack.artifacts };
-        for (const [key, value] of Object.entries(newArtifacts)) {
-          if (!merged[key]) merged[key] = value;
-        }
-        return { ...pack, artifacts: merged };
-      }));
-
-      alert(`Импорт завершен! Найдено и добавлено модов: ${Object.keys(newArtifacts).length} из ${jarFiles.length} файлов.`);
-    } catch (error) {
-      console.error("Ошибка импорта:", error);
-      alert("Не удалось прочитать архив. Возможно, файл поврежден.");
-    } finally {
-      setIsLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
   };
 
   useEffect(() => {
@@ -297,8 +311,8 @@ export default function Home() {
     setIsLoading(true);
     try {
       const facets = [
-        [`versions:${activePack.gameVersion}`],
-        [`categories:${activePack.loader}`],
+        [`versions:${activePack?.gameVersion || "1.16.5"}`],
+        [`categories:${activePack?.loader || "forge"}`],
         ["project_type:mod"]
       ];
       
@@ -336,15 +350,16 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, searchInBody, selectedCategories, activePack.gameVersion, activePack.loader]);
+  }, [query, searchInBody, selectedCategories, activePack?.gameVersion, activePack?.loader]);
 
   useEffect(() => {
+    if (!activePack) return;
     const timer = setTimeout(() => {
       fetchMods(query, currentPage);
       if (scrollRef.current) scrollRef.current.scrollTop = 0; 
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, searchInBody, selectedCategories, activePack.gameVersion, activePack.loader, currentPage]);
+  }, [query, searchInBody, selectedCategories, activePack?.gameVersion, activePack?.loader, currentPage]);
 
   const openModModal = async (mod: ModInfo) => {
     setShowSuggestions(false);
@@ -411,14 +426,17 @@ export default function Home() {
       }
     }
 
-    setModpacks(prev => prev.map(pack => {
+    const newPacks = modpacks.map(pack => {
       if (pack.id !== activePackId) return pack;
       const merged = { ...pack.artifacts };
       for (const [key, value] of Object.entries(newArtifacts)) {
         if (!merged[key]) merged[key] = value;
       }
       return { ...pack, artifacts: merged };
-    }));
+    });
+    
+    setModpacks(newPacks);
+    saveToDB(newPacks, activePackId);
   };
 
   const handleAddMod = async (mod: ModInfo, specificVersion?: any) => {
@@ -444,15 +462,18 @@ export default function Home() {
   };
 
   const removeArtifact = (projectId: string) => {
-    setModpacks(prev => prev.map(pack => {
+    const newPacks = modpacks.map(pack => {
       if (pack.id !== activePackId) return pack;
       const copy = { ...pack.artifacts };
       delete copy[projectId];
       return { ...pack, artifacts: copy };
-    }));
+    });
+    setModpacks(newPacks);
+    saveToDB(newPacks, activePackId);
   };
 
   const downloadModpack = async () => {
+    if (!activePack) return;
     const list = Object.values(activePack.artifacts);
     if (list.length === 0) return;
     setIsDownloading(true);
@@ -481,7 +502,9 @@ export default function Home() {
     }
   };
 
-  const artifactList = Object.values(activePack.artifacts);
+  if (!isLoaded) return null;
+
+  const artifactList = activePack ? Object.values(activePack.artifacts) : [];
   const modsList = artifactList.filter(a => !a.isLibrary);
   const libsList = artifactList.filter(a => a.isLibrary);
 
@@ -501,26 +524,17 @@ export default function Home() {
     return pages;
   };
 
-  if (!isLoaded) return null;
-
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden selection:bg-green-500/30">
       
-      <input 
-        type="file" 
-        accept=".zip" 
-        ref={fileInputRef} 
-        onChange={handleImportZip} 
-        className="hidden" 
-      />
-
       <aside className={`bg-[#0c0c0e] border-r border-white/5 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
         <div className="p-6 flex items-center justify-between min-w-[18rem]">
           <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1>
-          <button onClick={createNewPack} className="text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xl transition-all hover:scale-105 active:scale-95" title="Новая сборка">
+          <button onClick={() => createNewPack()} className="text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xl transition-all hover:scale-105 active:scale-95" title="Новая сборка">
             +
           </button>
         </div>
+        
         <div className="flex-1 overflow-y-auto px-3 space-y-2 custom-scrollbar min-w-[18rem]">
           {modpacks.map(pack => (
             <div 
@@ -555,10 +569,20 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="p-5 text-xs font-medium text-center min-w-[18rem] flex flex-col gap-2">
-           <button onClick={clearAllData} className="text-zinc-600 hover:text-red-500 transition-colors">
-              Очистить все данные
-           </button>
+
+        <div className="p-5 text-xs font-medium text-center min-w-[18rem] flex flex-col gap-4">
+           {user ? (
+             <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+               <div className="text-green-400 mb-1">Вы вошли как:</div>
+               <div className="truncate font-bold text-white">{user.email}</div>
+               <button onClick={logout} className="mt-2 text-zinc-400 hover:text-white bg-white/10 px-3 py-1 rounded-lg w-full transition-colors">Выйти</button>
+             </div>
+           ) : (
+             <button onClick={loginWithGitHub} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/10 text-white px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg">
+               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+               Войти
+             </button>
+           )}
            <span className="text-zinc-700">Powered by Modrinth</span>
         </div>
       </aside>
@@ -613,18 +637,8 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
-              
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-white/5 hover:bg-white/10 text-zinc-300 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 border border-white/10"
-                title="Импортировать сборку из ZIP"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                Импорт
-              </button>
-
               <CustomSelect 
-                value={activePack.gameVersion}
+                value={activePack?.gameVersion || "1.16.5"}
                 onChange={(val) => { updateActivePack({ gameVersion: val, artifacts: {} }); setCurrentPage(1); }}
                 options={[
                   { value: "1.20.1", label: "1.20.1" },
@@ -636,7 +650,7 @@ export default function Home() {
               />
 
               <CustomSelect 
-                value={activePack.loader}
+                value={activePack?.loader || "forge"}
                 onChange={(val) => { updateActivePack({ loader: val, artifacts: {} }); setCurrentPage(1); }}
                 options={[
                   { value: "forge", label: "Forge" },
@@ -723,7 +737,7 @@ export default function Home() {
                     >
                       {isAdding === mod.project_id ? (
                         <div className="w-4 h-4 border-2 border-zinc-400 border-t-white rounded-full animate-spin"></div>
-                      ) : activePack.artifacts[mod.project_id] ? (
+                      ) : activePack?.artifacts[mod.project_id] ? (
                         <>Добавлено</>
                       ) : (
                         <>+ В сборку</>
@@ -786,7 +800,7 @@ export default function Home() {
       >
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black">{activePack.name}</h2>
+            <h2 className="text-2xl font-black">{activePack?.name || "Сборка"}</h2>
             <div className="text-xs text-zinc-500 font-medium mt-2 flex items-center gap-3">
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> {modsList.length} модов</span>
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> {libsList.length} библиотек</span>
@@ -917,7 +931,7 @@ export default function Home() {
               </div>
 
               <div>
-                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии для {activePack.gameVersion}</h3>
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии для {activePack?.gameVersion}</h3>
                 {isModalLoading ? (
                   <div className="flex items-center justify-center py-20 text-green-500 gap-4">
                     <div className="w-6 h-6 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div>
@@ -934,10 +948,10 @@ export default function Home() {
                         </div>
                         <button 
                           onClick={() => handleAddMod(selectedMod, v)}
-                          disabled={isAdding === selectedMod.project_id || !!activePack.artifacts[selectedMod.project_id]}
+                          disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]}
                           className="mt-3 w-full bg-white/5 hover:bg-green-500 hover:text-black text-zinc-300 disabled:bg-white/[0.02] disabled:text-zinc-600 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200"
                         >
-                          {activePack.artifacts[selectedMod.project_id] ? "Уже в сборке" : "Добавить"}
+                          {activePack?.artifacts[selectedMod.project_id] ? "Уже в сборке" : "Добавить"}
                         </button>
                       </div>
                     ))}
