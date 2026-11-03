@@ -5,6 +5,8 @@ import JSZip from "jszip";
 import Image from "next/image";
 import { supabase } from "./supabase";
 
+const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
+
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
@@ -710,7 +712,7 @@ export default function Home() {
                 <div>
                   <label className="text-sm text-zinc-400 mb-3 block font-bold">Рамка профиля (Инвентарь)</label>
                   <div className="grid grid-cols-4 gap-3">
-                    {FRAMES.map(f => (
+                    {FRAMES.filter(f => f.id === "default" || user?.id === ADMIN_ID).map(f => (
                       <button 
                         key={f.id} 
                         onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }}
