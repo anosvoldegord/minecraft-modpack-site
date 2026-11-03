@@ -39,7 +39,7 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
   }, []);
   const selectedOption = options.find(o => o.value === value);
   return (
-    <div className={`relative ${widthClass}`} ref={ref}>
+    <div className={`relative z-50 ${widthClass}`} ref={ref}>
       <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-black/30 backdrop-blur-md hover:bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50 text-white">
         <span className="truncate">{selectedOption?.label || value}</span>
         <svg className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -386,4 +386,5 @@ export default function Home() {
     </div>
   );
 }
+
 
