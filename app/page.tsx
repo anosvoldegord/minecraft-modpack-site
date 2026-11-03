@@ -9,7 +9,7 @@ type ModInfo = { project_id: string; title: string; icon_url: string; descriptio
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; };
-type PublishedPack = { id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; profiles: { username: string; avatar_url: string; title: string } };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения", labelEn: "Adventure" },
@@ -194,11 +194,9 @@ export default function Home() {
     fetchCatalog();
   }, [user]);
 
-  // ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ КАТАЛОГА
   const fetchCatalog = async () => {
     setCatalogError(null);
     try {
-      // 1. Сначала грузим только сборки (без связи с профилем)
       const { data: packs, error: packsError } = await supabase
         .from('published_packs')
         .select('*')
@@ -207,10 +205,8 @@ export default function Home() {
       if (packsError) throw packsError;
       if (!packs || packs.length === 0) { setCatalog([]); return; }
 
-      // 2. Достаем ID всех авторов
       const userIds = [...new Set(packs.map(p => p.user_id))];
 
-      // 3. Грузим их профили отдельно
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username, avatar_url, title')
@@ -218,7 +214,6 @@ export default function Home() {
 
       if (profilesError) throw profilesError;
 
-      // 4. Склеиваем всё вместе
       const combined = packs.map(pack => {
         const author = profiles?.find(pr => pr.id === pack.user_id);
         return {
@@ -288,14 +283,26 @@ export default function Home() {
     setActivePackId(newId);
     saveToDB(newPacks, newId);
     
-    // Увеличиваем счетчик скачиваний
     try {
       await supabase.from('published_packs').update({ downloads: (pack.downloads || 0) + 1 }).eq('id', pack.id);
-      fetchCatalog(); // Обновляем каталог, чтобы счетчик сразу изменился на экране
+      fetchCatalog();
     } catch(e) { console.error(e); }
 
     alert("Сборка добавлена в ваш личный кабинет!");
     setView("mods");
+  };
+
+  // НОВАЯ ФУНКЦИЯ: Удаление сборки из каталога
+  const deleteFromCatalog = async (id: string) => {
+    if (confirm("Вы уверены, что хотите удалить эту сборку из каталога?")) {
+      try {
+        const { error } = await supabase.from('published_packs').delete().eq('id', id);
+        if (error) throw error;
+        fetchCatalog(); // Обновляем список
+      } catch (e: any) {
+        alert("Ошибка удаления: " + e.message);
+      }
+    }
   };
 
   const deletePack = async (id: string, e: React.MouseEvent) => {
@@ -491,7 +498,6 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto p-8">
             <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
-            {/* ВЫВОД ОШИБКИ КАТАЛОГА, ЕСЛИ ОНА ЕСТЬ */}
             {catalogError && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
                 Ошибка загрузки каталога: {catalogError}
@@ -500,7 +506,19 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {catalog.map(pack => (
-                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white">
+                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white relative group">
+                  
+                  {/* Кнопка удаления, видна только автору */}
+                  {user && user.id === pack.user_id && (
+                    <button 
+                      onClick={() => deleteFromCatalog(pack.id)} 
+                      className="absolute top-4 right-4 text-zinc-500 hover:text-red-500 bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                      title="Удалить из каталога"
+                    >
+                      ✕
+                    </button>
+                  )}
+
                   <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                     <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative">
                       {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
@@ -510,7 +528,7 @@ export default function Home() {
                       <div className="text-xs text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold">{pack.name}</h3>
+                  <h3 className="text-xl font-bold pr-6">{pack.name}</h3>
                   <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
                   <div className="text-sm text-zinc-300 flex justify-between items-center mt-2">
                     <span>Модов: {Object.keys(pack.artifacts).length}</span>
