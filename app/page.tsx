@@ -56,6 +56,52 @@ const CATEGORIES = [
 
 const ITEMS_PER_PAGE = 20;
 
+// Кастомный выпадающий список
+const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value);
+
+  return (
+    <div className={`relative ${widthClass}`} ref={ref}>
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50"
+      >
+        <span className="truncate">{selectedOption?.label || value}</span>
+        <svg className={`w-4 h-4 text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 bg-[#151519] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/5 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}
+            >
+              {opt.label}
+              {value === opt.value && (
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Home() {
   const [modpacks, setModpacks] = useState<Modpack[]>([
     { id: "1", name: "Моя первая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} }
@@ -493,17 +539,29 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
-              <select value={activePack.gameVersion} onChange={(e) => { updateActivePack({ gameVersion: e.target.value, artifacts: {} }); setCurrentPage(1); }} className="bg-[#0c0c0e] text-zinc-100 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
-                <option value="1.20.1">1.20.1</option>
-                <option value="1.19.2">1.19.2</option>
-                <option value="1.16.5">1.16.5</option>
-                <option value="1.12.2">1.12.2</option>
-              </select>
-              <select value={activePack.loader} onChange={(e) => { updateActivePack({ loader: e.target.value, artifacts: {} }); setCurrentPage(1); }} className="bg-[#0c0c0e] text-zinc-100 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
-                <option value="forge">Forge</option>
-                <option value="fabric">Fabric</option>
-                <option value="quilt">Quilt</option>
-              </select>
+              
+              <CustomSelect 
+                value={activePack.gameVersion}
+                onChange={(val) => { updateActivePack({ gameVersion: val, artifacts: {} }); setCurrentPage(1); }}
+                options={[
+                  { value: "1.20.1", label: "1.20.1" },
+                  { value: "1.19.2", label: "1.19.2" },
+                  { value: "1.16.5", label: "1.16.5" },
+                  { value: "1.12.2", label: "1.12.2" },
+                ]}
+                widthClass="w-32"
+              />
+
+              <CustomSelect 
+                value={activePack.loader}
+                onChange={(val) => { updateActivePack({ loader: val, artifacts: {} }); setCurrentPage(1); }}
+                options={[
+                  { value: "forge", label: "Forge" },
+                  { value: "fabric", label: "Fabric" },
+                  { value: "quilt", label: "Quilt" },
+                ]}
+                widthClass="w-32"
+              />
 
               <button 
                 onClick={() => setIsPackOpen(true)}
@@ -814,12 +872,6 @@ export default function Home() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-        
-        /* Исправление белых выпадающих списков */
-        select option {
-          background-color: #0c0c0e;
-          color: #f4f4f5;
-        }
       `}} />
     </div>
   );
