@@ -211,13 +211,12 @@ export default function Home() {
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
-      {/* ФОН: Яркий аниме-пейзаж с сакурой */}
+      {/* ФОН: Твой ночной город */}
       <div className="fixed inset-0 z-0">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/bg.png')" }}
         ></div>
-        {/* Легкое затемнение только для читаемости текста */}
         <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
@@ -253,7 +252,7 @@ export default function Home() {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl">
+        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20">
           <div className="flex items-center justify-between gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">{langRu ? "Меню" : "Menu"}</button>
             <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
@@ -386,5 +385,3 @@ export default function Home() {
     </div>
   );
 }
-
-
