@@ -762,7 +762,7 @@ export default function Home() {
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         
-        <div className="p-6 border-b border-white/10 bg-black/20">
+        <div className="p-4 border-b border-white/10 bg-black/20">
           <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка и видео</label>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
@@ -778,7 +778,7 @@ export default function Home() {
           <input type="text" placeholder="Ссылка на YouTube-видео" value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
         </div>
 
-        <div className="p-6 border-b border-white/10 bg-black/20">
+        <div className="p-4 border-b border-white/10 bg-black/20">
           <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание и скриншоты</label>
           <textarea 
             placeholder="Расскажите о своей сборке..." 
@@ -801,7 +801,7 @@ export default function Home() {
           </label>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-3">
@@ -813,7 +813,7 @@ export default function Home() {
           ))}
           {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">Пусто</div>}
         </div>
-        <div className="p-6 border-t border-white/10 flex flex-col gap-3">
+        <div className="p-4 border-t border-white/10 flex flex-col gap-2 shrink-0">
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? "Скачивание..." : "Скачать .zip"}
           </button>
