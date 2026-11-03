@@ -65,6 +65,8 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [langRu, setLangRu] = useState(true);
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [editNameValue, setEditNameValue] = useState("");
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
@@ -95,7 +97,7 @@ export default function Home() {
     else {
       const saved = localStorage.getItem("modbuilder_packs");
       if (saved) { try { const parsed = JSON.parse(saved); if (parsed.length > 0) { setModpacks(parsed); setActivePackId(parsed[0].id); } } catch(e) {} }
-      else { const newPack = { id: "1", name: "Моя сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} }; setModpacks([newPack]); setActivePackId("1"); }
+      else { createNewPack(true, null); }
       setIsLoaded(true);
     }
   }, [user]);
@@ -104,11 +106,7 @@ export default function Home() {
     try {
       const { data } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
       if (data && data.length > 0) { setModpacks(data.map(d => ({ id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {} }))); setActivePackId(data[0].id); }
-      else {
-        const newId = crypto.randomUUID(); const newPack = { id: newId, name: "Моя первая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
-        setModpacks([newPack]); setActivePackId(newId);
-        await supabase.from('modpacks').insert({ id: newId, user_id: user.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} });
-      }
+      else { createNewPack(true, user); }
     } catch(e) {}
     setIsLoaded(true);
   };
@@ -117,6 +115,48 @@ export default function Home() {
     if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return; }
     const pack = newPacks.find(p => p.id === currentId); if (!pack) return;
     try { await supabase.from('modpacks').upsert({ id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts }); } catch(e) {}
+  };
+
+  const createNewPack = async (isInitial = false, currentUser = user) => {
+    const newId = crypto.randomUUID();
+    const newPack = { id: newId, name: isInitial ? "Моя сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
+    const newPacks = [...modpacks, newPack];
+    setModpacks(newPacks);
+    setActivePackId(newId);
+    setIsSidebarOpen(true);
+    
+    if (currentUser) {
+      try { await supabase.from('modpacks').insert({ id: newId, user_id: currentUser.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} }); } catch(e) {}
+    } else {
+      localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks));
+    }
+  };
+
+  const deletePack = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (modpacks.length === 1) return alert("Нельзя удалить последнюю сборку.");
+    if (confirm("Удалить эту сборку?")) {
+      const newPacks = modpacks.filter(p => p.id !== id);
+      setModpacks(newPacks);
+      if (activePackId === id) setActivePackId(newPacks[0].id);
+      if (user) { await supabase.from('modpacks').delete().eq('id', id); } 
+      else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); localStorage.setItem("modbuilder_active_id", newPacks[0].id); }
+    }
+  };
+
+  const startRenaming = (id: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingPackId(id);
+    setEditNameValue(currentName);
+  };
+
+  const saveRename = () => {
+    if (editingPackId && editNameValue.trim()) {
+      const newPacks = modpacks.map(p => p.id === editingPackId ? { ...p, name: editNameValue.trim() } : p);
+      setModpacks(newPacks);
+      saveToDB(newPacks, activePackId);
+    }
+    setEditingPackId(null);
   };
 
   const updateActivePack = (updates: Partial<Modpack>) => { const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, ...updates } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
@@ -211,12 +251,8 @@ export default function Home() {
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
-      {/* ФОН: Твой ночной город */}
       <div className="fixed inset-0 z-0">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/bg.png')" }}
-        ></div>
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div>
         <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
@@ -224,17 +260,27 @@ export default function Home() {
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center">
           <div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div>
           <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход через GitHub...</h2>
-          <p className="text-zinc-400 mt-2">Пожалуйста, подтвердите вход в открывшемся окне</p>
         </div>
       )}
 
       <aside className={`bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
-        <div className="p-6 flex justify-between items-center"><h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">ModBuilder</h1></div>
+        <div className="p-6 flex justify-between items-center">
+          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">ModBuilder</h1>
+          <button onClick={() => createNewPack()} className="bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-lg font-bold text-xl flex items-center justify-center transition-colors" title="Новая сборка">+</button>
+        </div>
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {modpacks.map(pack => (
-            <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
-              <div className="font-bold text-sm truncate text-white">{pack.name}</div>
-              <div className="text-xs text-zinc-300">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
+            <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
+              {editingPackId === pack.id ? (
+                <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" />
+              ) : (
+                <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>
+              )}
+              <div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
+              <div className="absolute top-4 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20" title="Переименовать">✎</button>
+                <button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20" title="Удалить">✕</button>
+              </div>
             </div>
           ))}
         </div>
