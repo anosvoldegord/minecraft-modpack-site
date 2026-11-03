@@ -8,8 +8,8 @@ import { supabase } from "./supabase";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; profiles: { username: string; avatar_url: string; title: string } };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения", labelEn: "Adventure" },
@@ -29,6 +29,7 @@ const CATEGORIES = [
 ];
 
 const ITEMS_PER_PAGE = 20;
+const CATALOG_PER_PAGE = 8;
 
 const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,6 +60,16 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
   );
 };
 
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => {
+  useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
+  const bgColor = type === 'success' ? 'bg-green-500/90' : type === 'error' ? 'bg-red-500/90' : 'bg-blue-500/90';
+  return (
+    <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl text-white font-bold shadow-2xl z-[100] animate-in slide-in-from-bottom-5 ${bgColor}`}>
+      {message}
+    </div>
+  );
+};
+
 export default function Home() {
   const [view, setView] = useState<"mods" | "catalog" | "profile">("mods");
   const [modpacks, setModpacks] = useState<Modpack[]>([]);
@@ -73,6 +84,9 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,10 +96,10 @@ export default function Home() {
   
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
-
   const [catalogVersion, setCatalogVersion] = useState<string>("all");
   const [catalogLoader, setCatalogLoader] = useState<string>("all");
   const [catalogSort, setCatalogSort] = useState<string>("newest");
+  const [catalogPage, setCatalogPage] = useState(1);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
   const [modVersions, setModVersions] = useState<any[]>([]);
@@ -100,24 +114,17 @@ export default function Home() {
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    
     if (error) {
       setDbError(error.message);
-      console.error("Ошибка загрузки профиля:", error);
       return;
     }
-
     if (data) {
       setProfile(data);
     } else {
       const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null };
       const { error: insertError } = await supabase.from('profiles').insert(newProfile);
-      if (insertError) {
-        setDbError(insertError.message);
-        console.error("Ошибка создания профиля:", insertError);
-      } else {
-        setProfile(newProfile);
-      }
+      if (insertError) setDbError(insertError.message);
+      else setProfile(newProfile);
     }
   };
 
@@ -138,39 +145,62 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setIsUploading(true);
-    setDbError(null);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      
       const { error: updateError } = await supabase.from('profiles').upsert({ 
         id: user.id, 
         avatar_url: data.publicUrl,
         username: profile?.username || "Игрок",
         title: profile?.title || "Новичок"
       });
-      
       if (updateError) throw updateError;
 
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
       fetchProfile(user.id);
+      showToast("Аватарка обновлена!", "success");
     } catch (error: any) {
-      setDbError(error.message || "Ошибка загрузки. Проверьте хранилище 'avatars'.");
-      alert("Ошибка загрузки. Проверьте, создано ли хранилище 'avatars'.");
+      showToast(error.message || "Ошибка загрузки аватарки", "error");
     } finally {
       setIsUploading(false);
     }
   };
 
+  const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      
+      // Обновляем обложку в активной локальной сборке
+      const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
+      setModpacks(newPacks);
+      saveToDB(newPacks, packId);
+      
+      // Если сборка уже опубликована, обновляем и там (по имени и id пользователя)
+      if (activePack?.id === packId) {
+          await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('user_id', user.id).eq('name', activePack.name);
+          fetchCatalog();
+      }
+      
+      showToast("Обложка загружена!", "success");
+    } catch (error: any) {
+      showToast("Ошибка загрузки обложки: " + error.message, "error");
+    }
+  };
+
   const saveProfile = async (updates: any) => {
     if (!user) return;
-    setDbError(null);
-    
     const { error } = await supabase.from('profiles').upsert({ 
       id: user.id, 
       username: updates.username,
@@ -178,12 +208,11 @@ export default function Home() {
       avatar_url: profile?.avatar_url || null
     });
 
-    if (error) {
-      setDbError(error.message);
-      alert("Ошибка сохранения профиля: " + error.message);
-    } else {
+    if (error) showToast("Ошибка сохранения профиля: " + error.message, "error");
+    else {
       setProfile((prev: any) => ({ ...prev, ...updates }));
       fetchProfile(user.id);
+      showToast("Профиль сохранен!", "success");
     }
   };
 
@@ -201,42 +230,29 @@ export default function Home() {
   const fetchCatalog = async () => {
     setCatalogError(null);
     try {
-      const { data: packs, error: packsError } = await supabase
-        .from('published_packs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data: packs, error: packsError } = await supabase.from('published_packs').select('*').order('created_at', { ascending: false });
       if (packsError) throw packsError;
       if (!packs || packs.length === 0) { setCatalog([]); return; }
 
       const userIds = [...new Set(packs.map(p => p.user_id))];
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, title')
-        .in('id', userIds);
-
+      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, avatar_url, title').in('id', userIds);
       if (profilesError) throw profilesError;
 
       const combined = packs.map(pack => {
         const author = profiles?.find(pr => pr.id === pack.user_id);
-        return {
-          ...pack,
-          profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок' }
-        };
+        return { ...pack, profiles: author || { username: 'Неизвестный', avatar_url: '', title: 'Новичок' } };
       });
 
       setCatalog(combined as any);
     } catch (err: any) {
       setCatalogError(err.message || "Ошибка загрузки каталога");
-      console.error("Ошибка каталога:", err);
     }
   };
 
   const fetchFromDB = async () => {
     try {
       const { data } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
-      if (data && data.length > 0) { setModpacks(data.map(d => ({ id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {} }))); setActivePackId(data[0].id); }
+      if (data && data.length > 0) { setModpacks(data.map(d => ({ id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, cover_url: d.cover_url || undefined }))); setActivePackId(data[0].id); }
       else { createNewPack(true, user); }
     } catch(e) {}
     setIsLoaded(true);
@@ -264,24 +280,25 @@ export default function Home() {
   };
 
   const publishPack = async () => {
-    if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return alert("Сначала добавьте моды в сборку.");
+    if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return showToast("Сначала добавьте моды в сборку!", "error");
     try {
       const { error } = await supabase.from('published_packs').insert({
         user_id: user.id,
         name: activePack.name,
         game_version: activePack.gameVersion,
         loader: activePack.loader,
-        artifacts: activePack.artifacts
+        artifacts: activePack.artifacts,
+        cover_url: activePack.cover_url
       });
       if (error) throw error;
-      alert("Сборка опубликована в каталоге!");
+      showToast("Сборка опубликована в каталоге!", "success");
       fetchCatalog();
-    } catch(e: any) { alert("Ошибка публикации: " + e.message); }
+    } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
   };
 
   const importPack = async (pack: PublishedPack) => {
     const newId = crypto.randomUUID();
-    const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts };
+    const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts, cover_url: pack.cover_url };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks);
     setActivePackId(newId);
@@ -292,7 +309,7 @@ export default function Home() {
       fetchCatalog();
     } catch(e) { console.error(e); }
 
-    alert("Сборка добавлена в ваш личный кабинет!");
+    showToast("Сборка добавлена в ваш личный кабинет!", "success");
     setView("mods");
   };
 
@@ -302,21 +319,23 @@ export default function Home() {
         const { error } = await supabase.from('published_packs').delete().eq('id', id);
         if (error) throw error;
         fetchCatalog();
+        showToast("Сборка удалена из каталога", "success");
       } catch (e: any) {
-        alert("Ошибка удаления: " + e.message);
+        showToast("Ошибка удаления: " + e.message, "error");
       }
     }
   };
 
   const deletePack = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (modpacks.length === 1) return alert("Нельзя удалить последнюю сборку.");
+    if (modpacks.length === 1) return showToast("Нельзя удалить последнюю сборку", "error");
     if (confirm("Удалить эту сборку?")) {
       const newPacks = modpacks.filter(p => p.id !== id);
       setModpacks(newPacks);
       if (activePackId === id) setActivePackId(newPacks[0].id);
       if (user) { await supabase.from('modpacks').delete().eq('id', id); } 
       else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); }
+      showToast("Сборка удалена", "success");
     }
   };
 
@@ -360,7 +379,7 @@ export default function Home() {
         const versionsData = await (await fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
         verRes = versionsData[0];
       }
-      if (!verRes) return alert("Версия не найдена");
+      if (!verRes) return showToast("Версия не найдена", "error");
       
       const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url, file_url: verRes.files[0]?.url, file_name: verRes.files[0]?.filename, version_number: verRes.version_number } };
       
@@ -377,6 +396,7 @@ export default function Home() {
       
       const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; return { ...p, artifacts: { ...p.artifacts, ...newArtifacts } }; });
       setModpacks(newPacks); saveToDB(newPacks, activePackId); setSelectedMod(null);
+      showToast("Мод добавлен в сборку", "success");
     } catch(e) {} finally { setIsAdding(null); }
   };
 
@@ -403,9 +423,14 @@ export default function Home() {
     filteredCatalog.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
   }
 
+  const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
+  const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
+
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div>
         <div className="absolute inset-0 bg-black/60"></div>
@@ -511,74 +536,75 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto p-8">
             <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
-            {/* ДОБАВЛЕН z-20 СЮДА, ЧТОБЫ ВЫПАДАЮЩИЕ СПИСКИ БЫЛИ СВЕРХУ */}
             <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative z-20">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Версия игры</span>
-                <CustomSelect 
-                  value={catalogVersion} 
-                  onChange={setCatalogVersion} 
-                  options={[{ value: "all", label: "Все версии" }, { value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} 
-                />
+                <CustomSelect value={catalogVersion} onChange={(v) => { setCatalogVersion(v); setCatalogPage(1); }} options={[{ value: "all", label: "Все версии" }, { value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Загрузчик</span>
-                <CustomSelect 
-                  value={catalogLoader} 
-                  onChange={setCatalogLoader} 
-                  options={[{ value: "all", label: "Все" }, { value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} 
-                />
+                <CustomSelect value={catalogLoader} onChange={(v) => { setCatalogLoader(v); setCatalogPage(1); }} options={[{ value: "all", label: "Все" }, { value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Сортировка</span>
-                <CustomSelect 
-                  value={catalogSort} 
-                  onChange={setCatalogSort} 
-                  options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }]} 
-                />
+                <CustomSelect value={catalogSort} onChange={(v) => { setCatalogSort(v); setCatalogPage(1); }} options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }]} />
               </div>
             </div>
 
             {catalogError && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
-                Ошибка загрузки каталога: {catalogError}
-              </div>
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка загрузки каталога: {catalogError}</div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredCatalog.map(pack => (
-                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white relative group">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {paginatedCatalog.map(pack => (
+                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden">
                   
-                  {user && user.id === pack.user_id && (
-                    <button 
-                      onClick={() => deleteFromCatalog(pack.id)} 
-                      className="absolute top-4 right-4 text-zinc-500 hover:text-red-500 bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 z-10"
-                      title="Удалить из каталога"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  {/* ОБЛОЖКА СБОРКИ */}
+                  <div className="w-full h-40 bg-zinc-800 relative border-b border-white/10">
+                    {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">🖼️</div>}
+                    
+                    {user && user.id === pack.user_id && (
+                      <button 
+                        onClick={() => deleteFromCatalog(pack.id)} 
+                        className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 bg-black/50 hover:bg-black/80 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 z-10"
+                        title="Удалить из каталога"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
 
-                  <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative">
-                      {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+                  <div className="p-5 flex flex-col gap-4 flex-1">
+                    <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative">
+                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-green-400">{pack.profiles?.username || "Игрок"}</div>
+                        <div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-sm text-green-400">{pack.profiles?.username || "Игрок"}</div>
-                      <div className="text-xs text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
+                    <h3 className="text-lg font-bold pr-6 leading-tight">{pack.name}</h3>
+                    <div className="text-xs text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
+                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2">
+                      <span>Модов: {Object.keys(pack.artifacts).length}</span>
+                      <span className="text-green-400">⬇ {pack.downloads || 0}</span>
                     </div>
+                    <button onClick={() => importPack(pack)} className="w-full bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold transition-colors">Скачать себе</button>
                   </div>
-                  <h3 className="text-xl font-bold pr-6">{pack.name}</h3>
-                  <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
-                  <div className="text-sm text-zinc-300 flex justify-between items-center mt-2">
-                    <span>Модов: {Object.keys(pack.artifacts).length}</span>
-                    <span className="text-green-400">⬇ {pack.downloads || 0}</span>
-                  </div>
-                  <button onClick={() => importPack(pack)} className="mt-4 w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
                 </div>
               ))}
               {filteredCatalog.length === 0 && !catalogError && <div className="text-zinc-500 col-span-full">По вашему запросу ничего не найдено.</div>}
             </div>
+
+            {/* ПАГИНАЦИЯ КАТАЛОГА */}
+            {totalCatalogPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <button onClick={() => setCatalogPage(p => Math.max(1, p - 1))} disabled={catalogPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-xl font-bold text-sm transition-colors disabled:opacity-30">← Назад</button>
+                <span className="text-sm text-zinc-400 mx-4">Страница {catalogPage} из {totalCatalogPages}</span>
+                <button onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))} disabled={catalogPage === totalCatalogPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-xl font-bold text-sm transition-colors disabled:opacity-30">Вперед →</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -626,6 +652,23 @@ export default function Home() {
           <h2 className="text-2xl font-black text-white">Моя сборка</h2>
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
+        
+        {/* БЛОК ЗАГРУЗКИ ОБЛОЖКИ ДЛЯ СБОРКИ */}
+        <div className="p-6 border-b border-white/10 bg-black/20">
+          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка сборки (для каталога)</label>
+          <div className="flex items-center gap-4">
+            <div className="w-24 h-16 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
+               {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🖼️</div>}
+            </div>
+            <div className="flex-1">
+               <input type="file" id="cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
+               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
+                 Загрузить обложку
+               </label>
+            </div>
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
