@@ -40,14 +40,14 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
   const selectedOption = options.find(o => o.value === value);
   return (
     <div className={`relative ${widthClass}`} ref={ref}>
-      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50">
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-[#0c0c0e]/80 backdrop-blur-md hover:bg-white/10 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50">
         <span className="truncate">{selectedOption?.label || value}</span>
         <svg className={`w-4 h-4 text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </button>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-[#151519] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full right-0 mt-2 bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
           {options.map((opt) => (
-            <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/5 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}>
+            <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/10 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}>
               {opt.label}
               {value === opt.value && <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>}
             </button>
@@ -64,8 +64,6 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
-  // Язык интерфейса (true = RU, false = EN)
   const [langRu, setLangRu] = useState(true);
 
   const [query, setQuery] = useState("");
@@ -191,7 +189,6 @@ export default function Home() {
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
-  // Функция для рендера кнопок пагинации
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -200,24 +197,28 @@ export default function Home() {
     if (currentPage === 1) end = Math.min(3, totalPages);
     if (currentPage === totalPages) start = Math.max(1, totalPages - 2);
     for (let i = start; i <= end; i++) pages.push(i);
-
     return (
       <div className="flex items-center justify-center gap-2 mt-10 mb-6">
-        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors">←</button>
-        {start > 1 && (<><button onClick={() => setCurrentPage(1)} className={`w-10 h-10 rounded-xl font-bold ${currentPage === 1 ? 'bg-green-500 text-black' : 'bg-white/5 hover:bg-white/10'}`}>1</button>{start > 2 && <span className="text-zinc-600">...</span>}</>)}
-        {pages.map(page => (<button key={page} onClick={() => setCurrentPage(page)} className={`w-10 h-10 rounded-xl font-bold ${currentPage === page ? 'bg-green-500 text-black' : 'bg-white/5 hover:bg-white/10'}`}>{page}</button>))}
-        {end < totalPages && (<>{end < totalPages - 1 && <span className="text-zinc-600">...</span>}<button onClick={() => setCurrentPage(totalPages)} className={`w-10 h-10 rounded-xl font-bold ${currentPage === totalPages ? 'bg-green-500 text-black' : 'bg-white/5 hover:bg-white/10'}`}>{totalPages}</button></>)}
-        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors">→</button>
+        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-colors">←</button>
+        {start > 1 && (<><button onClick={() => setCurrentPage(1)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === 1 ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10'}`}>1</button>{start > 2 && <span className="text-zinc-400">...</span>}</>)}
+        {pages.map(page => (<button key={page} onClick={() => setCurrentPage(page)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === page ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'bg-black/40 hover:bg-white/10'}`}>{page}</button>))}
+        {end < totalPages && (<>{end < totalPages - 1 && <span className="text-zinc-400">...</span>}<button onClick={() => setCurrentPage(totalPages)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === totalPages ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10'}`}>{totalPages}</button></>)}
+        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-colors">→</button>
       </div>
     );
   };
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden relative selection:bg-green-500/30">
+    <div className="flex h-screen text-zinc-100 font-sans overflow-hidden relative selection:bg-green-500/30">
       
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-500/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      {/* ФОН: Аниме-пейзаж с сакурой */}
+      <div className="fixed inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=3840&auto=format&fit=crop')" }}
+        ></div>
+        {/* Затемнение для читаемости текста */}
+        <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-[2px]"></div>
       </div>
 
       {isLoggingIn && (
@@ -228,48 +229,48 @@ export default function Home() {
         </div>
       )}
 
-      <aside className={`bg-[#0c0c0e]/80 backdrop-blur-md border-r border-white/5 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
-        <div className="p-6 flex justify-between items-center"><h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1></div>
+      <aside className={`bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
+        <div className="p-6 flex justify-between items-center"><h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">ModBuilder</h1></div>
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {modpacks.map(pack => (
-            <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`p-4 rounded-2xl cursor-pointer ${activePackId === pack.id ? "bg-white/10 shadow-lg" : "hover:bg-white/5"}`}>
+            <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
               <div className="font-bold text-sm truncate">{pack.name}</div>
-              <div className="text-xs text-zinc-500">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
+              <div className="text-xs text-zinc-300">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
             </div>
           ))}
         </div>
         <div className="p-5">
            {user ? (
-             <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
+             <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-center">
                <div className="text-green-400 text-xs mb-1">{langRu ? "Вы вошли:" : "Logged in as:"}</div>
                <div className="truncate font-bold text-sm">{user.email}</div>
-               <button onClick={logout} className="mt-2 text-zinc-400 hover:text-white bg-white/10 px-3 py-1 rounded-lg w-full text-sm">{langRu ? "Выйти" : "Log out"}</button>
+               <button onClick={logout} className="mt-2 text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg w-full text-sm transition-colors">{langRu ? "Выйти" : "Log out"}</button>
              </div>
            ) : (
-             <button onClick={login} className="bg-[#24292e] text-white px-4 py-3 rounded-xl font-bold w-full">{langRu ? "Войти" : "Log in"}</button>
+             <button onClick={login} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">{langRu ? "Войти" : "Log in"}</button>
            )}
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="p-6 border-b border-white/5 flex flex-col gap-4 bg-[#09090b]/80 backdrop-blur-xl">
+        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/40 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/5 p-3 rounded-xl shrink-0">{langRu ? "Меню" : "Menu"}</button>
-            <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50" />
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-xl shrink-0 transition-colors">{langRu ? "Меню" : "Menu"}</button>
+            <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-white/20 transition-all text-white placeholder-zinc-400" />
             
-            <button onClick={() => setLangRu(!langRu)} className="bg-white/5 px-4 py-3 rounded-xl font-bold text-sm">
+            <button onClick={() => setLangRu(!langRu)} className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl font-bold text-sm transition-colors">
               {langRu ? "RU" : "EN"}
             </button>
 
             <div className="flex gap-2 shrink-0">
               <CustomSelect value={activePack?.gameVersion || "1.16.5"} onChange={(val) => updateActivePack({ gameVersion: val, artifacts: {} })} options={[{ value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
               <CustomSelect value={activePack?.loader || "forge"} onChange={(val) => updateActivePack({ loader: val, artifacts: {} })} options={[{ value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} />
-              <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)]">{langRu ? "Сборка" : "Modpack"} ({modsList.length})</button>
+              <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)]">{langRu ? "Сборка" : "Modpack"} ({modsList.length})</button>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => toggleCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${selectedCategories.includes(cat.id) ? "bg-green-500/20 border-green-500/50 text-green-400" : "bg-white/5 border-white/5 text-zinc-400 hover:border-white/20"}`}>
+              <button key={cat.id} onClick={() => toggleCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${selectedCategories.includes(cat.id) ? "bg-green-500/30 border-green-500/60 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.2)]" : "bg-black/30 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"}`}>
                 {langRu ? cat.label : cat.labelEn}
               </button>
             ))}
@@ -283,13 +284,13 @@ export default function Home() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                 {results.map(mod => (
-                  <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-[#0c0c0e]/60 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:border-green-500/30 hover:bg-white/[0.06] cursor-pointer flex flex-col gap-4 shadow-lg hover:shadow-[0_0_30px_rgba(34,197,94,0.15)] transition-all duration-300 hover:-translate-y-1 group">
+                  <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-black/50 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:border-green-500/50 hover:bg-black/60 cursor-pointer flex flex-col gap-4 shadow-xl hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all duration-300 hover:-translate-y-1 group">
                     <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative shadow-md group-hover:scale-105 transition-transform"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
-                      <div className="min-w-0"><h3 className="font-bold text-lg truncate pr-2">{mod.title}</h3><div className="text-xs text-zinc-400 mt-1">⬇ {mod.downloads.toLocaleString()}</div></div>
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative shadow-lg group-hover:scale-105 transition-transform border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
+                      <div className="min-w-0"><h3 className="font-bold text-lg truncate pr-2 text-white">{mod.title}</h3><div className="text-xs text-zinc-400 mt-1 flex items-center gap-1">⬇ {mod.downloads.toLocaleString()}</div></div>
                     </div>
-                    <p className="text-sm text-zinc-400 line-clamp-3 flex-1 relative z-10">{mod.description}</p>
-                    <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/5 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold text-sm transition-colors relative z-10">
+                    <p className="text-sm text-zinc-300 line-clamp-3 flex-1 relative z-10">{mod.description}</p>
+                    <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold text-sm transition-colors relative z-10 border border-white/10 hover:border-green-500">
                       {isAdding === mod.project_id ? "..." : activePack?.artifacts[mod.project_id] ? (langRu ? "Добавлено" : "Added") : (langRu ? "+ В сборку" : "+ Add to pack")}
                     </button>
                   </div>
@@ -301,25 +302,25 @@ export default function Home() {
         </div>
       </main>
 
-      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
-        <div className="p-6 border-b border-white/5 flex justify-between items-center">
+      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-black/80 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-2xl font-black">{langRu ? "Сборка" : "Modpack"}</h2>
-          <button onClick={() => setIsPackOpen(false)} className="bg-white/5 hover:bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
+          <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {modsList.map(mod => (
-            <div key={mod.project_id} className="flex items-center justify-between bg-white/[0.02] p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+            <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden relative"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
-                <span className="text-sm font-bold truncate">{mod.title}</span>
+                <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden relative border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
+                <span className="text-sm font-bold truncate text-white">{mod.title}</span>
               </div>
               <button onClick={() => removeArtifact(mod.project_id)} className="text-red-500 hover:text-red-400 p-2">✕</button>
             </div>
           ))}
-          {modsList.length === 0 && <div className="text-center text-zinc-600 mt-10">{langRu ? "Пусто" : "Empty"}</div>}
+          {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">{langRu ? "Пусто" : "Empty"}</div>}
         </div>
-        <div className="p-6 border-t border-white/5">
-          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
+        <div className="p-6 border-t border-white/10">
+          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? (langRu ? "Скачивание..." : "Downloading...") : (langRu ? "Скачать .zip" : "Download .zip")}
           </button>
         </div>
@@ -328,14 +329,14 @@ export default function Home() {
       {selectedMod && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setSelectedMod(null)}>
           <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-8 border-b border-white/5 flex items-start gap-8 bg-gradient-to-br from-white/[0.04] to-transparent relative">
+            <div className="p-8 border-b border-white/10 flex items-start gap-8 bg-gradient-to-br from-white/[0.04] to-transparent relative">
               <div className="w-32 h-32 rounded-3xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
               <div className="flex-1">
-                <h2 className="text-4xl font-black">{selectedMod.title}</h2>
-                <p className="text-zinc-400 mt-4 leading-relaxed text-base max-w-2xl">{selectedMod.description}</p>
+                <h2 className="text-4xl font-black text-white">{selectedMod.title}</h2>
+                <p className="text-zinc-300 mt-4 leading-relaxed text-base max-w-2xl">{selectedMod.description}</p>
                 <div className="flex gap-6 mt-6 text-sm font-medium text-zinc-400"><span className="flex items-center gap-2">⬇ {selectedMod.downloads.toLocaleString()}</span></div>
               </div>
-              <button onClick={() => setSelectedMod(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 w-12 h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setSelectedMod(null)} className="absolute top-8 right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
             </div>
             
             <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -356,7 +357,7 @@ export default function Home() {
                        <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Описание</h3>
                        <a href={`https://translate.google.com/?sl=en&tl=ru&text=${encodeURIComponent(selectedMod.body)}&op=translate`} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">Перевести на русский</a>
                     </div>
-                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
+                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
                       {selectedMod.body.split('\n').map((paragraph, idx) => (<p key={idx} className="mb-4 last:mb-0 whitespace-pre-wrap">{paragraph}</p>))}
                     </div>
                   </div>
@@ -364,13 +365,13 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии для {activePack?.gameVersion}</h3>
-                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка версий...</div>) : modVersions.length === 0 ? (<div className="text-center text-zinc-500 text-sm bg-white/[0.02] rounded-xl border border-white/5 py-10">Нет версий</div>) : (
+                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка версий...</div>) : modVersions.length === 0 ? (<div className="text-center text-zinc-500 text-sm bg-white/5 rounded-xl border border-white/10 py-10">Нет версий</div>) : (
                   <div className="flex flex-col gap-3">
                     {modVersions.map(v => (
-                      <div key={v.id} className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
-                        <div className="font-bold text-sm text-zinc-200">{v.name}</div>
-                        <div className="text-xs text-zinc-500 mt-1 font-medium">{v.version_number}</div>
-                        <button onClick={() => handleAddMod(selectedMod, v)} disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]} className="mt-3 w-full bg-white/5 hover:bg-green-500 hover:text-black text-zinc-300 disabled:bg-white/[0.02] disabled:text-zinc-600 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200">
+                      <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10 hover:border-green-500/30 transition-colors">
+                        <div className="font-bold text-sm text-white">{v.name}</div>
+                        <div className="text-xs text-zinc-400 mt-1 font-medium">{v.version_number}</div>
+                        <button onClick={() => handleAddMod(selectedMod, v)} disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]} className="mt-3 w-full bg-white/10 hover:bg-green-500 hover:text-black text-zinc-300 disabled:bg-white/5 disabled:text-zinc-600 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200">
                           {activePack?.artifacts[selectedMod.project_id] ? (langRu ? "Уже в сборке" : "Already added") : (langRu ? "Добавить" : "Add")}
                         </button>
                       </div>
