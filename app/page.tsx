@@ -61,6 +61,7 @@ export default function Home() {
     { id: "1", name: "Моя первая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} }
   ]);
   const [activePackId, setActivePackId] = useState<string>("1");
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const [query, setQuery] = useState("");
   const [searchInBody, setSearchInBody] = useState(false);
@@ -69,7 +70,6 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   
-  // Состояния пагинации
   const [currentPage, setCurrentPage] = useState(1);
   const [totalHits, setTotalHits] = useState(0);
 
@@ -89,6 +89,36 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
+
+  // Загрузка данных из LocalStorage при старте
+  useEffect(() => {
+    const saved = localStorage.getItem("modbuilder_packs");
+    const savedActiveId = localStorage.getItem("modbuilder_active_id");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) {
+          setModpacks(parsed);
+          if (savedActiveId && parsed.find((p: any) => p.id === savedActiveId)) {
+            setActivePackId(savedActiveId);
+          } else {
+            setActivePackId(parsed[0].id);
+          }
+        }
+      } catch (e) {
+        console.error("Ошибка загрузки сборок", e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Автосохранение при любом изменении
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("modbuilder_packs", JSON.stringify(modpacks));
+      localStorage.setItem("modbuilder_active_id", activePackId);
+    }
+  }, [modpacks, activePackId, isLoaded]);
 
   const updateActivePack = (updates: Partial<Modpack>) => {
     setModpacks(prev => prev.map(p => p.id === activePackId ? { ...p, ...updates } : p));
@@ -128,11 +158,19 @@ export default function Home() {
     setEditingPackId(null);
   };
 
+  const clearAllData = () => {
+    if (confirm("Удалить ВСЕ сборки и начать с нуля? Это действие нельзя отменить.")) {
+      localStorage.removeItem("modbuilder_packs");
+      localStorage.removeItem("modbuilder_active_id");
+      window.location.reload();
+    }
+  };
+
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev => 
       prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
     );
-    setCurrentPage(1); // Сброс страницы при смене категории
+    setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -145,7 +183,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Функция загрузки с учетом пагинации
   const fetchMods = async (searchQuery: string, page: number) => {
     setIsLoading(true);
     try {
@@ -187,16 +224,14 @@ export default function Home() {
     }
   };
 
-  // Сброс страницы при изменении фильтров или запроса
   useEffect(() => {
     setCurrentPage(1);
   }, [query, searchInBody, selectedCategories, activePack.gameVersion, activePack.loader]);
 
-  // Загрузка данных при изменении страницы или фильтров
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchMods(query, currentPage);
-      if (scrollRef.current) scrollRef.current.scrollTop = 0; // Скролл вверх при смене страницы
+      if (scrollRef.current) scrollRef.current.scrollTop = 0; 
     }, 300);
     return () => clearTimeout(timer);
   }, [query, searchInBody, selectedCategories, activePack.gameVersion, activePack.loader, currentPage]);
@@ -342,7 +377,6 @@ export default function Home() {
 
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
   
-  // Генерация номеров страниц (например, 1, 2, 3, ..., 10)
   const getPageNumbers = () => {
     const pages = [];
     let start = Math.max(1, currentPage - 1);
@@ -357,10 +391,11 @@ export default function Home() {
     return pages;
   };
 
+  if (!isLoaded) return null; // Ждем загрузки из localStorage
+
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden selection:bg-green-500/30">
       
-      {/* Сворачиваемый Сайдбар со сборками */}
       <aside className={`bg-[#0c0c0e] border-r border-white/5 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
         <div className="p-6 flex items-center justify-between min-w-[18rem]">
           <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ModBuilder</h1>
@@ -402,10 +437,14 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="p-5 text-xs text-zinc-600 font-medium text-center min-w-[18rem]">Powered by Modrinth</div>
+        <div className="p-5 text-xs font-medium text-center min-w-[18rem] flex flex-col gap-2">
+           <button onClick={clearAllData} className="text-zinc-600 hover:text-red-500 transition-colors">
+              Очистить все данные
+           </button>
+           <span className="text-zinc-700">Powered by Modrinth</span>
+        </div>
       </aside>
 
-      {/* Основная зона */}
       <main className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
         <header className="p-6 sticky top-0 bg-[#09090b]/80 backdrop-blur-xl z-30 flex flex-col gap-5 border-b border-white/5">
           <div className="flex items-center justify-between gap-6 max-w-7xl mx-auto w-full">
@@ -413,7 +452,6 @@ export default function Home() {
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all shrink-0"
-              title={isSidebarOpen ? "Скрыть панель" : "Показать панель"}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
@@ -557,7 +595,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* ПАГИНАЦИЯ */}
             {totalPages > 1 && (
               <div className="mt-10 mb-6 flex items-center justify-center gap-2">
                 <button 
@@ -605,7 +642,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Выезжающая панель сборки */}
       <div 
         className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e] border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}
       >
@@ -691,7 +727,6 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsPackOpen(false)}></div>
       )}
 
-      {/* Модальное окно с полным описанием и галереей */}
       {selectedMod && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-200" onClick={() => setSelectedMod(null)}>
           <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
