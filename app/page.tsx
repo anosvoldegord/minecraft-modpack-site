@@ -215,7 +215,7 @@ export default function Home() {
       <div className="fixed inset-0 z-0">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=3840&auto=format&fit=crop')" }}
+          style={{ backgroundImage: "url('/bg.png')" }}
         ></div>
         {/* Легкое затемнение только для читаемости текста */}
         <div className="absolute inset-0 bg-black/40"></div>
@@ -386,3 +386,4 @@ export default function Home() {
     </div>
   );
 }
+
