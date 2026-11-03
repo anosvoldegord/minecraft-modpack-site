@@ -83,7 +83,6 @@ export default function Home() {
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  // НОВЫЕ СТЕЙТЫ ДЛЯ ФИЛЬТРОВ КАТАЛОГА
   const [catalogVersion, setCatalogVersion] = useState<string>("all");
   const [catalogLoader, setCatalogLoader] = useState<string>("all");
   const [catalogSort, setCatalogSort] = useState<string>("newest");
@@ -394,7 +393,6 @@ export default function Home() {
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
-  // ФИЛЬТРАЦИЯ И СОРТИРОВКА КАТАЛОГА
   let filteredCatalog = catalog.filter(pack => {
     const matchVersion = catalogVersion === "all" || pack.game_version === catalogVersion;
     const matchLoader = catalogLoader === "all" || pack.loader === catalogLoader;
@@ -403,8 +401,6 @@ export default function Home() {
 
   if (catalogSort === "downloads") {
     filteredCatalog.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
-  } else if (catalogSort === "newest") {
-    // Уже отсортировано по дате из базы
   }
 
   return (
@@ -515,8 +511,8 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto p-8">
             <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
-            {/* ПАНЕЛЬ ФИЛЬТРОВ В КАТАЛОГЕ */}
-            <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md">
+            {/* ДОБАВЛЕН z-20 СЮДА, ЧТОБЫ ВЫПАДАЮЩИЕ СПИСКИ БЫЛИ СВЕРХУ */}
+            <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative z-20">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Версия игры</span>
                 <CustomSelect 
@@ -556,7 +552,7 @@ export default function Home() {
                   {user && user.id === pack.user_id && (
                     <button 
                       onClick={() => deleteFromCatalog(pack.id)} 
-                      className="absolute top-4 right-4 text-zinc-500 hover:text-red-500 bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                      className="absolute top-4 right-4 text-zinc-500 hover:text-red-500 bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 z-10"
                       title="Удалить из каталога"
                     >
                       ✕
