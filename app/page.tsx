@@ -30,7 +30,6 @@ const CATEGORIES = [
   { id: "game-mechanics", label: "Механики" },
 ];
 
-// Убрали золотую рамку (у неё был белый фон)
 const FRAMES = [
   { id: "default", label: "Без рамки", icon: "" },
   { id: "flowers", label: "Цветочная", icon: "/frames/flowers.png" },
@@ -466,7 +465,19 @@ export default function Home() {
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   const downloadModpack = async (pack: Modpack) => { const list = Object.values(pack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
 
-  const login = () => { setIsLoggingIn(true); supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } }); };
+  const login = (provider: 'github' | 'email' | 'google' = 'github') => { 
+    setIsLoggingIn(true); 
+    if (provider === 'github') {
+      supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } }); 
+    } else if (provider === 'google') {
+      supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); 
+    } else {
+      supabase.auth.signInWithOtp({ email: prompt("Введите ваш Email:") || "" }).then(({ error }) => {
+        if (error) { showToast(error.message, "error"); setIsLoggingIn(false); }
+        else { showToast("Проверьте почту для входа!", "success"); setIsLoggingIn(false); }
+      });
+    }
+  };
   const logout = () => supabase.auth.signOut();
   
   if (!isLoaded) return <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">Загрузка...</div>;
@@ -508,7 +519,7 @@ export default function Home() {
       {isLoggingIn && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center">
           <div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div>
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход через GitHub...</h2>
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход...</h2>
         </div>
       )}
 
@@ -559,7 +570,13 @@ export default function Home() {
                <button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button>
              </div>
            ) : (
-             <button onClick={login} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти</button>
+             <div className="flex flex-col gap-2">
+               <button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button>
+               <button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors flex items-center justify-center gap-2">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23.52 12.273c0-.851-.076-1.67-.218-2.455H12v4.642h6.458a5.52 5.52 0 01-2.393 3.621v3.011h3.874c2.267-2.088 3.58-5.163 3.58-8.819z" fill="#4285F4"/><path d="M12 24c3.24 0 5.956-1.075 7.941-2.909l-3.874-3.011c-1.075.72-2.45 1.149-4.067 1.149-3.126 0-5.77-2.112-6.715-4.947H1.276v3.111A11.995 11.995 0 0012 24z" fill="#34A853"/><path d="M5.285 14.282A7.19 7.19 0 014.886 12c0-.794.136-1.564.399-2.282V6.607H1.276A11.995 11.995 0 000 12c0 1.94.464 3.775 1.276 5.393l4.009-3.111z" fill="#FBBC05"/><path d="M12 4.771c1.762 0 3.343.605 4.586 1.794l3.437-3.437C17.951 1.182 15.235 0 12 0 7.302 0 3.232 2.693 1.276 6.607l4.009 3.111C6.23 6.883 8.874 4.771 12 4.771z" fill="#EA4335"/></svg>
+                 Войти через Google
+               </button>
+             </div>
            )}
         </div>
       </aside>
