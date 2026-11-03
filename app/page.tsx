@@ -8,8 +8,8 @@ import { supabase } from "./supabase";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; description?: string; screenshots?: string[]; profiles: { username: string; avatar_url: string; title: string } };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения" },
@@ -107,7 +107,9 @@ export default function Home() {
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   
+  // Стейт для полноэкранного просмотра сборки
   const [viewingPack, setViewingPack] = useState<PublishedPack | null>(null);
+  const [likedPacks, setLikedPacks] = useState<string[]>([]);
 
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -131,14 +133,22 @@ export default function Home() {
     supabase.auth.getSession().then(({ data: { session } }) => { 
       setUser(session?.user ?? null); 
       setIsLoggingIn(false);
-      if(session?.user) fetchProfile(session.user.id);
+      if(session?.user) {
+        fetchProfile(session.user.id);
+        fetchUserLikes(session.user.id);
+      }
     });
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { 
       setUser(session?.user ?? null); 
-      if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); }
+      if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); fetchUserLikes(session!.user.id); }
     });
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  const fetchUserLikes = async (userId: string) => {
+    const { data } = await supabase.from('pack_likes').select('pack_id').eq('user_id', userId);
+    if (data) setLikedPacks(data.map(d => d.pack_id));
+  };
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file || !user) return;
@@ -215,6 +225,27 @@ export default function Home() {
     }
   };
 
+  const toggleLike = async (packId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return showToast("Войдите, чтобы ставить лайки", "error");
+    
+    const isLiked = likedPacks.includes(packId);
+    try {
+      if (isLiked) {
+        await supabase.from('pack_likes').delete().eq('pack_id', packId).eq('user_id', user.id);
+        await supabase.from('published_packs').update({ likes: (viewingPack?.likes || 1) - 1 }).eq('id', packId);
+        setLikedPacks(prev => prev.filter(id => id !== packId));
+        if (viewingPack) setViewingPack({ ...viewingPack, likes: viewingPack.likes - 1 });
+      } else {
+        await supabase.from('pack_likes').insert({ pack_id: packId, user_id: user.id });
+        await supabase.from('published_packs').update({ likes: (viewingPack?.likes || 0) + 1 }).eq('id', packId);
+        setLikedPacks(prev => [...prev, packId]);
+        if (viewingPack) setViewingPack({ ...viewingPack, likes: viewingPack.likes + 1 });
+      }
+      fetchCatalog();
+    } catch (e: any) { showToast("Ошибка лайка: " + e.message, "error"); }
+  };
+
   useEffect(() => {
     if (user) fetchFromDB();
     else {
@@ -251,7 +282,7 @@ export default function Home() {
       if (data && data.length > 0) { 
         setModpacks(data.map(d => ({ 
           id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, 
-          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [] 
+          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [], video_url: d.video_url || undefined
         }))); 
         setActivePackId(data[0].id); 
       }
@@ -266,7 +297,7 @@ export default function Home() {
     try { 
       await supabase.from('modpacks').upsert({ 
         id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts,
-        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null
+        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null
       }); 
     } catch(e) {}
   };
@@ -291,7 +322,8 @@ export default function Home() {
         artifacts: activePack.artifacts,
         cover_url: activePack.cover_url,
         description: activePack.description,
-        screenshots: activePack.screenshots || []
+        screenshots: activePack.screenshots || [],
+        video_url: activePack.video_url
       });
       if (error) throw error;
       showToast("Сборка опубликована в каталоге!", "success");
@@ -303,7 +335,7 @@ export default function Home() {
     const newId = crypto.randomUUID();
     const newPack = { 
       id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts, 
-      cover_url: pack.cover_url, description: pack.description, screenshots: pack.screenshots 
+      cover_url: pack.cover_url, description: pack.description, screenshots: pack.screenshots, video_url: pack.video_url
     };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); saveToDB(newPacks, newId);
@@ -426,6 +458,13 @@ export default function Home() {
 
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
+
+  // Функция для получения ID видео YouTube
+  const getYouTubeID = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
@@ -556,7 +595,6 @@ export default function Home() {
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка загрузки каталога: {catalogError}</div>
             )}
 
-            {/* КАРТОЧКИ СБОРОК В КАТАЛОГЕ (3 в ряд) */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {paginatedCatalog.map(pack => (
                 <div key={pack.id} onClick={() => setViewingPack(pack)} className="bg-[#121214]/80 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-green-500/50 transition-all hover:-translate-y-1">
@@ -587,9 +625,12 @@ export default function Home() {
                     </div>
                     <h3 className="text-xl font-bold pr-6 leading-tight">{pack.name}</h3>
                     <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
-                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2">
-                      <span>Модов: {Object.keys(pack.artifacts).length}</span>
-                      <span className="text-green-400">⬇ {pack.downloads || 0}</span>
+                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2 border-t border-white/5">
+                      <div className="flex gap-3 text-xs">
+                        <span className="text-zinc-400">Модов: {Object.keys(pack.artifacts).length}</span>
+                        <span className="text-pink-400 flex items-center gap-1">❤️ {pack.likes || 0}</span>
+                      </div>
+                      <span className="text-green-400 font-bold">⬇ {pack.downloads || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -653,18 +694,19 @@ export default function Home() {
         </div>
         
         <div className="p-6 border-b border-white/10 bg-black/20">
-          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка сборки</label>
-          <div className="flex items-center gap-4">
+          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка и видео</label>
+          <div className="flex items-center gap-4 mb-4">
             <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
                {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
             </div>
             <div className="flex-1">
                <input type="file" id="cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
-               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
-                 Загрузить обложку
+               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm mb-2">
+                 Обложка
                </label>
             </div>
           </div>
+          <input type="text" placeholder="Ссылка на YouTube-видео" value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
         </div>
 
         <div className="p-6 border-b border-white/10 bg-black/20">
@@ -688,7 +730,6 @@ export default function Home() {
           <label htmlFor="screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm mb-2">
              + Добавить скриншот
           </label>
-          <p className="text-[10px] text-zinc-500 text-center">Рекомендуется от 1 до 7 скриншотов</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -713,72 +754,132 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ПОЛНОЭКРАННЫЙ ПРОСМОТР СБОРКИ ИЗ КАТАЛОГА */}
       {viewingPack && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-6" onClick={() => setViewingPack(null)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-[#09090b] z-[70] overflow-y-auto w-full h-full flex flex-col animate-in fade-in duration-200">
+          
+          {/* Шапка с обложкой */}
+          <div className="w-full h-[40vh] min-h-[300px] relative shrink-0">
+            {viewingPack.cover_url ? <Image src={viewingPack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-8xl opacity-10 bg-zinc-900">🖼️</div>}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent"></div>
             
-            <div className="w-full h-64 md:h-80 bg-zinc-800 relative border-b border-white/10 shrink-0">
-              {viewingPack.cover_url ? <Image src={viewingPack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-8xl opacity-10">🖼️</div>}
-              <button onClick={() => setViewingPack(null)} className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 w-12 h-12 rounded-full flex items-center justify-center transition-colors backdrop-blur-md">✕</button>
+            <button onClick={() => setViewingPack(null)} className="absolute top-8 right-8 text-white bg-black/50 hover:bg-black/80 w-12 h-12 rounded-full flex items-center justify-center transition-colors backdrop-blur-md z-10">✕</button>
+            
+            <div className="absolute bottom-10 left-10 max-w-4xl">
+              <h1 className="text-5xl font-black text-white drop-shadow-2xl mb-4">{viewingPack.name}</h1>
+              <div className="flex items-center gap-4 text-zinc-300">
+                <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
+                  <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-white/20">
+                    {viewingPack.profiles?.avatar_url ? <Image src={viewingPack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
+                  </div>
+                  <span className="font-bold text-sm text-white">{viewingPack.profiles?.username || "Игрок"}</span>
+                </div>
+                <div className="bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-bold">
+                  {viewingPack.game_version} • {viewingPack.loader.toUpperCase()}
+                </div>
+              </div>
             </div>
-            
-            <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2 space-y-8">
-                <div>
-                  <h2 className="text-4xl font-black text-white mb-4">{viewingPack.name}</h2>
-                  <div className="flex items-center gap-3 mb-6">
-                     <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
-                        {viewingPack.profiles?.avatar_url ? <Image src={viewingPack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
-                     </div>
-                     <div>
-                        <div className="font-bold text-sm text-green-400">{viewingPack.profiles?.username || "Игрок"}</div>
-                        <div className="text-xs text-zinc-400">{viewingPack.profiles?.title || "Новичок"}</div>
-                     </div>
-                  </div>
-                  
-                  <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
-                  <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10 mb-8">
-                    {viewingPack.description || "Автор пока не добавил описание к этой сборке."}
-                  </div>
+          </div>
 
-                  {viewingPack.screenshots && viewingPack.screenshots.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Скриншоты</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {viewingPack.screenshots.map((url, i) => (
-                          <div key={i} className="w-full h-40 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10">
-                             <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
-                          </div>
-                        ))}
+          <div className="max-w-6xl mx-auto w-full px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Левая колонка (контент) */}
+            <div className="lg:col-span-2 space-y-12">
+              
+              {/* Видео (если есть) */}
+              {viewingPack.video_url && getYouTubeID(viewingPack.video_url) && (
+                <div className="w-full aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                  <iframe 
+                    width="100%" height="100%" 
+                    src={`https://www.youtube.com/embed/${getYouTubeID(viewingPack.video_url)}`} 
+                    title="YouTube video player" frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
+
+              {/* Скриншоты */}
+              {viewingPack.screenshots && viewingPack.screenshots.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Скриншоты</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {viewingPack.screenshots.map((url, i) => (
+                      <div key={i} className="w-full aspect-video rounded-2xl bg-zinc-800 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(url, '_blank')}>
+                        <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Описание */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Описание</h3>
+                <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-[#121214] p-8 rounded-3xl border border-white/5 shadow-xl leading-relaxed whitespace-pre-wrap">
+                  {viewingPack.description || "Автор пока не добавил описание к этой сборке."}
+                </div>
+              </div>
+
+              {/* Список модов (плиточки) */}
+              <div>
+                <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                  <h3 className="text-xl font-bold text-white">Моды в сборке ({Object.keys(viewingPack.artifacts).length})</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.values(viewingPack.artifacts).map((mod) => (
+                    <div key={mod.project_id} className="flex items-center gap-3 bg-[#121214] p-3 rounded-2xl border border-white/5">
+                      <div className="w-12 h-12 rounded-xl bg-zinc-800 overflow-hidden relative border border-white/10 shrink-0">
+                        {mod.icon_url ? <Image src={mod.icon_url} alt="icon" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl">🧩</div>}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold truncate text-white">{mod.title}</div>
+                        <div className="text-xs text-zinc-500 truncate">{mod.isLibrary ? "Библиотека" : "Мод"}</div>
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
-              
-              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 h-fit">
-                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Информация</h3>
-                <div className="space-y-4 text-sm">
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-zinc-400">Версия игры:</span>
-                    <span className="font-bold text-white">{viewingPack.game_version}</span>
+
+            </div>
+
+            {/* Правая колонка (Инфо и кнопки) */}
+            <div className="space-y-6">
+              <div className="bg-[#121214] p-6 rounded-3xl border border-white/10 shadow-xl sticky top-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col">
+                    <span className="text-3xl font-black text-green-400">{viewingPack.downloads || 0}</span>
+                    <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest">Скачиваний</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-zinc-400">Загрузчик:</span>
+                  <button onClick={(e) => toggleLike(viewingPack.id, e)} className={`flex flex-col items-center gap-1 group transition-transform hover:scale-110 ${likedPacks.includes(viewingPack.id) ? "text-pink-500" : "text-zinc-400 hover:text-pink-400"}`}>
+                    <span className="text-3xl">{likedPacks.includes(viewingPack.id) ? "❤️" : "🤍"}</span>
+                    <span className="text-xs font-bold">{viewingPack.likes || 0} лайков</span>
+                  </button>
+                </div>
+
+                <button onClick={() => { importPack(viewingPack); setViewingPack(null); }} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)] mb-3">
+                  Скачать себе
+                </button>
+                <button onClick={() => { downloadModpack(viewingPack as unknown as Modpack); }} disabled={isDownloading} className="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">
+                  {isDownloading ? "..." : "Скачать .zip"}
+                </button>
+                
+                <div className="mt-8 pt-6 border-t border-white/10 space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Загрузчик:</span>
                     <span className="font-bold text-white">{viewingPack.loader.toUpperCase()}</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-zinc-400">Модов в сборке:</span>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Версия игры:</span>
+                    <span className="font-bold text-white">{viewingPack.game_version}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Модов:</span>
                     <span className="font-bold text-white">{Object.keys(viewingPack.artifacts).length}</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-zinc-400">Скачиваний:</span>
-                    <span className="font-bold text-green-400">{viewingPack.downloads || 0}</span>
-                  </div>
                 </div>
-                <button onClick={() => { importPack(viewingPack); setViewingPack(null); }} className="mt-8 w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)]">Скачать себе</button>
               </div>
             </div>
+
           </div>
         </div>
       )}
