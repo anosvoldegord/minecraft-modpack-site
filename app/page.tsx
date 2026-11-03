@@ -138,7 +138,14 @@ export default function Home() {
   const handleAddMod = async (mod: ModInfo, specificVersion?: any) => {
     setIsAdding(mod.project_id);
     try {
-      const verRes = specificVersion ? { id: specificVersion.id, files: specificVersion.files, version_number: specificVersion.version_number, dependencies: specificVersion.dependencies } : await (await fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json()[0];
+      let verRes: any = specificVersion;
+      
+      // ИСПРАВЛЕНИЕ ОШИБКИ ТИПОВ:
+      if (!verRes) {
+        const versionsData = await (await fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
+        verRes = versionsData[0];
+      }
+      
       if (!verRes) return alert("Версия не найдена");
       
       const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url, file_url: verRes.files[0]?.url, file_name: verRes.files[0]?.filename, version_number: verRes.version_number } };
@@ -147,11 +154,13 @@ export default function Home() {
         for (const dep of verRes.dependencies) {
           if (dep.dependency_type === "required" && dep.project_id) {
             const libProj = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}`)).json();
-            const libVer = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json()[0];
+            const libVersions = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
+            const libVer = libVersions[0]; // ИСПРАВЛЕНИЕ
             if (libVer) newArtifacts[dep.project_id] = { project_id: dep.project_id, version_id: libVer.id, title: libProj.title, isLibrary: true, icon_url: libProj.icon_url, file_url: libVer.files[0]?.url, file_name: libVer.files[0]?.filename, version_number: libVer.version_number };
           }
         }
       }
+      
       const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; return { ...p, artifacts: { ...p.artifacts, ...newArtifacts } }; });
       setModpacks(newPacks); saveToDB(newPacks, activePackId); setSelectedMod(null);
     } catch(e) {} finally { setIsAdding(null); }
