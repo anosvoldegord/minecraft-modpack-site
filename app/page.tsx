@@ -71,6 +71,7 @@ export default function Home() {
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
@@ -92,6 +93,29 @@ export default function Home() {
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    
+    if (error) {
+      setDbError(error.message);
+      console.error("Ошибка загрузки профиля:", error);
+      return;
+    }
+
+    if (data) {
+      setProfile(data);
+    } else {
+      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null };
+      const { error: insertError } = await supabase.from('profiles').insert(newProfile);
+      if (insertError) {
+        setDbError(insertError.message);
+        console.error("Ошибка создания профиля:", insertError);
+      } else {
+        setProfile(newProfile);
+      }
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { 
       setUser(session?.user ?? null); 
@@ -105,29 +129,33 @@ export default function Home() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) setProfile(data);
-    else {
-      const newProfile = { id: userId, username: "Игрок", title: "Новичок" };
-      await supabase.from('profiles').insert(newProfile);
-      setProfile(newProfile);
-    }
-  };
-
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setIsUploading(true);
+    setDbError(null);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const { error } = await supabase.storage.from('avatars').upload(fileName, file);
-      if (error) throw error;
+      
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
-      setProfile({ ...profile, avatar_url: data.publicUrl });
-    } catch (error) {
+      
+      const { error: updateError } = await supabase.from('profiles').upsert({ 
+        id: user.id, 
+        avatar_url: data.publicUrl,
+        username: profile?.username || "Игрок",
+        title: profile?.title || "Новичок"
+      });
+      
+      if (updateError) throw updateError;
+
+      setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
+      fetchProfile(user.id);
+    } catch (error: any) {
+      setDbError(error.message || "Ошибка загрузки. Проверьте хранилище 'avatars'.");
       alert("Ошибка загрузки. Проверьте, создано ли хранилище 'avatars'.");
     } finally {
       setIsUploading(false);
@@ -136,8 +164,22 @@ export default function Home() {
 
   const saveProfile = async (updates: any) => {
     if (!user) return;
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile({ ...profile, ...updates });
+    setDbError(null);
+    
+    const { error } = await supabase.from('profiles').upsert({ 
+      id: user.id, 
+      username: updates.username,
+      title: profile?.title || "Новичок",
+      avatar_url: profile?.avatar_url || null
+    });
+
+    if (error) {
+      setDbError(error.message);
+      alert("Ошибка сохранения профиля: " + error.message);
+    } else {
+      setProfile((prev: any) => ({ ...prev, ...updates }));
+      fetchProfile(user.id);
+    }
   };
 
   useEffect(() => {
@@ -432,6 +474,12 @@ export default function Home() {
             <div className="bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
               <h2 className="text-3xl font-black mb-8 text-center text-white">Мой профиль</h2>
               
+              {dbError && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
+                  Ошибка БД: {dbError}
+                </div>
+              )}
+
               <div className="flex flex-col items-center gap-4 mb-8">
                 <div className="w-32 h-32 rounded-full bg-zinc-800 border-4 border-green-500 overflow-hidden relative shadow-[0_0_30px_rgba(34,197,94,0.4)]">
                    {profile?.avatar_url ? <Image src={profile.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}
