@@ -40,12 +40,12 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
   const selectedOption = options.find(o => o.value === value);
   return (
     <div className={`relative ${widthClass}`} ref={ref}>
-      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-[#0c0c0e]/80 backdrop-blur-md hover:bg-white/10 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50">
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-black/30 backdrop-blur-md hover:bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-sm font-medium flex items-center justify-between gap-2 transition-colors focus:outline-none focus:border-green-500/50 text-white">
         <span className="truncate">{selectedOption?.label || value}</span>
-        <svg className={`w-4 h-4 text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        <svg className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </button>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full right-0 mt-2 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
           {options.map((opt) => (
             <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/10 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}>
               {opt.label}
@@ -199,33 +199,33 @@ export default function Home() {
     for (let i = start; i <= end; i++) pages.push(i);
     return (
       <div className="flex items-center justify-center gap-2 mt-10 mb-6">
-        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-colors">←</button>
-        {start > 1 && (<><button onClick={() => setCurrentPage(1)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === 1 ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10'}`}>1</button>{start > 2 && <span className="text-zinc-400">...</span>}</>)}
-        {pages.map(page => (<button key={page} onClick={() => setCurrentPage(page)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === page ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'bg-black/40 hover:bg-white/10'}`}>{page}</button>))}
-        {end < totalPages && (<>{end < totalPages - 1 && <span className="text-zinc-400">...</span>}<button onClick={() => setCurrentPage(totalPages)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/10 ${currentPage === totalPages ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10'}`}>{totalPages}</button></>)}
-        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/10 hover:bg-white/10 disabled:opacity-30 transition-colors">→</button>
+        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/10 disabled:opacity-30 transition-colors text-white">←</button>
+        {start > 1 && (<><button onClick={() => setCurrentPage(1)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === 1 ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10 text-white'}`}>1</button>{start > 2 && <span className="text-white/50">...</span>}</>)}
+        {pages.map(page => (<button key={page} onClick={() => setCurrentPage(page)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === page ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'bg-black/40 hover:bg-white/10 text-white'}`}>{page}</button>))}
+        {end < totalPages && (<>{end < totalPages - 1 && <span className="text-white/50">...</span>}<button onClick={() => setCurrentPage(totalPages)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === totalPages ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10 text-white'}`}>{totalPages}</button></>)}
+        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/10 disabled:opacity-30 transition-colors text-white">→</button>
       </div>
     );
   };
 
   return (
-    <div className="flex h-screen text-zinc-100 font-sans overflow-hidden relative selection:bg-green-500/30">
+    <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
-      {/* ФОН: Аниме-пейзаж с сакурой */}
+      {/* ФОН: Яркий аниме-пейзаж с сакурой */}
       <div className="fixed inset-0 z-0">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=3840&auto=format&fit=crop')" }}
         ></div>
-        {/* Затемнение для читаемости текста */}
-        <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-[2px]"></div>
+        {/* Легкое затемнение только для читаемости текста */}
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
       {isLoggingIn && (
-        <div className="fixed inset-0 z-[100] bg-[#09090b]/90 backdrop-blur-xl flex flex-col items-center justify-center">
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center">
           <div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div>
           <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход через GitHub...</h2>
-          <p className="text-zinc-500 mt-2">Пожалуйста, подтвердите вход в открывшемся окне</p>
+          <p className="text-zinc-400 mt-2">Пожалуйста, подтвердите вход в открывшемся окне</p>
         </div>
       )}
 
@@ -234,7 +234,7 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
           {modpacks.map(pack => (
             <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
-              <div className="font-bold text-sm truncate">{pack.name}</div>
+              <div className="font-bold text-sm truncate text-white">{pack.name}</div>
               <div className="text-xs text-zinc-300">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
             </div>
           ))}
@@ -243,7 +243,7 @@ export default function Home() {
            {user ? (
              <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-center">
                <div className="text-green-400 text-xs mb-1">{langRu ? "Вы вошли:" : "Logged in as:"}</div>
-               <div className="truncate font-bold text-sm">{user.email}</div>
+               <div className="truncate font-bold text-sm text-white">{user.email}</div>
                <button onClick={logout} className="mt-2 text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg w-full text-sm transition-colors">{langRu ? "Выйти" : "Log out"}</button>
              </div>
            ) : (
@@ -253,12 +253,12 @@ export default function Home() {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/40 backdrop-blur-xl">
+        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-xl shrink-0 transition-colors">{langRu ? "Меню" : "Menu"}</button>
-            <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-white/20 transition-all text-white placeholder-zinc-400" />
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">{langRu ? "Меню" : "Menu"}</button>
+            <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
             
-            <button onClick={() => setLangRu(!langRu)} className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl font-bold text-sm transition-colors">
+            <button onClick={() => setLangRu(!langRu)} className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl font-bold text-sm transition-colors text-white">
               {langRu ? "RU" : "EN"}
             </button>
 
@@ -304,8 +304,8 @@ export default function Home() {
 
       <div className={`fixed inset-y-0 right-0 w-[28rem] bg-black/80 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
-          <h2 className="text-2xl font-black">{langRu ? "Сборка" : "Modpack"}</h2>
-          <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button>
+          <h2 className="text-2xl font-black text-white">{langRu ? "Сборка" : "Modpack"}</h2>
+          <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {modsList.map(mod => (
