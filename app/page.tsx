@@ -77,7 +77,7 @@ const AvatarWithFrame = ({ url, frame, size = "w-10 h-10" }: { url?: string, fra
         {url ? <Image src={url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
       </div>
       {frameFile && (
-        <Image src={frameFile} alt="frame" fill className="absolute inset-0 object-cover scale-125 pointer-events-none" unoptimized />
+        <Image src={frameFile} alt="frame" fill className="absolute inset-0 object-cover scale-110 pointer-events-none" unoptimized />
       )}
     </div>
   );
