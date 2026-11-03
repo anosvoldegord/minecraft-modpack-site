@@ -70,6 +70,7 @@ export default function Home() {
   const [langRu, setLangRu] = useState(true);
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
@@ -111,6 +112,25 @@ export default function Home() {
       const newProfile = { id: userId, username: "Игрок", title: "Новичок" };
       await supabase.from('profiles').insert(newProfile);
       setProfile(newProfile);
+    }
+  };
+
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const { error } = await supabase.storage.from('avatars').upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      setProfile({ ...profile, avatar_url: data.publicUrl });
+    } catch (error) {
+      alert("Ошибка загрузки. Проверьте, создано ли хранилище 'avatars'.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -282,7 +302,7 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div>
-        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="absolute inset-0 bg-black/60"></div>
       </div>
 
       {isLoggingIn && (
@@ -298,9 +318,9 @@ export default function Home() {
         </div>
         
         <div className="px-4 space-y-1 mb-4">
-          <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Сборщик</button>
-          <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Каталог сборок</button>
-          <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Мой профиль</button>
+          <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
+          <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
+          <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
         </div>
 
         {view === "mods" && (
@@ -383,10 +403,10 @@ export default function Home() {
 
         {view === "catalog" && (
           <div className="flex-1 overflow-y-auto p-8">
-            <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Каталог сборок</h2>
+            <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {catalog.map(pack => (
-                <div key={pack.id} className="bg-black/50 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl">
+                <div key={pack.id} className="bg-black/70 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl text-white">
                   <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                     <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative">
                       {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
@@ -422,13 +442,18 @@ export default function Home() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm text-zinc-400 mb-1 block">Никнейм</label>
-                  <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500" />
+                  <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" />
                 </div>
                 <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Ссылка на аватарку</label>
-                  <input type="text" value={profile?.avatar_url || ""} onChange={(e) => setProfile({...profile, avatar_url: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500" placeholder="https://..." />
+                  <label className="text-sm text-zinc-400 mb-1 block">Аватарка (загрузить файл)</label>
+                  <div className="flex items-center gap-4">
+                    <input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" />
+                    <label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20">
+                      {isUploading ? "Загрузка..." : "Выбрать фото"}
+                    </label>
+                  </div>
                 </div>
-                <button onClick={() => saveProfile({ username: profile.username, avatar_url: profile.avatar_url })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
+                <button onClick={() => saveProfile({ username: profile.username })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
               </div>
             </div>
           </div>
