@@ -90,7 +90,6 @@ export default function Home() {
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
-  // Загрузка данных из LocalStorage при старте
   useEffect(() => {
     const saved = localStorage.getItem("modbuilder_packs");
     const savedActiveId = localStorage.getItem("modbuilder_active_id");
@@ -112,7 +111,6 @@ export default function Home() {
     setIsLoaded(true);
   }, []);
 
-  // Автосохранение при любом изменении
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("modbuilder_packs", JSON.stringify(modpacks));
@@ -391,7 +389,7 @@ export default function Home() {
     return pages;
   };
 
-  if (!isLoaded) return null; // Ждем загрузки из localStorage
+  if (!isLoaded) return null;
 
   return (
     <div className="flex h-screen bg-[#09090b] text-zinc-100 font-sans overflow-hidden selection:bg-green-500/30">
@@ -495,13 +493,13 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
-              <select value={activePack.gameVersion} onChange={(e) => updateActivePack({ gameVersion: e.target.value, artifacts: {} })} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
+              <select value={activePack.gameVersion} onChange={(e) => { updateActivePack({ gameVersion: e.target.value, artifacts: {} }); setCurrentPage(1); }} className="bg-[#0c0c0e] text-zinc-100 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
                 <option value="1.20.1">1.20.1</option>
                 <option value="1.19.2">1.19.2</option>
                 <option value="1.16.5">1.16.5</option>
                 <option value="1.12.2">1.12.2</option>
               </select>
-              <select value={activePack.loader} onChange={(e) => updateActivePack({ loader: e.target.value, artifacts: {} })} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
+              <select value={activePack.loader} onChange={(e) => { updateActivePack({ loader: e.target.value, artifacts: {} }); setCurrentPage(1); }} className="bg-[#0c0c0e] text-zinc-100 border border-white/10 rounded-2xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:border-green-500/50 cursor-pointer">
                 <option value="forge">Forge</option>
                 <option value="fabric">Fabric</option>
                 <option value="quilt">Quilt</option>
@@ -816,6 +814,12 @@ export default function Home() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Исправление белых выпадающих списков */
+        select option {
+          background-color: #0c0c0e;
+          color: #f4f4f5;
+        }
       `}} />
     </div>
   );
