@@ -8,8 +8,8 @@ import { supabase } from "./supabase";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; description?: string; profiles: { username: string; avatar_url: string; title: string } };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; cover_url?: string; description?: string; screenshots?: string[]; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения" },
@@ -29,7 +29,7 @@ const CATEGORIES = [
 ];
 
 const ITEMS_PER_PAGE = 20;
-const CATALOG_PER_PAGE = 8;
+const CATALOG_PER_PAGE = 9;
 
 const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,11 +62,11 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => {
   useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-  const bgColor = type === 'success' ? 'bg-[#0c0c0e] border-green-500/50 text-green-400' : type === 'error' ? 'bg-[#0c0c0e] border-red-500/50 text-red-400' : 'bg-[#0c0c0e] border-white/20 text-white';
+  const borderColor = type === 'success' ? 'border-l-green-500' : type === 'error' ? 'border-l-red-500' : 'border-l-blue-500';
   return (
-    <div className={`fixed top-6 right-6 px-6 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl z-[100] animate-in slide-in-from-top-5 flex items-center gap-3 font-bold ${bgColor}`}>
-      {type === 'success' && <span>✅</span>}
-      {type === 'error' && <span>❌</span>}
+    <div className={`fixed top-6 right-6 px-5 py-3 rounded-r-xl rounded-l-md bg-[#121214]/95 border border-white/10 border-l-4 ${borderColor} shadow-2xl z-[100] animate-in slide-in-from-top-5 flex items-center gap-3 font-medium text-sm text-zinc-200 backdrop-blur-xl`}>
+      {type === 'success' && <span className="text-green-500 text-lg">✓</span>}
+      {type === 'error' && <span className="text-red-500 text-lg">✕</span>}
       {message}
     </div>
   );
@@ -107,7 +107,6 @@ export default function Home() {
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   
-  // Стейт для просмотра чужой сборки
   const [viewingPack, setViewingPack] = useState<PublishedPack | null>(null);
 
   const [isPackOpen, setIsPackOpen] = useState(false);
@@ -180,6 +179,31 @@ export default function Home() {
     } catch (error: any) { showToast("Ошибка загрузки обложки: " + error.message, "error"); }
   };
 
+  const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => {
+    const file = e.target.files?.[0]; if (!file || !user) return;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      
+      const pack = modpacks.find(p => p.id === packId);
+      const currentScreens = pack?.screenshots || [];
+      const newScreens = [...currentScreens, data.publicUrl];
+
+      const newPacks = modpacks.map(p => p.id === packId ? { ...p, screenshots: newScreens } : p);
+      setModpacks(newPacks);
+      saveToDB(newPacks, packId);
+      
+      if (activePack?.id === packId) {
+          await supabase.from('published_packs').update({ screenshots: newScreens }).eq('user_id', user.id).eq('name', activePack.name);
+          fetchCatalog();
+      }
+      showToast("Скриншот добавлен!", "success");
+    } catch (error: any) { showToast("Ошибка загрузки скриншота: " + error.message, "error"); }
+  };
+
   const saveProfile = async (updates: any) => {
     if (!user) return;
     const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username, title: profile?.title || "Новичок", avatar_url: profile?.avatar_url || null });
@@ -224,7 +248,13 @@ export default function Home() {
   const fetchFromDB = async () => {
     try {
       const { data } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
-      if (data && data.length > 0) { setModpacks(data.map(d => ({ id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, cover_url: d.cover_url || undefined }))); setActivePackId(data[0].id); }
+      if (data && data.length > 0) { 
+        setModpacks(data.map(d => ({ 
+          id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, 
+          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [] 
+        }))); 
+        setActivePackId(data[0].id); 
+      }
       else { createNewPack(true, user); }
     } catch(e) {}
     setIsLoaded(true);
@@ -233,12 +263,17 @@ export default function Home() {
   const saveToDB = async (newPacks: Modpack[], currentId: string) => {
     if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return; }
     const pack = newPacks.find(p => p.id === currentId); if (!pack) return;
-    try { await supabase.from('modpacks').upsert({ id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts }); } catch(e) {}
+    try { 
+      await supabase.from('modpacks').upsert({ 
+        id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts,
+        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null
+      }); 
+    } catch(e) {}
   };
 
   const createNewPack = async (isInitial = false, currentUser = user) => {
     const newId = crypto.randomUUID();
-    const newPack = { id: newId, name: isInitial ? "Моя сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {} };
+    const newPack = { id: newId, name: isInitial ? "Моя сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {}, screenshots: [] };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); setIsSidebarOpen(true);
     if (currentUser) { try { await supabase.from('modpacks').insert({ id: newId, user_id: currentUser.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} }); } catch(e) {} } 
@@ -254,7 +289,9 @@ export default function Home() {
         game_version: activePack.gameVersion,
         loader: activePack.loader,
         artifacts: activePack.artifacts,
-        cover_url: activePack.cover_url
+        cover_url: activePack.cover_url,
+        description: activePack.description,
+        screenshots: activePack.screenshots || []
       });
       if (error) throw error;
       showToast("Сборка опубликована в каталоге!", "success");
@@ -264,7 +301,10 @@ export default function Home() {
 
   const importPack = async (pack: PublishedPack) => {
     const newId = crypto.randomUUID();
-    const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts, cover_url: pack.cover_url };
+    const newPack = { 
+      id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts, 
+      cover_url: pack.cover_url, description: pack.description, screenshots: pack.screenshots 
+    };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); saveToDB(newPacks, newId);
     try {
@@ -516,12 +556,12 @@ export default function Home() {
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка загрузки каталога: {catalogError}</div>
             )}
 
-            {/* ТЕПЕРЬ КАРТОЧКИ ШИРЕ (до 2-х в ряд на больших экранах) И С ОБЛОЖКАМИ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+            {/* КАРТОЧКИ СБОРОК В КАТАЛОГЕ (3 в ряд) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {paginatedCatalog.map(pack => (
                 <div key={pack.id} onClick={() => setViewingPack(pack)} className="bg-[#121214]/80 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-green-500/50 transition-all hover:-translate-y-1">
                   
-                  <div className="w-full h-52 bg-zinc-800 relative border-b border-white/10">
+                  <div className="w-full h-48 bg-zinc-800 relative border-b border-white/10">
                     {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-6xl opacity-10">🖼️</div>}
                     
                     {user && user.id === pack.user_id && (
@@ -535,21 +575,21 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="p-6 flex flex-col gap-4 flex-1">
-                    <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
-                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+                  <div className="p-5 flex flex-col gap-3 flex-1">
+                    <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-white/10">
+                        {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-sm">👤</div>}
                       </div>
                       <div>
-                        <div className="font-bold text-sm text-green-400">{pack.profiles?.username || "Игрок"}</div>
-                        <div className="text-xs text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
+                        <div className="font-bold text-xs text-green-400">{pack.profiles?.username || "Игрок"}</div>
+                        <div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold pr-6 leading-tight">{pack.name}</h3>
+                    <h3 className="text-xl font-bold pr-6 leading-tight">{pack.name}</h3>
                     <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
-                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-4 border-t border-white/10">
+                    <div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2">
                       <span>Модов: {Object.keys(pack.artifacts).length}</span>
-                      <span className="text-green-400 text-lg font-bold">⬇ {pack.downloads || 0}</span>
+                      <span className="text-green-400">⬇ {pack.downloads || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -627,6 +667,30 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="p-6 border-b border-white/10 bg-black/20">
+          <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание и скриншоты</label>
+          <textarea 
+            placeholder="Расскажите о своей сборке..." 
+            value={activePack?.description || ""} 
+            onChange={(e) => updateActivePack({ description: e.target.value })}
+            className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm mb-4 h-24 resize-none"
+          />
+          
+          <div className="flex flex-wrap gap-2 mb-3">
+            {activePack?.screenshots?.map((url, i) => (
+              <div key={i} className="w-16 h-16 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10">
+                <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+              </div>
+            ))}
+          </div>
+
+          <input type="file" id="screenshot-upload" accept="image/*" onChange={(e) => uploadScreenshot(e, activePackId)} className="hidden" />
+          <label htmlFor="screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm mb-2">
+             + Добавить скриншот
+          </label>
+          <p className="text-[10px] text-zinc-500 text-center">Рекомендуется от 1 до 7 скриншотов</p>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
@@ -649,12 +713,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* МОДАЛЬНОЕ ОКНО ПРОСМОТРА СБОРКИ ИЗ КАТАЛОГА */}
       {viewingPack && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-6" onClick={() => setViewingPack(null)}>
           <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             
-            {/* Обложка в модалке */}
             <div className="w-full h-64 md:h-80 bg-zinc-800 relative border-b border-white/10 shrink-0">
               {viewingPack.cover_url ? <Image src={viewingPack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-8xl opacity-10">🖼️</div>}
               <button onClick={() => setViewingPack(null)} className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 w-12 h-12 rounded-full flex items-center justify-center transition-colors backdrop-blur-md">✕</button>
@@ -675,9 +737,22 @@ export default function Home() {
                   </div>
                   
                   <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
-                  <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
+                  <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10 mb-8">
                     {viewingPack.description || "Автор пока не добавил описание к этой сборке."}
                   </div>
+
+                  {viewingPack.screenshots && viewingPack.screenshots.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Скриншоты</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {viewingPack.screenshots.map((url, i) => (
+                          <div key={i} className="w-full h-40 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10">
+                             <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
