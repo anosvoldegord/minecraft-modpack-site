@@ -9,6 +9,7 @@ type ModInfo = { project_id: string; title: string; icon_url: string; descriptio
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; };
+type PublishedPack = { id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; profiles: { username: string; avatar_url: string; title: string } };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения", labelEn: "Adventure" },
@@ -59,10 +60,12 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-32" }: { value
 };
 
 export default function Home() {
+  const [view, setView] = useState<"mods" | "catalog" | "profile">("mods");
   const [modpacks, setModpacks] = useState<Modpack[]>([]);
   const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [langRu, setLangRu] = useState(true);
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
@@ -74,6 +77,8 @@ export default function Home() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalHits, setTotalHits] = useState(0);
+  
+  const [catalog, setCatalog] = useState<PublishedPack[]>([]);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
   const [modVersions, setModVersions] = useState<any[]>([]);
@@ -87,10 +92,33 @@ export default function Home() {
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); setIsLoggingIn(false); });
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { setUser(session?.user ?? null); if (event === 'SIGNED_IN') setIsLoggingIn(false); });
+    supabase.auth.getSession().then(({ data: { session } }) => { 
+      setUser(session?.user ?? null); 
+      setIsLoggingIn(false);
+      if(session?.user) fetchProfile(session.user.id);
+    });
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { 
+      setUser(session?.user ?? null); 
+      if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); }
+    });
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (data) setProfile(data);
+    else {
+      const newProfile = { id: userId, username: "Игрок", title: "Новичок" };
+      await supabase.from('profiles').insert(newProfile);
+      setProfile(newProfile);
+    }
+  };
+
+  const saveProfile = async (updates: any) => {
+    if (!user) return;
+    await supabase.from('profiles').update(updates).eq('id', user.id);
+    setProfile({ ...profile, ...updates });
+  };
 
   useEffect(() => {
     if (user) fetchFromDB();
@@ -100,7 +128,13 @@ export default function Home() {
       else { createNewPack(true, null); }
       setIsLoaded(true);
     }
+    fetchCatalog();
   }, [user]);
+
+  const fetchCatalog = async () => {
+    const { data } = await supabase.from('published_packs').select(`*, profiles(username, avatar_url, title)`).order('created_at', { ascending: false });
+    if (data) setCatalog(data as any);
+  };
 
   const fetchFromDB = async () => {
     try {
@@ -132,6 +166,32 @@ export default function Home() {
     }
   };
 
+  const publishPack = async () => {
+    if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return alert("Сначала добавьте моды в сборку.");
+    try {
+      await supabase.from('published_packs').insert({
+        user_id: user.id,
+        name: activePack.name,
+        game_version: activePack.gameVersion,
+        loader: activePack.loader,
+        artifacts: activePack.artifacts
+      });
+      alert("Сборка опубликована в каталоге!");
+      fetchCatalog();
+    } catch(e) { alert("Ошибка публикации"); }
+  };
+
+  const importPack = (pack: PublishedPack) => {
+    const newId = crypto.randomUUID();
+    const newPack = { id: newId, name: `Копия: ${pack.name}`, gameVersion: pack.game_version, loader: pack.loader, artifacts: pack.artifacts };
+    const newPacks = [...modpacks, newPack];
+    setModpacks(newPacks);
+    setActivePackId(newId);
+    saveToDB(newPacks, newId);
+    alert("Сборка добавлена в ваш личный кабинет!");
+    setView("mods");
+  };
+
   const deletePack = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (modpacks.length === 1) return alert("Нельзя удалить последнюю сборку.");
@@ -140,24 +200,12 @@ export default function Home() {
       setModpacks(newPacks);
       if (activePackId === id) setActivePackId(newPacks[0].id);
       if (user) { await supabase.from('modpacks').delete().eq('id', id); } 
-      else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); localStorage.setItem("modbuilder_active_id", newPacks[0].id); }
+      else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); }
     }
   };
 
-  const startRenaming = (id: string, currentName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingPackId(id);
-    setEditNameValue(currentName);
-  };
-
-  const saveRename = () => {
-    if (editingPackId && editNameValue.trim()) {
-      const newPacks = modpacks.map(p => p.id === editingPackId ? { ...p, name: editNameValue.trim() } : p);
-      setModpacks(newPacks);
-      saveToDB(newPacks, activePackId);
-    }
-    setEditingPackId(null);
-  };
+  const startRenaming = (id: string, currentName: string, e: React.MouseEvent) => { e.stopPropagation(); setEditingPackId(id); setEditNameValue(currentName); };
+  const saveRename = () => { if (editingPackId && editNameValue.trim()) { const newPacks = modpacks.map(p => p.id === editingPackId ? { ...p, name: editNameValue.trim() } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); } setEditingPackId(null); };
 
   const updateActivePack = (updates: Partial<Modpack>) => { const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, ...updates } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   const toggleCategory = (catId: string) => { setSelectedCategories(prev => prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]); setCurrentPage(1); };
@@ -177,7 +225,7 @@ export default function Home() {
     setIsLoading(false);
   };
 
-  useEffect(() => { if (isLoaded) fetchMods(currentPage); }, [query, selectedCategories, activePack?.gameVersion, activePack?.loader, currentPage, isLoaded]);
+  useEffect(() => { if (isLoaded && view === "mods") fetchMods(currentPage); }, [query, selectedCategories, activePack?.gameVersion, activePack?.loader, currentPage, view]);
 
   const openModModal = async (mod: ModInfo) => {
     setIsModalLoading(true); setSelectedMod({ ...mod, body: "", gallery: [] });
@@ -217,7 +265,7 @@ export default function Home() {
   };
 
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
-  const downloadModpack = async () => { if (!activePack) return; const list = Object.values(activePack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${activePack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
+  const downloadModpack = async (pack: Modpack) => { const list = Object.values(pack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
 
   const login = () => { setIsLoggingIn(true); supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } }); };
   const logout = () => supabase.auth.signOut();
@@ -229,31 +277,12 @@ export default function Home() {
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-    const pages = [];
-    let start = Math.max(1, currentPage - 1);
-    let end = Math.min(totalPages, currentPage + 1);
-    if (currentPage === 1) end = Math.min(3, totalPages);
-    if (currentPage === totalPages) start = Math.max(1, totalPages - 2);
-    for (let i = start; i <= end; i++) pages.push(i);
-    return (
-      <div className="flex items-center justify-center gap-2 mt-10 mb-6">
-        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/10 disabled:opacity-30 transition-colors text-white">←</button>
-        {start > 1 && (<><button onClick={() => setCurrentPage(1)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === 1 ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10 text-white'}`}>1</button>{start > 2 && <span className="text-white/50">...</span>}</>)}
-        {pages.map(page => (<button key={page} onClick={() => setCurrentPage(page)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === page ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'bg-black/40 hover:bg-white/10 text-white'}`}>{page}</button>))}
-        {end < totalPages && (<>{end < totalPages - 1 && <span className="text-white/50">...</span>}<button onClick={() => setCurrentPage(totalPages)} className={`w-10 h-10 rounded-xl font-bold backdrop-blur-md border border-white/20 ${currentPage === totalPages ? 'bg-green-500 text-black' : 'bg-black/40 hover:bg-white/10 text-white'}`}>{totalPages}</button></>)}
-        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-md border border-white/20 hover:bg-white/10 disabled:opacity-30 transition-colors text-white">→</button>
-      </div>
-    );
-  };
-
   return (
     <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div>
-        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/50"></div>
       </div>
 
       {isLoggingIn && (
@@ -266,90 +295,149 @@ export default function Home() {
       <aside className={`bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
         <div className="p-6 flex justify-between items-center">
           <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">ModBuilder</h1>
-          <button onClick={() => createNewPack()} className="bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-lg font-bold text-xl flex items-center justify-center transition-colors" title="Новая сборка">+</button>
         </div>
-        <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          {modpacks.map(pack => (
-            <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
-              {editingPackId === pack.id ? (
-                <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" />
-              ) : (
-                <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>
-              )}
-              <div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
-              <div className="absolute top-4 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20" title="Переименовать">✎</button>
-                <button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20" title="Удалить">✕</button>
-              </div>
+        
+        <div className="px-4 space-y-1 mb-4">
+          <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Сборщик</button>
+          <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Каталог сборок</button>
+          <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10"}`}>Мой профиль</button>
+        </div>
+
+        {view === "mods" && (
+          <>
+            <div className="px-6 pb-2 flex justify-between items-center text-sm font-bold text-zinc-400">
+              <span>Мои сборки</span>
+              <button onClick={() => createNewPack()} className="text-white hover:text-green-400 text-lg" title="Создать">+</button>
             </div>
-          ))}
-        </div>
-        <div className="p-5">
+            <div className="flex-1 overflow-y-auto px-3 space-y-2">
+              {modpacks.map(pack => (
+                <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
+                  {editingPackId === pack.id ? (
+                    <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" />
+                  ) : (
+                    <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>
+                  )}
+                  <div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
+                  <div className="absolute top-4 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20">✎</button>
+                    <button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="p-5 mt-auto">
            {user ? (
              <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-center">
-               <div className="text-green-400 text-xs mb-1">{langRu ? "Вы вошли:" : "Logged in as:"}</div>
-               <div className="truncate font-bold text-sm text-white">{user.email}</div>
-               <button onClick={logout} className="mt-2 text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg w-full text-sm transition-colors">{langRu ? "Выйти" : "Log out"}</button>
+               <div className="text-green-400 text-xs mb-1">Вы вошли:</div>
+               <div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div>
+               <button onClick={logout} className="mt-2 text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg w-full text-sm transition-colors">Выйти</button>
              </div>
            ) : (
-             <button onClick={login} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">{langRu ? "Войти" : "Log in"}</button>
+             <button onClick={login} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти</button>
            )}
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20">
-          <div className="flex items-center justify-between gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">{langRu ? "Меню" : "Menu"}</button>
-            <input type="text" placeholder={langRu ? "Поиск модов..." : "Search mods..."} value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
-            
-            <button onClick={() => setLangRu(!langRu)} className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 rounded-xl font-bold text-sm transition-colors text-white">
-              {langRu ? "RU" : "EN"}
-            </button>
-
-            <div className="flex gap-2 shrink-0">
-              <CustomSelect value={activePack?.gameVersion || "1.16.5"} onChange={(val) => updateActivePack({ gameVersion: val, artifacts: {} })} options={[{ value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
-              <CustomSelect value={activePack?.loader || "forge"} onChange={(val) => updateActivePack({ loader: val, artifacts: {} })} options={[{ value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} />
-              <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)]">{langRu ? "Сборка" : "Modpack"} ({modsList.length})</button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => toggleCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${selectedCategories.includes(cat.id) ? "bg-green-500/30 border-green-500/60 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.2)]" : "bg-black/30 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"}`}>
-                {langRu ? cat.label : cat.labelEn}
-              </button>
-            ))}
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div></div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {results.map(mod => (
-                  <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-black/50 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:border-green-500/50 hover:bg-black/60 cursor-pointer flex flex-col gap-4 shadow-xl hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all duration-300 hover:-translate-y-1 group">
-                    <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative shadow-lg group-hover:scale-105 transition-transform border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
-                      <div className="min-w-0"><h3 className="font-bold text-lg truncate pr-2 text-white">{mod.title}</h3><div className="text-xs text-zinc-400 mt-1 flex items-center gap-1">⬇ {mod.downloads.toLocaleString()}</div></div>
-                    </div>
-                    <p className="text-sm text-zinc-300 line-clamp-3 flex-1 relative z-10">{mod.description}</p>
-                    <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold text-sm transition-colors relative z-10 border border-white/10 hover:border-green-500">
-                      {isAdding === mod.project_id ? "..." : activePack?.artifacts[mod.project_id] ? (langRu ? "Добавлено" : "Added") : (langRu ? "+ В сборку" : "+ Add to pack")}
-                    </button>
-                  </div>
+        {view === "mods" && (
+          <>
+            <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20">
+              <div className="flex items-center justify-between gap-4">
+                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">Меню</button>
+                <input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
+                <div className="flex gap-2 shrink-0">
+                  <CustomSelect value={activePack?.gameVersion || "1.16.5"} onChange={(val) => updateActivePack({ gameVersion: val, artifacts: {} })} options={[{ value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
+                  <CustomSelect value={activePack?.loader || "forge"} onChange={(val) => updateActivePack({ loader: val, artifacts: {} })} options={[{ value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} />
+                  <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)]">Сборка ({modsList.length})</button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => (
+                  <button key={cat.id} onClick={() => toggleCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${selectedCategories.includes(cat.id) ? "bg-green-500/30 border-green-500/60 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.2)]" : "bg-black/30 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"}`}>{cat.label}</button>
                 ))}
               </div>
-              {renderPagination()}
-            </>
-          )}
-        </div>
+            </header>
+            <div className="flex-1 overflow-y-auto p-6">
+              {isLoading ? <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div></div> : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                  {results.map(mod => (
+                    <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-black/50 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:border-green-500/50 hover:bg-black/60 cursor-pointer flex flex-col gap-4 shadow-xl hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all duration-300 hover:-translate-y-1 group">
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative shadow-lg group-hover:scale-105 transition-transform border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
+                        <div className="min-w-0"><h3 className="font-bold text-lg truncate pr-2 text-white">{mod.title}</h3><div className="text-xs text-zinc-400 mt-1">⬇ {mod.downloads.toLocaleString()}</div></div>
+                      </div>
+                      <p className="text-sm text-zinc-300 line-clamp-3 flex-1 relative z-10">{mod.description}</p>
+                      <button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold text-sm transition-colors relative z-10 border border-white/10 hover:border-green-500">
+                        {isAdding === mod.project_id ? "..." : activePack?.artifacts[mod.project_id] ? "Добавлено" : "+ В сборку"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {view === "catalog" && (
+          <div className="flex-1 overflow-y-auto p-8">
+            <h2 className="text-3xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Каталог сборок</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {catalog.map(pack => (
+                <div key={pack.id} className="bg-black/50 backdrop-blur-md border border-white/10 p-6 rounded-3xl flex flex-col gap-4 shadow-xl">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative">
+                      {pack.profiles?.avatar_url ? <Image src={pack.profiles.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-green-400">{pack.profiles?.username || "Игрок"}</div>
+                      <div className="text-xs text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold">{pack.name}</h3>
+                  <div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div>
+                  <div className="text-sm text-zinc-300">Модов: {Object.keys(pack.artifacts).length}</div>
+                  <button onClick={() => importPack(pack)} className="mt-auto w-full bg-white/10 hover:bg-green-500 hover:text-black py-3 rounded-xl font-bold transition-colors">Скачать себе</button>
+                </div>
+              ))}
+              {catalog.length === 0 && <div className="text-zinc-500">Пока никто не опубликовал сборки. Будьте первым!</div>}
+            </div>
+          </div>
+        )}
+
+        {view === "profile" && user && (
+          <div className="flex-1 overflow-y-auto p-8 flex justify-center">
+            <div className="bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+              <h2 className="text-3xl font-black mb-8 text-center text-white">Мой профиль</h2>
+              
+              <div className="flex flex-col items-center gap-4 mb-8">
+                <div className="w-32 h-32 rounded-full bg-zinc-800 border-4 border-green-500 overflow-hidden relative shadow-[0_0_30px_rgba(34,197,94,0.4)]">
+                   {profile?.avatar_url ? <Image src={profile.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl">👤</div>}
+                </div>
+                <div className="text-xl font-bold text-green-400">{profile?.title || "Новичок"}</div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-zinc-400 mb-1 block">Никнейм</label>
+                  <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500" />
+                </div>
+                <div>
+                  <label className="text-sm text-zinc-400 mb-1 block">Ссылка на аватарку</label>
+                  <input type="text" value={profile?.avatar_url || ""} onChange={(e) => setProfile({...profile, avatar_url: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500" placeholder="https://..." />
+                </div>
+                <button onClick={() => saveProfile({ username: profile.username, avatar_url: profile.avatar_url })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <div className={`fixed inset-y-0 right-0 w-[28rem] bg-black/80 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
-          <h2 className="text-2xl font-black text-white">{langRu ? "Сборка" : "Modpack"}</h2>
+          <h2 className="text-2xl font-black text-white">Моя сборка</h2>
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -362,11 +450,14 @@ export default function Home() {
               <button onClick={() => removeArtifact(mod.project_id)} className="text-red-500 hover:text-red-400 p-2">✕</button>
             </div>
           ))}
-          {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">{langRu ? "Пусто" : "Empty"}</div>}
+          {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">Пусто</div>}
         </div>
-        <div className="p-6 border-t border-white/10">
-          <button onClick={downloadModpack} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
-            {isDownloading ? (langRu ? "Скачивание..." : "Downloading...") : (langRu ? "Скачать .zip" : "Download .zip")}
+        <div className="p-6 border-t border-white/10 flex flex-col gap-3">
+          <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
+            {isDownloading ? "Скачивание..." : "Скачать .zip"}
+          </button>
+          <button onClick={publishPack} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
+            Опубликовать в каталоге
           </button>
         </div>
       </div>
@@ -379,46 +470,28 @@ export default function Home() {
               <div className="flex-1">
                 <h2 className="text-4xl font-black text-white">{selectedMod.title}</h2>
                 <p className="text-zinc-300 mt-4 leading-relaxed text-base max-w-2xl">{selectedMod.description}</p>
-                <div className="flex gap-6 mt-6 text-sm font-medium text-zinc-400"><span className="flex items-center gap-2">⬇ {selectedMod.downloads.toLocaleString()}</span></div>
               </div>
               <button onClick={() => setSelectedMod(null)} className="absolute top-8 right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
             </div>
-            
             <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2 space-y-8">
-                {selectedMod.gallery && selectedMod.gallery.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Галерея</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedMod.gallery.map((img, idx) => (
-                        <div key={idx} className="rounded-xl overflow-hidden relative border border-white/10 shadow-lg aspect-video group"><Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized /></div>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 {selectedMod.body && (
                   <div>
-                    <div className="flex justify-between items-center mb-4">
-                       <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Описание</h3>
-                       <a href={`https://translate.google.com/?sl=en&tl=ru&text=${encodeURIComponent(selectedMod.body)}&op=translate`} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">Перевести на русский</a>
-                    </div>
+                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
                     <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
-                      {selectedMod.body.split('\n').map((paragraph, idx) => (<p key={idx} className="mb-4 last:mb-0 whitespace-pre-wrap">{paragraph}</p>))}
+                      {selectedMod.body.substring(0, 1000)}...
                     </div>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии для {activePack?.gameVersion}</h3>
-                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка версий...</div>) : modVersions.length === 0 ? (<div className="text-center text-zinc-500 text-sm bg-white/5 rounded-xl border border-white/10 py-10">Нет версий</div>) : (
+                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии</h3>
+                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка...</div>) : (
                   <div className="flex flex-col gap-3">
-                    {modVersions.map(v => (
-                      <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10 hover:border-green-500/30 transition-colors">
+                    {modVersions.slice(0, 5).map(v => (
+                      <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10">
                         <div className="font-bold text-sm text-white">{v.name}</div>
-                        <div className="text-xs text-zinc-400 mt-1 font-medium">{v.version_number}</div>
-                        <button onClick={() => handleAddMod(selectedMod, v)} disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]} className="mt-3 w-full bg-white/10 hover:bg-green-500 hover:text-black text-zinc-300 disabled:bg-white/5 disabled:text-zinc-600 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200">
-                          {activePack?.artifacts[selectedMod.project_id] ? (langRu ? "Уже в сборке" : "Already added") : (langRu ? "Добавить" : "Add")}
-                        </button>
+                        <button onClick={() => handleAddMod(selectedMod, v)} className="mt-3 w-full bg-white/10 hover:bg-green-500 hover:text-black text-zinc-300 px-3 py-2 rounded-lg text-xs font-bold transition-all">Добавить</button>
                       </div>
                     ))}
                   </div>
