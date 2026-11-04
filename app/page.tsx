@@ -362,8 +362,7 @@ export default function Home() {
         setActivePackId(data[0].id); 
       }
       else { createNewPack(true, user); }
-    } catch(e) {}
-    setIsLoaded(true);
+    } catch(e) { console.error("Fetch error:", e); showToast("Ошибка загрузки сборок", "error"); } setIsLoaded(true);
   };
 
   const saveToDB = async (newPacks: Modpack[], currentId: string) => {
@@ -375,7 +374,7 @@ export default function Home() {
         description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null,
         published_id: pack.published_id || null
       }); 
-      if (error) console.error("Save error:", error);
+      if (error) { console.error("Save error:", error); showToast("Ошибка сохранения: " + error.message, "error"); }
     } catch(e) { console.error(e); }
   };
 
