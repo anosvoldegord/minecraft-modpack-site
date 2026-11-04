@@ -129,6 +129,11 @@ export default function Home() {
   const [activeChat, setActiveChat] = useState<UserProfile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  
+  // Состояния для редактирования сообщений
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editMessageContent, setEditMessageContent] = useState("");
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const translateDescription = async (markdown: string) => {
@@ -231,10 +236,7 @@ export default function Home() {
       const { data: sent, error: err1 } = await supabase.from('friendships').select('*').eq('sender_id', user.id);
       const { data: received, error: err2 } = await supabase.from('friendships').select('*').eq('receiver_id', user.id);
       
-      if (err1 || err2) {
-        console.error("Friendship fetch error:", err1, err2);
-        return;
-      }
+      if (err1 || err2) { console.error("Friendship fetch error:", err1, err2); return; }
 
       const relations = [...(sent || []), ...(received || [])];
       const accepted = relations.filter(r => r.status === 'accepted');
@@ -244,16 +246,12 @@ export default function Home() {
       
       if (friendIds.length > 0) {
         const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').in('id', friendIds);
-        if (profErr) {
-          console.error("Profiles fetch error:", profErr);
-        }
+        if (profErr) { console.error("Profiles fetch error:", profErr); }
         
-        // Защита: если профиля нет в базе, создаем заглушку, чтобы не ломать интерфейс
         const mappedFriends = friendIds.map(id => {
           const p = profiles?.find(pr => pr.id === id);
           return p || { id: id, username: 'Неизвестный игрок', avatar_url: null, title: 'Новичок', frame: 'default' };
         });
-        
         setFriends(mappedFriends);
       } else {
         setFriends([]);
@@ -272,9 +270,7 @@ export default function Home() {
       } else {
         setRequests([]);
       }
-    } catch(e) {
-      console.error("Exception in fetchFriends:", e);
-    }
+    } catch(e) { console.error("Exception in fetchFriends:", e); }
   };
 
   const fetchSuggestedUsers = async () => {
@@ -298,16 +294,8 @@ export default function Home() {
 
   const acceptRequest = async (id: string) => {
     const { data: updated, error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id).select();
-    
-    if (error) {
-      showToast("Ошибка БД: " + error.message, "error");
-      return;
-    }
-    if (!updated || updated.length === 0) {
-      showToast("Не удалось принять заявку (проверьте RLS).", "error");
-      return;
-    }
-
+    if (error) { showToast("Ошибка БД: " + error.message, "error"); return; }
+    if (!updated || updated.length === 0) { showToast("Не удалось принять заявку (проверьте RLS).", "error"); return; }
     showToast("Теперь вы друзья!", "success");
     await fetchFriends();
   };
@@ -318,7 +306,6 @@ export default function Home() {
     try {
       await supabase.from('friendships').delete().eq('sender_id', user.id).eq('receiver_id', friendId);
       await supabase.from('friendships').delete().eq('sender_id', friendId).eq('receiver_id', user.id);
-      
       if (activeChat?.id === friendId) setActiveChat(null);
       fetchFriends();
       showToast("Пользователь удален из друзей", "success");
@@ -350,6 +337,36 @@ export default function Home() {
     setNewMessage("");
     await supabase.from('messages').insert({ sender_id: user.id, receiver_id: activeChat.id, content: msg });
     fetchMessages(activeChat.id);
+  };
+
+  const deleteMessage = async (id: string) => {
+    if (!confirm("Удалить это сообщение?")) return;
+    try {
+      await supabase.from('messages').delete().eq('id', id);
+      setMessages(prev => prev.filter(m => m.id !== id));
+      showToast("Сообщение удалено", "success");
+    } catch (e: any) { showToast("Ошибка удаления", "error"); }
+  };
+
+  const startEditMessage = (id: string, content: string) => {
+    setEditingMessageId(id);
+    setEditMessageContent(content);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditMessageContent("");
+  };
+
+  const saveEditMessage = async (id: string) => {
+    if (!editMessageContent.trim()) return;
+    try {
+      await supabase.from('messages').update({ content: editMessageContent.trim() }).eq('id', id);
+      setMessages(prev => prev.map(m => m.id === id ? { ...m, content: editMessageContent.trim() } : m));
+      setEditingMessageId(null);
+      setEditMessageContent("");
+      showToast("Сообщение обновлено", "success");
+    } catch (e: any) { showToast("Ошибка обновления", "error"); }
   };
 
   const fetchProfile = async (userId: string) => {
@@ -410,7 +427,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -1149,10 +1166,34 @@ export default function Home() {
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение!</div>}
                     {messages.map(m => (
-                      <div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
-                          <p className="text-sm">{m.content}</p>
-                        </div>
+                      <div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"} group`}>
+                        {editingMessageId === m.id ? (
+                          <div className="flex flex-col gap-2 max-w-[70%] w-full items-end">
+                            <input
+                              autoFocus
+                              value={editMessageContent}
+                              onChange={e => setEditMessageContent(e.target.value)}
+                              className="w-full bg-black/50 border border-green-500 rounded-xl px-4 py-2 text-white outline-none"
+                              onKeyDown={(e) => e.key === 'Enter' && saveEditMessage(m.id)}
+                            />
+                            <div className="flex gap-2">
+                              <button onClick={() => cancelEditMessage()} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg">Отмена</button>
+                              <button onClick={() => saveEditMessage(m.id)} className="text-xs bg-green-500 hover:bg-green-400 text-black px-3 py-1 rounded-lg">Сохранить</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`relative max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
+                            <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                            
+                            {/* Кнопки редактирования и удаления (только для своих) */}
+                            {m.sender_id === user.id && (
+                              <div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => startEditMessage(m.id, m.content)} className="text-zinc-400 hover:text-white p-1" title="Редактировать">✎</button>
+                                <button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1" title="Удалить">✕</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     <div ref={chatEndRef} />
