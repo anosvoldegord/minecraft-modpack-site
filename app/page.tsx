@@ -183,7 +183,7 @@ export default function Home() {
   const [catalogVersion, setCatalogVersion] = useState<string>("all");
   const [catalogLoader, setCatalogLoader] = useState<string>("all");
   const [catalogSort, setCatalogSort] = useState<string>("newest");
-  const [catalogSearch, setCatalogSearch] = useState(""); // Поиск по каталогу
+  const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogPage, setCatalogPage] = useState(1);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
@@ -207,7 +207,7 @@ export default function Home() {
     if (user) {
       fetchFriends();
       fetchSuggestedUsers();
-      const interval = setInterval(fetchFriends, 5000); // Автообновление заявок
+      const interval = setInterval(fetchFriends, 5000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -228,38 +228,33 @@ export default function Home() {
   const fetchFriends = async () => {
     if (!user) return;
     try {
-      // Отправленные заявки
       const { data: sent, error: err1 } = await supabase.from('friendships').select('*').eq('sender_id', user.id);
-      // Полученные заявки
       const { data: received, error: err2 } = await supabase.from('friendships').select('*').eq('receiver_id', user.id);
       
       if (err1 || err2) {
         console.error("Friendship fetch error:", err1, err2);
         return;
       }
-      
-      console.log("DEBUG: Sent =", sent);
-      console.log("DEBUG: Received =", received);
 
       const relations = [...(sent || []), ...(received || [])];
       const accepted = relations.filter(r => r.status === 'accepted');
       const pending = relations.filter(r => r.status === 'pending' && r.receiver_id === user.id);
 
       const friendIds = accepted.map(r => r.sender_id === user.id ? r.receiver_id : r.sender_id);
-      console.log("DEBUG: Accepted Friend IDs =", friendIds);
       
       if (friendIds.length > 0) {
         const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').in('id', friendIds);
         if (profErr) {
           console.error("Profiles fetch error:", profErr);
-          showToast("Ошибка загрузки профилей друзей", "error");
-        } else {
-          console.log("DEBUG: Profiles =", profiles);
-          if (profiles && profiles.length === 0) {
-             showToast("Не удалось загрузить профиль друга (проблема с правами RLS)", "error");
-          }
-          setFriends(profiles || []);
         }
+        
+        // Защита: если профиля нет в базе, создаем заглушку, чтобы не ломать интерфейс
+        const mappedFriends = friendIds.map(id => {
+          const p = profiles?.find(pr => pr.id === id);
+          return p || { id: id, username: 'Неизвестный игрок', avatar_url: null, title: 'Новичок', frame: 'default' };
+        });
+        
+        setFriends(mappedFriends);
       } else {
         setFriends([]);
       }
@@ -268,7 +263,11 @@ export default function Home() {
       if (requestSenderIds.length > 0) {
         const { data: profs, error: profsErr } = await supabase.from('profiles').select('*').in('id', requestSenderIds);
         if (!profsErr) {
-          setRequests(pending.map(req => ({ ...req, profile: profs?.find(p => p.id === req.sender_id) })));
+          const mappedRequests = pending.map(req => {
+            const p = profs?.find(pr => pr.id === req.sender_id);
+            return { ...req, profile: p || { id: req.sender_id, username: 'Неизвестный', avatar_url: null, title: 'Новичок', frame: 'default' } };
+          });
+          setRequests(mappedRequests);
         }
       } else {
         setRequests([]);
@@ -298,7 +297,6 @@ export default function Home() {
   };
 
   const acceptRequest = async (id: string) => {
-    // Принудительно запрашиваем обновленные данные, чтобы убедиться, что обновление прошло
     const { data: updated, error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id).select();
     
     if (error) {
@@ -306,19 +304,18 @@ export default function Home() {
       return;
     }
     if (!updated || updated.length === 0) {
-      showToast("Не удалось принять заявку. Проверьте права (RLS) на таблице friendships.", "error");
+      showToast("Не удалось принять заявку (проверьте RLS).", "error");
       return;
     }
 
     showToast("Теперь вы друзья!", "success");
-    await fetchFriends(); // Ждем обновления списка
+    await fetchFriends();
   };
 
   const removeFriend = async (friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Вы уверены, что хотите удалить этого пользователя из друзей?")) return;
     try {
-      // Удаляем в два шага, чтобы избежать багов с .or()
       await supabase.from('friendships').delete().eq('sender_id', user.id).eq('receiver_id', friendId);
       await supabase.from('friendships').delete().eq('sender_id', friendId).eq('receiver_id', user.id);
       
@@ -434,7 +431,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
