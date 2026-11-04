@@ -365,9 +365,9 @@ export default function Home() {
     } catch(e) { console.error("Fetch error:", e); showToast("Ошибка загрузки сборок", "error"); } setIsLoaded(true);
   };
 
-  const saveToDB = async (newPacks: Modpack[], currentId: string) => {
-    if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return; }
-    const pack = newPacks.find(p => p.id === currentId); if (!pack) return;
+  const saveToDB = async (newPacks: Modpack[], currentId: string): Promise<any> => {
+    if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return true; }
+    const pack = newPacks.find(p => p.id === currentId); if (!pack) return false;
     try { 
       const { error } = await supabase.from('modpacks').upsert({ 
         id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts || {},
@@ -557,8 +557,12 @@ export default function Home() {
       }
       
       const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; return { ...p, artifacts: { ...p.artifacts, ...newArtifacts } }; });
-      setModpacks(newPacks); await saveToDB(newPacks, activePackId); setSelectedMod(null);
-      showToast("Мод добавлен в сборку", "success");
+      setModpacks(newPacks);
+      const success = await saveToDB(newPacks, activePackId);
+      if (success) {
+        setSelectedMod(null);
+        showToast("Мод добавлен в сборку", "success");
+      }
     } catch(e) {} finally { setIsAdding(null); }
   };
 
