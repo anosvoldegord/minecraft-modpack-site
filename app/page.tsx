@@ -129,12 +129,20 @@ export default function Home() {
   const [activeChat, setActiveChat] = useState<UserProfile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [isFriendTyping, setIsFriendTyping] = useState(false);
   
   // Состояния для редактирования сообщений
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
+
+  const formatTime = (isoString: string) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -217,18 +225,36 @@ export default function Home() {
     }
   }, [user]);
 
-  // Загрузка сообщений и скролл вниз
+  // Realtime для индикатора "Печатает..." и загрузка сообщений
   useEffect(() => {
     if (activeChat) {
       fetchMessages(activeChat.id);
+      
       const interval = setInterval(() => fetchMessages(activeChat.id), 3000);
-      return () => clearInterval(interval);
+
+      // Настройка Realtime канала для печати
+      const roomName = `typing-${[user.id, activeChat.id].sort().join('-')}`;
+      const channel = supabase.channel(roomName);
+      
+      channel.on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.user_id !== user.id) {
+          setIsFriendTyping(true);
+          setTimeout(() => setIsFriendTyping(false), 2000); // Сбрасываем через 2 секунды
+        }
+      }).subscribe();
+
+      channelRef.current = channel;
+
+      return () => {
+        clearInterval(interval);
+        supabase.removeChannel(channel);
+      };
     }
   }, [activeChat]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isFriendTyping]);
 
   const fetchFriends = async () => {
     if (!user) return;
@@ -337,6 +363,16 @@ export default function Home() {
     setNewMessage("");
     await supabase.from('messages').insert({ sender_id: user.id, receiver_id: activeChat.id, content: msg });
     fetchMessages(activeChat.id);
+  };
+
+  const handleTyping = () => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { user_id: user.id },
+      });
+    }
   };
 
   const deleteMessage = async (id: string) => {
@@ -787,7 +823,7 @@ export default function Home() {
   };
   const logout = () => supabase.auth.signOut();
   
-  if (!isLoaded) return <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">Загрузка...</div>;
+  if (!isLoaded) return <div className="h-dvh bg-[#09090b] text-white flex items-center justify-center">Загрузка...</div>;
 
   const artifactList = activePack ? Object.values(activePack.artifacts) : [];
   const modsList = artifactList.filter(a => !a.isLibrary);
@@ -817,7 +853,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen text-white font-sans overflow-hidden relative selection:bg-green-500/30">
+    <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -1070,9 +1106,9 @@ export default function Home() {
         )}
 
         {view === "friends" && user && (
-          <div className="flex-1 flex overflow-hidden bg-transparent">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent">
             {/* Левая колонка: Поиск и списки */}
-            <div className="w-80 border-r border-white/10 flex flex-col bg-black/20 backdrop-blur-md shrink-0">
+            <div className={`w-full md:w-80 border-r border-white/10 flex flex-col bg-black/20 backdrop-blur-md shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-4 border-b border-white/10">
                 <h2 className="text-xl font-bold mb-4">Сообщество</h2>
                 <input 
@@ -1151,13 +1187,17 @@ export default function Home() {
             </div>
 
             {/* Правая колонка: Чат (прозрачный) */}
-            <div className="flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative">
+            <div className={`flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
               {activeChat ? (
                 <>
                   <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
                     <div className="flex items-center gap-3">
+                      <button onClick={() => setActiveChat(null)} className="md:hidden text-zinc-400 hover:text-white mr-2 text-xl">←</button>
                       <AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" />
-                      <h3 className="font-bold text-lg">{activeChat.username}</h3>
+                      <div>
+                        <h3 className="font-bold text-lg leading-tight">{activeChat.username}</h3>
+                        {isFriendTyping && <span className="text-xs text-green-400 animate-pulse">Печатает...</span>}
+                      </div>
                     </div>
                     <button onClick={clearChat} className="text-zinc-400 hover:text-red-400 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
                       Очистить чат
@@ -1184,6 +1224,9 @@ export default function Home() {
                         ) : (
                           <div className={`relative max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
                             <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                            <div className={`text-[10px] mt-1 text-right ${m.sender_id === user.id ? "text-green-800" : "text-zinc-400"}`}>
+                              {formatTime(m.created_at)}
+                            </div>
                             
                             {/* Кнопки редактирования и удаления (только для своих) */}
                             {m.sender_id === user.id && (
@@ -1196,13 +1239,24 @@ export default function Home() {
                         )}
                       </div>
                     ))}
+                    
+                    {isFriendTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-white/10 text-white rounded-2xl rounded-bl-none p-3 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                        </div>
+                      </div>
+                    )}
+
                     <div ref={chatEndRef} />
                   </div>
                   <div className="p-4 border-t border-white/10 bg-black/40 flex gap-2">
                     <input 
                       type="text" 
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
                       onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                       placeholder="Написать сообщение..."
                       className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white"
