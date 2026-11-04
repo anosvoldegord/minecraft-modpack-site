@@ -42,7 +42,7 @@ const FRAMES = [
   { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
 ];
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
 
 const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
@@ -427,7 +427,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
