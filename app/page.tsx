@@ -964,7 +964,8 @@ export default function Home() {
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); saveToDB(newPacks, newId);
     try {
-      await supabase.from('published_packs').update({ downloads: (pack.downloads || 0) + 1 }).eq('id', pack.id);
+      await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
+      setViewingPack(prev => prev ? { ...prev, downloads: (prev.downloads || 0) + 1 } : null);
       fetchCatalog();
     } catch(e) { console.error(e); }
     showToast("Сборка добавлена в ваш личный кабинет!", "success");
@@ -1073,7 +1074,34 @@ export default function Home() {
 
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   
-  const downloadModpack = async (pack: Modpack) => { const list = Object.values(pack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
+  const downloadModpack = async (pack: any) => { 
+    const list = Object.values(pack.artifacts) as any[]; 
+    if (list.length === 0) return; 
+    setIsDownloading(true); 
+    const zip = new JSZip(); 
+    const modsFolder = zip.folder("mods"); 
+    try { 
+      for (const item of list) { 
+        if (item.file_url && item.file_name) { 
+          const res = await fetch(item.file_url); 
+          modsFolder?.file(item.file_name, await res.blob()); 
+        } 
+      } 
+      const content = await zip.generateAsync({ type: "blob" }); 
+      const a = document.createElement("a"); 
+      a.href = URL.createObjectURL(content); 
+      a.download = `${pack.name}.zip`; 
+      a.click(); 
+      
+      if (pack.id && pack.downloads !== undefined) {
+        await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
+        if (viewingPack && viewingPack.id === pack.id) {
+          setViewingPack({ ...viewingPack, downloads: (viewingPack.downloads || 0) + 1 });
+        }
+        fetchCatalog();
+      }
+    } catch(e) { console.error(e); } finally { setIsDownloading(false); } 
+  };
   
   const exportMrpack = async (pack: Modpack) => {
     if (!pack || Object.keys(pack.artifacts).length === 0) return;
@@ -1150,7 +1178,6 @@ export default function Home() {
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
 
-  // ФИЛЬТР ДЛЯ ТОП-3: Рейтинг >= 3.0
   const topPacks = [...catalog]
     .filter(pack => Number(pack.rating || 0) >= 3.0)
     .sort((a, b) => calculateTopScore(b) - calculateTopScore(a))
@@ -2041,10 +2068,10 @@ export default function Home() {
                    </div>
                 </div>
 
-                <button onClick={() => { importPack(viewingPack); setViewingPack(null); }} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)] mb-3">
+                <button onClick={() => { importPack(viewingPack); }} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)] mb-3">
                   Скачать себе
                 </button>
-                <button onClick={() => { downloadModpack(viewingPack as unknown as Modpack); }} disabled={isDownloading} className="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">
+                <button onClick={() => { downloadModpack(viewingPack); }} disabled={isDownloading} className="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">
                   {isDownloading ? "..." : "Скачать .zip"}
                 </button>
                 
