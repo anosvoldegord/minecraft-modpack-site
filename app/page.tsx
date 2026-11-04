@@ -496,7 +496,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -554,23 +554,26 @@ export default function Home() {
   };
 
   // ==== АДМИН ФУНКЦИИ ====
-  const giveTitle = async (targetUserId: string, titleId: string) => {
+  const toggleTitle = async (targetUserId: string, titleId: string) => {
     const targetUser = adminUsers.find(u => u.id === targetUserId);
     if (!targetUser) return;
     
     const currentOwned = targetUser.owned_titles || ['novice'];
-    if (currentOwned.includes(titleId)) {
-      showToast("У пользователя уже есть этот титул", "error");
-      return;
+    const hasTitle = currentOwned.includes(titleId);
+    
+    let newOwned;
+    if (hasTitle) {
+      newOwned = currentOwned.filter((id: string) => id !== titleId);
+    } else {
+      newOwned = [...currentOwned, titleId];
     }
     
-    const newOwned = [...currentOwned, titleId];
     const { error } = await supabase.from('profiles').update({ owned_titles: newOwned }).eq('id', targetUserId);
     
     if (error) {
-      showToast("Ошибка выдачи: " + error.message, "error");
+      showToast("Ошибка: " + error.message, "error");
     } else {
-      showToast("Титул успешно выдан!", "success");
+      showToast(hasTitle ? "Титул забран!" : "Титул выдан!", "success");
       setAdminUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, owned_titles: newOwned } : u));
     }
   };
@@ -1496,16 +1499,16 @@ export default function Home() {
                   </div>
 
                   <div className="border-t border-white/10 pt-3 flex-1">
-                    <label className="text-sm text-zinc-400 mb-2 block">Выдать титул</label>
+                    <label className="text-sm text-zinc-400 mb-2 block">Выдать / Забрать титул</label>
                     <div className="flex flex-wrap gap-2">
                       {TITLES.map(t => {
                         const hasTitle = u.owned_titles?.includes(t.id);
                         return (
                           <button 
                             key={t.id}
-                            onClick={() => giveTitle(u.id, t.id)}
-                            disabled={hasTitle}
-                            className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${hasTitle ? "bg-green-500/20 border-green-500/30 text-green-300 opacity-50 cursor-not-allowed" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:border-white/30"}`}
+                            onClick={() => toggleTitle(u.id, t.id)}
+                            className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${hasTitle ? "bg-green-500/20 border-green-500/30 text-green-300 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-300" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:border-white/30"}`}
+                            title={hasTitle ? "Нажмите, чтобы забрать" : "Нажмите, чтобы выдать"}
                           >
                             {t.name}
                           </button>
