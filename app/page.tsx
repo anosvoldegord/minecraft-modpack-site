@@ -166,7 +166,6 @@ export default function Home() {
 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
-  // Состояния для друзей и чата
   const [friends, setFriends] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -178,29 +177,23 @@ export default function Home() {
   const [isFriendTyping, setIsFriendTyping] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   
-  // Состояния для прикрепления файла
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSendingFile, setIsSendingFile] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiTab, setEmojiTab] = useState<"emojis" | "gifs">("emojis");
 
-  // Состояния для редактирования сообщений
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
 
-  // Поиск по сборке и уведомления
   const [packSearch, setPackSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Админ-панель
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminSearch, setAdminSearch] = useState("");
 
-  // Профиль (Инвентарь)
   const [profileTab, setProfileTab] = useState<"frames" | "titles" | "items">("frames");
 
-  // Чужие профили, комментарии и рейтинги
   const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
   const [viewingUserPacks, setViewingUserPacks] = useState<PublishedPack[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -221,7 +214,6 @@ export default function Home() {
     return /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(text) || text.includes('tenor.com/view') || text.includes('media.tenor.com') || text.includes('media.giphy.com') || text.includes('i.giphy.com');
   };
 
-  // --- УВЕДОМЛЕНИЯ ---
   useEffect(() => {
     if (!user) return;
     const checkUnread = async () => {
@@ -250,7 +242,7 @@ export default function Home() {
     const readState = JSON.parse(localStorage.getItem('read_state') || '{}');
     readState[friend.id] = new Date().toISOString();
     localStorage.setItem('read_state', JSON.stringify(readState));
-    setUnreadCount(0); // Сбрасываем визуально
+    setUnreadCount(0);
   };
 
   const translateDescription = async (markdown: string) => {
@@ -324,7 +316,6 @@ export default function Home() {
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
 
-  // Загрузка друзей, заявок и рекомендаций
   useEffect(() => {
     if (user) {
       fetchFriends();
@@ -334,7 +325,6 @@ export default function Home() {
     }
   }, [user]);
 
-  // Админ функция загрузки пользователей
   useEffect(() => {
     if (user && user.id === ADMIN_ID && view === "admin") {
       supabase.from('profiles').select('*').then(({ data }) => {
@@ -343,7 +333,6 @@ export default function Home() {
     }
   }, [user, view]);
 
-  // Realtime для индикатора "Печатает..." и загрузка сообщений
   useEffect(() => {
     if (activeChat) {
       fetchMessages(activeChat.id);
@@ -633,7 +622,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -690,7 +679,6 @@ export default function Home() {
     }
   };
 
-  // ==== АДМИН ФУНКЦИИ ====
   const toggleTitle = async (targetUserId: string, titleId: string) => {
     const targetUser = adminUsers.find(u => u.id === targetUserId);
     if (!targetUser) return;
@@ -725,7 +713,6 @@ export default function Home() {
     }
   };
 
-  // ==== РЕЙТИНГ, ЛАЙКИ, ПРОФИЛИ И КОММЕНТАРИИ ====
   const toggleLike = async (packId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) return showToast("Войдите, чтобы ставить лайки", "error");
@@ -751,7 +738,8 @@ export default function Home() {
 
   const setRating = async (packId: string, score: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return showToast("Войдите, чтобы оценить сборку", "error");
+    if (!user) return;
+    if (viewingPack && viewingPack.user_id === user.id) return;
 
     try {
       const { error } = await supabase.from('pack_ratings').upsert({
@@ -770,7 +758,6 @@ export default function Home() {
 
       setUserRatings(prev => ({ ...prev, [packId]: score }));
       fetchCatalog();
-      showToast("Оценка сохранена!", "success");
     } catch (err: any) {
       showToast("Ошибка: " + err.message, "error");
     }
@@ -1079,10 +1066,8 @@ export default function Home() {
 
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   
-  // ==== СКАЧИВАНИЕ ZIP ====
   const downloadModpack = async (pack: Modpack) => { const list = Object.values(pack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
   
-  // ==== ЭКСПОРТ MRPACK ====
   const exportMrpack = async (pack: Modpack) => {
     if (!pack || Object.keys(pack.artifacts).length === 0) return;
     setIsDownloading(true);
@@ -1164,6 +1149,8 @@ export default function Home() {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
+  const isOwnPack = !!(viewingPack && user && viewingPack.user_id === user.id);
+
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       
@@ -1181,7 +1168,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* МОБИЛЬНЫЙ ОВЕРЛЕЙ ДЛЯ САЙДБАРА */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
       )}
@@ -1442,7 +1428,6 @@ export default function Home() {
 
         {view === "friends" && user && (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent">
-            {/* Левая колонка: Поиск и списки */}
             <div className={`w-full md:w-80 border-r border-white/10 flex flex-col bg-black/20 backdrop-blur-md shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-4 border-b border-white/10">
                 <h2 className="text-xl font-bold mb-4">Сообщество</h2>
@@ -1483,7 +1468,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Рекомендации (скрываем тех, кто уже в друзьях) */}
               {!searchQuery && suggestedUsers.filter(u => !friends.some(f => f.id === u.id)).length > 0 && (
                 <div className="p-4 border-b border-white/10">
                   <h3 className="text-sm font-bold text-zinc-400 mb-2">Рекомендации</h3>
@@ -1524,7 +1508,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Правая колонка: Чат (прозрачный) */}
             <div className={`flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
               {activeChat ? (
                 <>
@@ -1581,7 +1564,6 @@ export default function Home() {
                               {formatTime(m.created_at)}
                             </div>
                             
-                            {/* Кнопки редактирования и удаления (только для своих) */}
                             {m.sender_id === user.id && !isImageUrl(m.content) && (
                               <div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => startEditMessage(m.id, m.content)} className="text-zinc-400 hover:text-white p-1" title="Редактировать">✎</button>
@@ -1620,7 +1602,6 @@ export default function Home() {
                     )}
                     
                     <div className="flex gap-2 items-center relative">
-                      {/* Панель эмодзи и гифок */}
                       {showEmojiPicker && (
                         <div className="absolute bottom-full mb-2 left-0 bg-[#121214] border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-72 animate-in slide-in-from-bottom-2">
                           <div className="flex gap-2 mb-3 border-b border-white/10 pb-2">
@@ -1687,7 +1668,6 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center">
             <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
               
-              {/* ЛЕВАЯ КОЛОНКА (ИНФОРМАЦИЯ) */}
               <div className="w-full lg:w-1/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center h-fit">
                 
                 <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-40 h-40" />
@@ -1725,11 +1705,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ПРАВАЯ КОЛОНКА (ИНВЕНТАРЬ) */}
               <div className="w-full lg:w-2/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col min-h-[500px]">
                 <h3 className="text-2xl font-black text-white mb-6">Инвентарь</h3>
                 
-                {/* Вкладки */}
                 <div className="flex gap-2 border-b border-white/10 mb-6 pb-2">
                   <button onClick={() => setProfileTab("frames")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "frames" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Рамки</button>
                   <button onClick={() => setProfileTab("titles")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "titles" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Титулы</button>
@@ -1794,7 +1772,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ==== АДМИН-ПАНЕЛЬ ==== */}
         {view === "admin" && user?.id === ADMIN_ID && (
           <div className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -1858,7 +1835,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* ПАНЕЛЬ МОЕЙ СБОРКИ (Мобильная - поверх всего) */}
       <div className={`fixed inset-y-0 right-0 w-full md:w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[60] transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-2xl font-black text-white">Моя сборка</h2>
@@ -1978,7 +1954,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* БЛОК КОММЕНТАРИЕВ */}
               <div>
                 <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Комментарии</h3>
                 
@@ -2034,15 +2009,15 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* БЛОК РЕЙТИНГА */}
-                <div className="mb-6 pb-6 border-b border-white/10 flex flex-col items-center gap-2">
+                <div className={`mb-6 pb-6 border-b border-white/10 flex flex-col items-center gap-2 ${isOwnPack ? "opacity-50" : ""}`}>
                    <div className="text-sm text-zinc-400 font-bold uppercase tracking-widest">Оценка сборки</div>
                    <div className="flex gap-1">
                      {[1, 2, 3, 4, 5].map(star => (
                        <button 
                          key={star} 
-                         onClick={(e) => setRating(viewingPack.id, star, e)} 
-                         className={`text-3xl transition-transform hover:scale-125 ${star <= (userRatings[viewingPack.id] || 0) ? "text-yellow-400" : "text-zinc-600 hover:text-yellow-400/50"}`}
+                         onClick={(e) => !isOwnPack && setRating(viewingPack.id, star, e)} 
+                         disabled={isOwnPack}
+                         className={`text-3xl transition-transform ${isOwnPack ? "cursor-not-allowed" : "hover:scale-125"} ${star <= (userRatings[viewingPack.id] || 0) ? "text-yellow-400" : "text-zinc-600 hover:text-yellow-400/50"}`}
                        >
                          ★
                        </button>
