@@ -988,8 +988,8 @@ export default function Home() {
       )}
 
       {selectedMod && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 md:p-8" onClick={() => setSelectedMod(null)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedMod(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-[95vw] h-[95vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             
             {/* Шапка с иконкой и названием */}
             <div className="p-6 md:p-8 border-b border-white/10 flex items-start gap-6 bg-gradient-to-br from-white/[0.04] to-transparent relative shrink-0">
@@ -1014,7 +1014,7 @@ export default function Home() {
               {activeTab === "description" && (
                 <div className="max-w-4xl mx-auto">
                   {selectedMod.body ? (
-                    <div className="prose prose-invert prose-base max-w-none text-zinc-300 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap">
+                    <div className="prose prose-invert prose-base max-w-3xl mx-auto text-zinc-200 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap text-base leading-relaxed">
                       {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : <div dangerouslySetInnerHTML={{ __html: translatedDesc }} />}
                     </div>
                   ) : (
