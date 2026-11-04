@@ -425,7 +425,7 @@ export default function Home() {
         screenshots: packToPublish.screenshots || [],
         video_url: packToPublish.video_url
       });
-      if (error) throw error; if (insertedData && (insertedData as any)[0]) { const pubId = (insertedData as any)[0].id; setPublishedPackId(pubId); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); } showToast("Сборка опубликована в каталоге!", "success");
+      if (error) throw error; if (insertedData && (insertedData as any)[0]) { const pubId = (insertedData as any)[0].id; setPublishedPackId(pubId); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); await supabase.from('modpacks').update({ published_id: pubId }).eq('id', activePackId); } showToast("Сборка опубликована в каталоге!", "success");
       setIsPublishModalOpen(false);
       fetchCatalog();
     } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
