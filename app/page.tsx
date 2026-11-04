@@ -662,9 +662,20 @@ export default function Home() {
                 </div>
               )}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-8">
+                <div className="flex flex-wrap justify-center items-center gap-4 mt-8">
                   <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">← Назад</button>
-                  <span className="text-sm text-zinc-400 font-bold">Страница {currentPage} из {totalPages}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400 font-bold">Страница</span>
+                    <input 
+                      type="number" 
+                      value={currentPage} 
+                      onChange={(e) => { const val = Number(e.target.value); if (val >= 1 && val <= totalPages) setCurrentPage(val); }}
+                      className="w-16 bg-black/50 border border-white/20 rounded-xl px-2 py-2 text-center text-white font-bold focus:outline-none focus:border-green-500"
+                      min={1}
+                      max={totalPages}
+                    />
+                    <span className="text-sm text-zinc-400 font-bold">из {totalPages}</span>
+                  </div>
                   <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button>
                 </div>
               )}
@@ -813,45 +824,6 @@ export default function Home() {
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         
-        <div className="p-6 border-b border-white/10 bg-black/20">
-          <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка и видео</label>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
-               {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
-            </div>
-            <div className="flex-1">
-               <input type="file" id="cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
-               <label htmlFor="cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm mb-2">
-                 Обложка
-               </label>
-            </div>
-          </div>
-          <input type="text" placeholder="Ссылка на YouTube-видео" value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
-        </div>
-
-        <div className="p-6 border-b border-white/10 bg-black/20">
-          <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание и скриншоты</label>
-          <textarea 
-            placeholder="Расскажите о своей сборке..." 
-            value={activePack?.description || ""} 
-            onChange={(e) => updateActivePack({ description: e.target.value })}
-            className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm mb-4 h-24 resize-none"
-          />
-          
-          <div className="flex flex-wrap gap-2 mb-3">
-            {activePack?.screenshots?.map((url, i) => (
-              <div key={i} className="w-16 h-16 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10">
-                <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
-              </div>
-            ))}
-          </div>
-
-          <input type="file" id="screenshot-upload" accept="image/*" onChange={(e) => uploadScreenshot(e, activePackId)} className="hidden" />
-          <label htmlFor="screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm mb-2">
-             + Добавить скриншот
-          </label>
-        </div>
-
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
