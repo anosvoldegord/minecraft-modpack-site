@@ -413,7 +413,7 @@ export default function Home() {
 
   const publishPack = async () => {
     if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return showToast("Сначала добавьте моды в сборку!", "error");
-    if (!activePack.description || activePack.description.trim() === "") return showToast("Добавьте описание перед публикацией!", "error");
+    if (!activePack.description || activePack.description.trim() === "") showToast("Совет: добавьте описание, чтобы сборка выглядела лучше!", "info");
     
     try {
       if (activePack.published_id) {
