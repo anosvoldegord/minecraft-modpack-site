@@ -116,7 +116,7 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false); const [publishingPackId, setPublishingPackId] = useState<string | null>(null); const [publishedPackId, setPublishedPackId] = useState<string | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false); const [publishingPackId, setPublishingPackId] = useState<string | null>(null); const [publishedPackId, setPublishedPackId] = useState<string | null>(null); const [existingPublishedPack, setExistingPublishedPack] = useState<any>(null);
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -331,7 +331,7 @@ export default function Home() {
     fetchCatalog();
   }, [user]);
 
-  const fetchCatalog = async () => {
+  const fetchCatalog = async () => { try { const { data: myPacks } = await supabase.from('published_packs').select('*').eq('user_id', user?.id); if (myPacks && activePack) { const found = myPacks.find(p => p.name === activePack.name); setExistingPublishedPack(found || null); setPublishedPackId(found?.id || null); } } catch(e) {}
     setCatalogError(null);
     try {
       const { data: packs, error: packsError } = await supabase.from('published_packs').select('*').order('created_at', { ascending: false });
@@ -884,6 +884,16 @@ export default function Home() {
           {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">Пусто</div>}
         </div>
         <div className="p-4 border-t border-white/10 flex flex-col gap-2 shrink-0">
+          {activePack?.screenshots && activePack.screenshots.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {activePack.screenshots.map((url, i) => (
+                <div key={i} className="w-12 h-12 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
+                  <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                  <button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); }} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? "Скачивание..." : "Скачать .zip"}
           </button>
