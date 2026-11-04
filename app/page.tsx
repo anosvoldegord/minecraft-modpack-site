@@ -960,7 +960,7 @@ export default function Home() {
                   <div>
                     <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
                     <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
-                      {selectedMod.body.substring(0, 1000)}...
+                      {selectedMod.body.replace(/<[^>]*>?/gm, "").substring(0, 1000)}...
                     </div>
                   </div>
                 )}
