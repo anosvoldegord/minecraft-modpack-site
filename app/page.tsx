@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import JSZip from "jszip";
 import Image from "next/image";
 import { supabase } from "./supabase";
-import * as cheerio from "cheerio";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 
@@ -114,35 +115,40 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
-  const translateDescription = async (html: string) => {
+  const translateDescription = async (markdown: string) => {
     try {
-      const $ = cheerio.load(html);
+      const rawHtml = marked.parse(markdown) as string;
+      const cleanHtml = DOMPurify.sanitize(rawHtml);
       
-      const textNodes: any[] = [];
-      $('*').contents().filter(function() {
-        return this.type === 'text' && this.data.trim().length > 0;
-      }).each(function() {
-        textNodes.push({ node: this, original: (this as any).data });
-      });
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = cleanHtml;
+      
+      const textNodes: Node[] = [];
+      const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.textContent && node.textContent.trim().length > 0) {
+          textNodes.push(node);
+        }
+      }
 
       if (textNodes.length === 0) return;
 
       const delimiter = " ||| ";
-      const combinedText = textNodes.map((item: any) => item.original.trim()).join(delimiter);
-      
+      const combinedText = textNodes.map(n => n.textContent?.trim() || "").join(delimiter);
+
       const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(combinedText.substring(0, 4000))}`);
       const data = await res.json();
       const translatedFull = data[0].map((item: any) => item[0]).join("");
-      
       const translatedParts = translatedFull.split(delimiter);
 
-      textNodes.forEach((item: any, index: number) => {
-        if (translatedParts[index]) {
-          item.node.data = translatedParts[index].trim();
+      textNodes.forEach((n, i) => {
+        if (translatedParts[i]) {
+          n.textContent = translatedParts[i].trim();
         }
       });
 
-      setTranslatedDesc($.html());
+      setTranslatedDesc(DOMPurify.sanitize(tempDiv.innerHTML));
     } catch (e) {
       showToast("Ошибка перевода", "error");
     }
