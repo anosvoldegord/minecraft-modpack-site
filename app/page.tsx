@@ -189,6 +189,10 @@ export default function Home() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
 
+  // Поиск по сборке и уведомления
+  const [packSearch, setPackSearch] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // Админ-панель
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminSearch, setAdminSearch] = useState("");
@@ -208,6 +212,38 @@ export default function Home() {
 
   const isImageUrl = (text: string) => {
     return /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(text) || text.includes('tenor.com/view') || text.includes('media.tenor.com') || text.includes('media.giphy.com') || text.includes('i.giphy.com');
+  };
+
+  // --- УВЕДОМЛЕНИЯ ---
+  useEffect(() => {
+    if (!user) return;
+    const checkUnread = async () => {
+      const { data } = await supabase.from('messages')
+        .select('sender_id, created_at')
+        .eq('receiver_id', user.id);
+      if (data) {
+        let count = 0;
+        const readState = JSON.parse(localStorage.getItem('read_state') || '{}');
+        data.forEach(msg => {
+          const lastRead = readState[msg.sender_id];
+          if (!lastRead || new Date(msg.created_at) > new Date(lastRead)) {
+            count++;
+          }
+        });
+        setUnreadCount(count);
+      }
+    };
+    checkUnread();
+    const interval = setInterval(checkUnread, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleOpenChat = (friend: UserProfile) => {
+    setActiveChat(friend);
+    const readState = JSON.parse(localStorage.getItem('read_state') || '{}');
+    readState[friend.id] = new Date().toISOString();
+    localStorage.setItem('read_state', JSON.stringify(readState));
+    setUnreadCount(0); // Сбрасываем визуально
   };
 
   const translateDescription = async (markdown: string) => {
@@ -375,7 +411,6 @@ export default function Home() {
 
   const fetchSuggestedUsers = async () => {
     if (!user) return;
-    // Берем 20 случайных пользователей, исключая себя
     const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(20);
     if (data) setSuggestedUsers(data);
   };
@@ -726,7 +761,6 @@ export default function Home() {
     } catch (err: any) { setCatalogError(err.message || "Ошибка каталога"); }
   };
 
-  // ИСПРАВЛЕНО: Теперь загружаем ТОЛЬКО сборки текущего пользователя
   const fetchFromDB = async () => {
     if (!user) return;
     try {
@@ -962,7 +996,46 @@ export default function Home() {
   };
 
   const removeArtifact = (id: string) => { const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
+  
+  // ==== СКАЧИВАНИЕ ZIP ====
   const downloadModpack = async (pack: Modpack) => { const list = Object.values(pack.artifacts); if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); } catch(e) {} finally { setIsDownloading(false); } };
+  
+  // ==== ЭКСПОРТ MRPACK ====
+  const exportMrpack = async (pack: Modpack) => {
+    if (!pack || Object.keys(pack.artifacts).length === 0) return;
+    setIsDownloading(true);
+    const zip = new JSZip();
+
+    const files = Object.values(pack.artifacts).map(mod => ({
+        path: `mods/${mod.file_name}`,
+        hashes: {},
+        env: { client: "required", server: "required" },
+        downloads: [mod.file_url]
+    }));
+
+    const mrpackIndex = {
+        formatVersion: 1,
+        game: "minecraft",
+        versionId: "1.0.0",
+        name: pack.name || "Modpack",
+        files: files,
+        dependencies: {
+            minecraft: pack.gameVersion,
+            [pack.loader]: "latest"
+        }
+    };
+
+    zip.file("modrinth.index.json", JSON.stringify(mrpackIndex, null, 2));
+
+    try {
+        const content = await zip.generateAsync({ type: "blob" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(content);
+        a.download = `${pack.name}.mrpack`;
+        a.click();
+    } catch(e) { console.error(e); }
+    finally { setIsDownloading(false); }
+  };
 
   const login = (provider: 'github' | 'email' | 'google' = 'github') => { 
     setIsLoggingIn(true); 
@@ -983,6 +1056,7 @@ export default function Home() {
 
   const artifactList = activePack ? Object.values(activePack.artifacts) : [];
   const modsList = artifactList.filter(a => !a.isLibrary);
+  const filteredPackMods = modsList.filter(m => m.title.toLowerCase().includes(packSearch.toLowerCase()));
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
@@ -1033,7 +1107,14 @@ export default function Home() {
         <div className="px-4 space-y-1 mb-4">
           <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
           <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
-          <button onClick={() => setView("friends")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сообщество</button>
+          <button onClick={() => setView("friends")} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>
+            Сообщество
+            {unreadCount > 0 && (
+              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                {unreadCount}
+              </span>
+            )}
+          </button>
           <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
           
           {/* Админ-кнопка */}
@@ -1312,7 +1393,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Рекомендации (ИСПРАВЛЕНО: скрываем тех, кто уже в друзьях) */}
+              {/* Рекомендации (скрываем тех, кто уже в друзьях) */}
               {!searchQuery && suggestedUsers.filter(u => !friends.some(f => f.id === u.id)).length > 0 && (
                 <div className="p-4 border-b border-white/10">
                   <h3 className="text-sm font-bold text-zinc-400 mb-2">Рекомендации</h3>
@@ -1340,7 +1421,7 @@ export default function Home() {
                 </div>
                 {friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}
                 {friends.map(f => (
-                  <div key={f.id} onClick={() => setActiveChat(f)} className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
+                  <div key={f.id} onClick={() => handleOpenChat(f)} className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
                     <div className="flex items-center gap-3 truncate">
                       <AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" />
                       <div className="truncate font-bold text-sm">{f.username}</div>
@@ -1693,8 +1774,18 @@ export default function Home() {
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         
+        <div className="p-4 border-b border-white/10 shrink-0">
+            <input
+                type="text"
+                placeholder="Поиск по сборке..."
+                value={packSearch}
+                onChange={(e) => setPackSearch(e.target.value)}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500 text-white"
+            />
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-          {modsList.map(mod => (
+          {filteredPackMods.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden relative border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div>
@@ -1703,11 +1794,14 @@ export default function Home() {
               <button onClick={() => removeArtifact(mod.project_id)} className="text-red-500 hover:text-red-400 p-2">✕</button>
             </div>
           ))}
-          {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">Пусто</div>}
+          {filteredPackMods.length === 0 && <div className="text-center text-zinc-400 mt-10">Ничего не найдено</div>}
         </div>
         <div className="p-4 border-t border-white/10 flex flex-col gap-2 shrink-0">
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? "Скачивание..." : "Скачать .zip"}
+          </button>
+          <button onClick={() => exportMrpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
+            {isDownloading ? "..." : "Экспорт в .mrpack"}
           </button>
           <button onClick={() => setIsPublishModalOpen(true)} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
             {activePack?.published_id ? "Обновить в каталоге" : "Опубликовать в каталоге"}
