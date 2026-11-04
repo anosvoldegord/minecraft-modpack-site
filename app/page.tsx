@@ -1109,7 +1109,12 @@ export default function Home() {
                             <div className="font-bold text-sm text-white truncate">{v.name}</div>
                             <div className="text-xs text-zinc-400 mt-1">Загрузчик: {v.loaders.join(", ")} • Игра: {v.game_versions.join(", ")}</div>
                           </div>
-                          <button onClick={() => handleAddMod(selectedMod, v)} className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0">Добавить в сборку</button>
+                          <button 
+                            onClick={() => handleAddMod(selectedMod, v)} 
+                            disabled={isAdding === selectedMod.project_id || !!activePack?.artifacts[selectedMod.project_id]}
+                            className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isAdding === selectedMod.project_id ? "..." : activePack?.artifacts[selectedMod.project_id] ? "Добавлено" : "Добавить в сборку"}
+                          </button>
                         </div>
                       ))}
                     </div>
