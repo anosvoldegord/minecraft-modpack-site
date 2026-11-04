@@ -484,7 +484,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
@@ -1536,9 +1536,11 @@ export default function Home() {
                     <div className="flex flex-col gap-3">
                       {modVersions.map(v => (
                         <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between gap-4">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="font-bold text-sm text-white truncate">{v.name}</div>
-                            <div className="text-xs text-zinc-400 mt-1">Загрузчик: {v.loaders.join(", ")} • Игра: {v.game_versions.join(", ")}</div>
+                            <div className="text-xs text-zinc-400 mt-1 truncate" title={v.game_versions.join(", ")}>
+                              Загрузчик: {v.loaders.join(", ")} • Игра: {v.game_versions.slice(0, 5).join(", ")} {v.game_versions.length > 5 ? `и еще ${v.game_versions.length - 5}...` : ''}
+                            </div>
                           </div>
                           <button 
                             onClick={() => handleAddMod(selectedMod, v)} 
