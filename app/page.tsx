@@ -111,9 +111,12 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null); const [activeTab, setActiveTab] = useState<"description" | "gallery" | "files">("description");
+  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"description" | "gallery" | "files">("description");
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
+
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -384,6 +387,8 @@ export default function Home() {
 
   const publishPack = async () => {
     if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return showToast("Сначала добавьте моды в сборку!", "error");
+    if (!activePack.description || activePack.description.trim() === "") return showToast("Добавьте описание перед публикацией!", "error");
+    
     try {
       const { error } = await supabase.from('published_packs').insert({
         user_id: user.id,
@@ -398,6 +403,7 @@ export default function Home() {
       });
       if (error) throw error;
       showToast("Сборка опубликована в каталоге!", "success");
+      setIsPublishModalOpen(false);
       fetchCatalog();
     } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
   };
@@ -840,7 +846,7 @@ export default function Home() {
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? "Скачивание..." : "Скачать .zip"}
           </button>
-          <button onClick={publishPack} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
+          <button onClick={() => setIsPublishModalOpen(true)} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
             Опубликовать в каталоге
           </button>
         </div>
@@ -970,30 +976,27 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedMod(null)}>
           <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-[95vw] h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             
-            {/* Шапка с иконкой и названием */}
             <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-black/20 relative shrink-0">
               <div className="w-12 h-12 rounded-xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
               <div className="flex-1 min-w-0 pr-12">
                 <h2 className="text-xl font-bold text-white truncate">{selectedMod.title}</h2>
                 <p className="text-zinc-400 text-xs line-clamp-1">{selectedMod.description}</p>
               </div>
-              <button onClick={() => setSelectedMod(null)} className="absolute top-6 right-6 md:top-8 md:right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setSelectedMod(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button>
             </div>
 
-            {/* Вкладки */}
             <div className="flex border-b border-white/10 px-6 md:px-8 shrink-0 bg-black/20">
               <button onClick={() => setActiveTab("description")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "description" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Описание</button>
               <button onClick={() => setActiveTab("gallery")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "gallery" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Галерея</button>
               <button onClick={() => setActiveTab("files")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "files" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Файлы</button>
             </div>
 
-            {/* Контент вкладок */}
             <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#09090b]">
               
               {activeTab === "description" && (
                 <div className="w-full">
                   {selectedMod.body ? (
-                    <div className="prose prose-invert prose-base w-full text-zinc-200 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap text-base leading-relaxed">
+                    <div className="prose prose-invert prose-base max-w-none text-zinc-300 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap">
                       {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : <div dangerouslySetInnerHTML={{ __html: translatedDesc }} />}
                     </div>
                   ) : (
@@ -1035,6 +1038,66 @@ export default function Home() {
                 </div>
               )}
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPublishModalOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4" onClick={() => setIsPublishModalOpen(false)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-black text-white mb-6">Публикация сборки</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
+                    {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
+                  </div>
+                  <div className="flex-1">
+                    <input type="file" id="publish-cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
+                    <label htmlFor="publish-cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
+                      Загрузить обложку
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block font-bold">Ссылка на YouTube-видео</label>
+                <input type="text" placeholder="https://youtube.com/watch?v=..." value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
+              </div>
+
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание</label>
+                <textarea 
+                  placeholder="Расскажите о своей сборке на русском..." 
+                  value={activePack?.description || ""} 
+                  onChange={(e) => updateActivePack({ description: e.target.value })}
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-32 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {activePack?.screenshots?.map((url, i) => (
+                    <div key={i} className="w-20 h-20 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10">
+                      <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                    </div>
+                  ))}
+                </div>
+                <input type="file" id="publish-screenshot-upload" accept="image/*" onChange={(e) => uploadScreenshot(e, activePackId)} className="hidden" />
+                <label htmlFor="publish-screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">
+                  + Добавить скриншот
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setIsPublishModalOpen(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">Отмена</button>
+                <button onClick={publishPack} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-bold transition-colors">Опубликовать</button>
+              </div>
             </div>
           </div>
         </div>
