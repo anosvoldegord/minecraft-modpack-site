@@ -12,7 +12,7 @@ const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 
 const CATEGORIES = [
@@ -371,7 +371,7 @@ export default function Home() {
     try { 
       await supabase.from('modpacks').upsert({ 
         id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts,
-        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null
+        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null, published_id: pack.published_id || null
       }); 
     } catch(e) {}
   };
@@ -872,6 +872,19 @@ export default function Home() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+          {activePack?.screenshots && activePack.screenshots.length > 0 && (
+            <div className="mb-2">
+              <label className="text-xs text-zinc-400 mb-1 block">Скриншоты:</label>
+              <div className="flex flex-wrap gap-2">
+                {activePack.screenshots.map((url, i) => (
+                  <div key={i} className="w-12 h-12 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
+                    <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                    <button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); }} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {activePack?.screenshots && activePack.screenshots.length > 0 && (
             <div className="mb-2">
               <label className="text-xs text-zinc-400 mb-1 block">Скриншоты:</label>
