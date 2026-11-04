@@ -109,8 +109,20 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
+  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
+
+  const translateDescription = async (text: string) => {
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(text.substring(0, 1000))}`);
+      const data = await res.json();
+      const translated = data[0].map((item: any) => item[0]).join("");
+      setTranslatedDesc(translated);
+    } catch (e) {
+      showToast("Ошибка перевода", "error");
+    }
+  };
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModInfo[]>([]);
@@ -181,7 +193,7 @@ export default function Home() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('avatars').getPublicUrl(fileName);
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" });
       if (updateError) throw updateError;
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
@@ -426,10 +438,12 @@ export default function Home() {
 
   const openModModal = async (mod: ModInfo) => {
     setIsModalLoading(true); setSelectedMod({ ...mod, body: "", gallery: [] });
+    setTranslatedDesc(null);
     try {
       const [projRes, verRes] = await Promise.all([ fetch(`https://api.modrinth.com/v2/project/${mod.project_id}`), fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`) ]);
       const projData = await projRes.json(); const verData = await verRes.json();
       setSelectedMod({ ...mod, body: projData.body || "", gallery: projData.gallery || [] }); setModVersions(verData || []);
+      if (projData.body) { translateDescription(projData.body); }
     } catch(e) {} finally { setIsModalLoading(false); }
   };
 
@@ -762,7 +776,7 @@ export default function Home() {
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
         </div>
         
-        <div className="p-4 border-b border-white/10 bg-black/20">
+        <div className="p-6 border-b border-white/10 bg-black/20">
           <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка и видео</label>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
@@ -778,7 +792,7 @@ export default function Home() {
           <input type="text" placeholder="Ссылка на YouTube-видео" value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
         </div>
 
-        <div className="p-4 border-b border-white/10 bg-black/20">
+        <div className="p-6 border-b border-white/10 bg-black/20">
           <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание и скриншоты</label>
           <textarea 
             placeholder="Расскажите о своей сборке..." 
@@ -959,8 +973,8 @@ export default function Home() {
                 {selectedMod.body && (
                   <div>
                     <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
-                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10">
-                      {selectedMod.body.replace(/<[^>]*>?/gm, "").substring(0, 1000)}...
+                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10 whitespace-pre-wrap">
+                      {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : translatedDesc}
                     </div>
                   </div>
                 )}
