@@ -375,7 +375,8 @@ export default function Home() {
 
   const fetchSuggestedUsers = async () => {
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(10);
+    // Берем 20 случайных пользователей, исключая себя
+    const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(20);
     if (data) setSuggestedUsers(data);
   };
 
@@ -1311,12 +1312,15 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Рекомендации (если ничего не ищем) */}
-              {!searchQuery && suggestedUsers.length > 0 && (
+              {/* Рекомендации (ИСПРАВЛЕНО: скрываем тех, кто уже в друзьях) */}
+              {!searchQuery && suggestedUsers.filter(u => !friends.some(f => f.id === u.id)).length > 0 && (
                 <div className="p-4 border-b border-white/10">
                   <h3 className="text-sm font-bold text-zinc-400 mb-2">Рекомендации</h3>
                   <div className="space-y-2">
-                    {suggestedUsers.map(u => (
+                    {suggestedUsers
+                      .filter(u => !friends.some(f => f.id === u.id))
+                      .slice(0, 5)
+                      .map(u => (
                       <div key={u.id} className="flex items-center justify-between bg-white/5 p-2 rounded-lg">
                         <div className="flex items-center gap-2">
                           <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-8 h-8" />
