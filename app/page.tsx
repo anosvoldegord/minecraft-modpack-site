@@ -661,6 +661,13 @@ export default function Home() {
                   ))}
                 </div>
               )}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">← Назад</button>
+                  <span className="text-sm text-zinc-400 font-bold">Страница {currentPage} из {totalPages}</span>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -989,14 +996,14 @@ export default function Home() {
 
       {selectedMod && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedMod(null)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-[95vw] h-[95vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-[95vw] h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             
             {/* Шапка с иконкой и названием */}
-            <div className="p-6 md:p-8 border-b border-white/10 flex items-start gap-6 bg-gradient-to-br from-white/[0.04] to-transparent relative shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
+            <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-black/20 relative shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
               <div className="flex-1 min-w-0 pr-12">
-                <h2 className="text-3xl md:text-4xl font-black text-white truncate">{selectedMod.title}</h2>
-                <p className="text-zinc-300 mt-2 leading-relaxed text-sm md:text-base max-w-3xl line-clamp-2">{selectedMod.description}</p>
+                <h2 className="text-xl font-bold text-white truncate">{selectedMod.title}</h2>
+                <p className="text-zinc-400 text-xs line-clamp-1">{selectedMod.description}</p>
               </div>
               <button onClick={() => setSelectedMod(null)} className="absolute top-6 right-6 md:top-8 md:right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
             </div>
@@ -1012,9 +1019,9 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#09090b]">
               
               {activeTab === "description" && (
-                <div className="max-w-4xl mx-auto">
+                <div className="w-full">
                   {selectedMod.body ? (
-                    <div className="prose prose-invert prose-base max-w-3xl mx-auto text-zinc-200 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap text-base leading-relaxed">
+                    <div className="prose prose-invert prose-base w-full text-zinc-200 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap text-base leading-relaxed">
                       {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : <div dangerouslySetInnerHTML={{ __html: translatedDesc }} />}
                     </div>
                   ) : (
@@ -1024,7 +1031,7 @@ export default function Home() {
               )}
 
               {activeTab === "gallery" && (
-                <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
                     selectedMod.gallery.map((img, i) => (
                       <div key={i} className="w-full aspect-video rounded-2xl bg-zinc-800 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(img.url, '_blank')}>
@@ -1038,7 +1045,7 @@ export default function Home() {
               )}
 
               {activeTab === "files" && (
-                <div className="max-w-3xl mx-auto space-y-4">
+                <div className="w-full space-y-4">
                   <h3 className="text-xl font-bold text-white mb-6">Доступные версии</h3>
                   {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка...</div>) : (
                     <div className="flex flex-col gap-3">
