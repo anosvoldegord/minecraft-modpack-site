@@ -14,7 +14,7 @@ type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: b
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
-type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; };
+type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
 
 const CATEGORIES = [
@@ -40,6 +40,24 @@ const FRAMES = [
   { id: "neon", label: "Неоновая", icon: "/frames/neon.png" },
   { id: "halloween", label: "Хэллоуин", icon: "/frames/halloween.png" },
   { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
+];
+
+const TITLES = [
+  { id: "novice", name: "Новичок", type: "standard", color: "text-zinc-400" },
+  { id: "player", name: "Игрок", type: "standard", color: "text-blue-400" },
+  { id: "master", name: "Мастер", type: "standard", color: "text-purple-400" },
+  
+  { id: "vip", name: "VIP", type: "donate", color: "text-yellow-400" },
+  { id: "premium", name: "Premium", type: "donate", color: "text-yellow-500" },
+  { id: "sponsor", name: "Спонсор", type: "donate", color: "text-orange-400" },
+  
+  { id: "builder", name: "Строитель", type: "earned", color: "text-green-400" },
+  { id: "explorer", name: "Исследователь", type: "earned", color: "text-emerald-400" },
+  { id: "modder", name: "Мододел", type: "earned", color: "text-cyan-400" },
+  
+  { id: "event_hero", name: "Ивент-Герой", type: "exclusive", color: "text-pink-400" },
+  { id: "founder", name: "Основатель", type: "exclusive", color: "text-red-400" },
+  { id: "admin", name: "Администратор", type: "exclusive", color: "text-red-500 font-black" },
 ];
 
 const ITEMS_PER_PAGE = 40;
@@ -101,7 +119,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 };
 
 export default function Home() {
-  const [view, setView] = useState<"mods" | "catalog" | "profile" | "friends">("mods");
+  const [view, setView] = useState<"mods" | "catalog" | "profile" | "friends" | "admin">("mods");
   const [modpacks, setModpacks] = useState<Modpack[]>([]);
   const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
@@ -134,6 +152,10 @@ export default function Home() {
   // Состояния для редактирования сообщений
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
+
+  // Админ-панель
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminSearch, setAdminSearch] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -225,6 +247,15 @@ export default function Home() {
     }
   }, [user]);
 
+  // Админ функция загрузки пользователей
+  useEffect(() => {
+    if (user && user.id === ADMIN_ID && view === "admin") {
+      supabase.from('profiles').select('*').then(({ data }) => {
+        if (data) setAdminUsers(data);
+      });
+    }
+  }, [user, view]);
+
   // Realtime для индикатора "Печатает..." и загрузка сообщений
   useEffect(() => {
     if (activeChat) {
@@ -232,14 +263,13 @@ export default function Home() {
       
       const interval = setInterval(() => fetchMessages(activeChat.id), 3000);
 
-      // Настройка Realtime канала для печати
       const roomName = `typing-${[user.id, activeChat.id].sort().join('-')}`;
       const channel = supabase.channel(roomName);
       
       channel.on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id !== user.id) {
           setIsFriendTyping(true);
-          setTimeout(() => setIsFriendTyping(false), 2000); // Сбрасываем через 2 секунды
+          setTimeout(() => setIsFriendTyping(false), 2000);
         }
       }).subscribe();
 
@@ -410,7 +440,7 @@ export default function Home() {
     if (error) { setDbError(error.message); return; }
     if (data) { setProfile(data); } 
     else {
-      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default" };
+      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default", role: "user", owned_titles: ["novice"] };
       const { error: insertError } = await supabase.from('profiles').insert(newProfile);
       if (insertError) setDbError(insertError.message);
       else setProfile(newProfile);
@@ -484,7 +514,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
@@ -507,7 +537,7 @@ export default function Home() {
     const { error } = await supabase.from('profiles').upsert({ 
       id: user.id, 
       username: updates.username, 
-      title: profile?.title || "Новичок", 
+      title: updates.title || profile?.title || "Новичок", 
       avatar_url: profile?.avatar_url || null,
       frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default"
     });
@@ -516,6 +546,38 @@ export default function Home() {
       setProfile((prev: any) => ({ ...prev, ...updates }));
       fetchProfile(user.id);
       showToast("Профиль сохранен!", "success");
+    }
+  };
+
+  // ==== АДМИН ФУНКЦИИ ====
+  const giveTitle = async (targetUserId: string, titleId: string) => {
+    const targetUser = adminUsers.find(u => u.id === targetUserId);
+    if (!targetUser) return;
+    
+    const currentOwned = targetUser.owned_titles || ['novice'];
+    if (currentOwned.includes(titleId)) {
+      showToast("У пользователя уже есть этот титул", "error");
+      return;
+    }
+    
+    const newOwned = [...currentOwned, titleId];
+    const { error } = await supabase.from('profiles').update({ owned_titles: newOwned }).eq('id', targetUserId);
+    
+    if (error) {
+      showToast("Ошибка выдачи: " + error.message, "error");
+    } else {
+      showToast("Титул успешно выдан!", "success");
+      setAdminUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, owned_titles: newOwned } : u));
+    }
+  };
+
+  const updateRole = async (targetUserId: string, newRole: string) => {
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', targetUserId);
+    if (error) {
+      showToast("Ошибка выдачи роли: " + error.message, "error");
+    } else {
+      showToast("Роль обновлена!", "success");
+      setAdminUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, role: newRole } : u));
     }
   };
 
@@ -879,6 +941,11 @@ export default function Home() {
           <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
           <button onClick={() => setView("friends")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сообщество</button>
           <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
+          
+          {/* Админ-кнопка */}
+          {user?.id === ADMIN_ID && (
+            <button onClick={() => setView("admin")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500/10"}`}>👑 Админ-панель</button>
+          )}
         </div>
 
         {view === "mods" && (
@@ -1275,7 +1342,7 @@ export default function Home() {
 
         {view === "profile" && user && (
           <div className="flex-1 overflow-y-auto p-8 flex justify-center">
-            <div className="bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+            <div className="bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl w-full max-w-2xl shadow-2xl">
               <h2 className="text-3xl font-black mb-8 text-center text-white">Мой профиль</h2>
               
               {dbError && (
@@ -1289,7 +1356,7 @@ export default function Home() {
                 <div className="text-xl font-bold text-green-400">{profile?.title || "Новичок"}</div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <label className="text-sm text-zinc-400 mb-1 block">Никнейм</label>
                   <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" />
@@ -1327,8 +1394,91 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="text-sm text-zinc-400 mb-3 block font-bold">Мои титулы</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {TITLES.map(t => {
+                      const isOwned = profile?.owned_titles?.includes(t.id) || (t.id === 'admin' && user.id === ADMIN_ID);
+                      if (!isOwned) return null;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => saveProfile({ username: profile.username, title: t.name })}
+                          className={`px-4 py-3 rounded-xl border font-bold transition-all ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5"}`}
+                        >
+                          <span className={t.color}>{t.name}</span>
+                          <span className="block text-[10px] text-zinc-500 mt-1 uppercase">{t.type}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button onClick={() => saveProfile({ username: profile.username })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==== АДМИН-ПАНЕЛЬ ==== */}
+        {view === "admin" && user?.id === ADMIN_ID && (
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-black text-red-500 drop-shadow-lg">Админ-панель</h2>
+              <input 
+                type="text" 
+                placeholder="Поиск игрока..." 
+                value={adminSearch}
+                onChange={(e) => setAdminSearch(e.target.value)}
+                className="bg-black/50 border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:border-red-500 text-white"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {adminUsers.filter(u => u.username?.toLowerCase().includes(adminSearch.toLowerCase())).map(u => (
+                <div key={u.id} className="bg-[#121214] p-6 rounded-3xl border border-white/10 flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-12 h-12" />
+                    <div>
+                      <div className="font-bold text-lg text-white">{u.username || 'Без имени'}</div>
+                      <div className="text-xs text-zinc-400">ID: {u.id.slice(0, 8)}...</div>
+                      <div className="text-xs text-zinc-400">Роль: <span className="text-green-400 font-bold">{u.role || 'user'}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-white/10 pt-3">
+                    <label className="text-sm text-zinc-400 mb-2 block">Назначить роль</label>
+                    <select 
+                      value={u.role || 'user'} 
+                      onChange={(e) => updateRole(u.id, e.target.value)}
+                      className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500 text-white"
+                    >
+                      <option value="user">Пользователь</option>
+                      <option value="moderator">Модератор</option>
+                      <option value="admin">Администратор</option>
+                    </select>
+                  </div>
+
+                  <div className="border-t border-white/10 pt-3 flex-1">
+                    <label className="text-sm text-zinc-400 mb-2 block">Выдать титул</label>
+                    <div className="flex flex-wrap gap-2">
+                      {TITLES.map(t => {
+                        const hasTitle = u.owned_titles?.includes(t.id);
+                        return (
+                          <button 
+                            key={t.id}
+                            onClick={() => giveTitle(u.id, t.id)}
+                            disabled={hasTitle}
+                            className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${hasTitle ? "bg-green-500/20 border-green-500/30 text-green-300 opacity-50 cursor-not-allowed" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:border-white/30"}`}
+                          >
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
