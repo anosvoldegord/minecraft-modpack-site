@@ -543,7 +543,7 @@ export default function Home() {
       }
       if (!verRes) return showToast("Версия не найдена", "error");
       
-      const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url, file_url: verRes.files[0]?.url, file_name: verRes.files[0]?.filename, version_number: verRes.version_number } };
+      const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url || "", file_url: verRes.files[0]?.url || "", file_name: verRes.files[0]?.filename || "", version_number: verRes.version_number || "" } };
       
       if (verRes.dependencies) {
         for (const dep of verRes.dependencies) {
@@ -551,7 +551,7 @@ export default function Home() {
             const libProj = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}`)).json();
             const libVersions = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json();
             const libVer = libVersions[0];
-            if (libVer) newArtifacts[dep.project_id] = { project_id: dep.project_id, version_id: libVer.id, title: libProj.title, isLibrary: true, icon_url: libProj.icon_url, file_url: libVer.files[0]?.url, file_name: libVer.files[0]?.filename, version_number: libVer.version_number };
+            if (libVer) newArtifacts[dep.project_id] = { project_id: dep.project_id, version_id: libVer.id, title: libProj.title, isLibrary: true, icon_url: libProj.icon_url || "", file_url: libVer.files[0]?.url || "", file_name: libVer.files[0]?.filename || "", version_number: libVer.version_number || "" };
           }
         }
       }
