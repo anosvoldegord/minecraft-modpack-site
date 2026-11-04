@@ -13,7 +13,7 @@ type ModInfo = { project_id: string; title: string; icon_url: string; descriptio
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
-type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
+type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; rating?: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; bio?: string; };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
 
@@ -200,11 +200,12 @@ export default function Home() {
   // Профиль (Инвентарь)
   const [profileTab, setProfileTab] = useState<"frames" | "titles" | "items">("frames");
 
-  // Чужие профили и комментарии
+  // Чужие профили, комментарии и рейтинги
   const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
   const [viewingUserPacks, setViewingUserPacks] = useState<PublishedPack[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [userRatings, setUserRatings] = useState<Record<string, number>>({});
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -583,11 +584,12 @@ export default function Home() {
       if(session?.user) {
         fetchProfile(session.user.id);
         fetchUserLikes(session.user.id);
+        fetchUserRatings(session.user.id);
       }
     });
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { 
       setUser(session?.user ?? null); 
-      if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); fetchUserLikes(session!.user.id); }
+      if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); fetchUserLikes(session!.user.id); fetchUserRatings(session!.user.id); }
     });
     return () => authListener.subscription.unsubscribe();
   }, []);
@@ -595,6 +597,15 @@ export default function Home() {
   const fetchUserLikes = async (userId: string) => {
     const { data } = await supabase.from('pack_likes').select('pack_id').eq('user_id', userId);
     if (data) setLikedPacks(data.map(d => d.pack_id));
+  };
+
+  const fetchUserRatings = async (userId: string) => {
+    const { data } = await supabase.from('pack_ratings').select('pack_id, rating').eq('user_id', userId);
+    if (data) {
+      const ratingsMap: Record<string, number> = {};
+      data.forEach(r => { ratingsMap[r.pack_id] = r.rating; });
+      setUserRatings(ratingsMap);
+    }
   };
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -714,6 +725,7 @@ export default function Home() {
     }
   };
 
+  // ==== РЕЙТИНГ, ЛАЙКИ, ПРОФИЛИ И КОММЕНТАРИИ ====
   const toggleLike = async (packId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) return showToast("Войдите, чтобы ставить лайки", "error");
@@ -737,7 +749,37 @@ export default function Home() {
     } catch (e: any) { showToast("Ошибка лайка: " + e.message, "error"); }
   };
 
-  // ==== ЧУЖИЕ ПРОФИЛИ И КОММЕНТАРИИ ====
+  const setRating = async (packId: string, score: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return showToast("Войдите, чтобы оценить сборку", "error");
+
+    try {
+      const { error } = await supabase.from('pack_ratings').upsert({
+        pack_id: packId,
+        user_id: user.id,
+        rating: score
+      }, { onConflict: 'pack_id,user_id' });
+
+      if (error) throw error;
+
+      const { data: allRatings } = await supabase.from('pack_ratings').select('rating').eq('pack_id', packId);
+      
+      if (allRatings && allRatings.length > 0) {
+        const sum = allRatings.reduce((acc, curr) => acc + curr.rating, 0);
+        const avg = sum / allRatings.length;
+        
+        await supabase.from('published_packs').update({ rating: avg }).eq('id', packId);
+
+        if (viewingPack) setViewingPack({ ...viewingPack, rating: avg });
+        setUserRatings(prev => ({ ...prev, [packId]: score }));
+        fetchCatalog();
+        showToast("Оценка сохранена!", "success");
+      }
+    } catch (err: any) {
+      showToast("Ошибка: " + err.message, "error");
+    }
+  };
+
   const openUserProfile = async (userId: string) => {
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (prof) setViewingUser(prof);
@@ -1382,6 +1424,7 @@ export default function Home() {
                       <div className="flex gap-3 text-xs">
                         <span className="text-zinc-400">Модов: {Object.keys(pack.artifacts).length}</span>
                         <span className="text-pink-400 flex items-center gap-1">❤️ {pack.likes || 0}</span>
+                        <span className="text-yellow-400 flex items-center gap-1">★ {Number(pack.rating || 0).toFixed(1)}</span>
                       </div>
                       <span className="text-green-400 font-bold">⬇ {pack.downloads || 0}</span>
                     </div>
@@ -1993,6 +2036,25 @@ export default function Home() {
                     <span className="text-3xl">{likedPacks.includes(viewingPack.id) ? "❤️" : "🤍"}</span>
                     <span className="text-xs font-bold">{viewingPack.likes || 0} лайков</span>
                   </button>
+                </div>
+
+                {/* БЛОК РЕЙТИНГА */}
+                <div className="mb-6 pb-6 border-b border-white/10 flex flex-col items-center gap-2">
+                   <div className="text-sm text-zinc-400 font-bold uppercase tracking-widest">Оценка сборки</div>
+                   <div className="flex gap-1">
+                     {[1, 2, 3, 4, 5].map(star => (
+                       <button 
+                         key={star} 
+                         onClick={(e) => setRating(viewingPack.id, star, e)} 
+                         className={`text-3xl transition-transform hover:scale-125 ${star <= (userRatings[viewingPack.id] || 0) ? "text-yellow-400" : "text-zinc-600 hover:text-yellow-400/50"}`}
+                       >
+                         ★
+                       </button>
+                     ))}
+                   </div>
+                   <div className="text-sm font-bold text-zinc-300 mt-1">
+                     {Number(viewingPack.rating || 0) > 0 ? `${Number(viewingPack.rating).toFixed(1)} / 5` : "Нет оценок"}
+                   </div>
                 </div>
 
                 <button onClick={() => { importPack(viewingPack); setViewingPack(null); }} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_20px_rgba(34,197,94,0.4)] mb-3">
