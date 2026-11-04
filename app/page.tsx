@@ -480,6 +480,16 @@ export default function Home() {
       try {
         const { error } = await supabase.from('published_packs').delete().eq('id', id);
         if (error) throw error;
+
+        // Находим локальную сборку, которая была привязана к этой публикации
+        const packToUpdate = modpacks.find(p => p.published_id === id);
+        if (packToUpdate) {
+          // Очищаем published_id, чтобы кнопка снова стала "Опубликовать"
+          const newPacks = modpacks.map(p => p.id === packToUpdate.id ? { ...p, published_id: undefined } : p);
+          setModpacks(newPacks);
+          await saveToDB(newPacks, packToUpdate.id);
+        }
+
         fetchCatalog();
         showToast("Сборка удалена из каталога", "success");
       } catch (e: any) { showToast("Ошибка удаления: " + e.message, "error"); }
