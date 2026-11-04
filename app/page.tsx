@@ -125,6 +125,7 @@ export default function Home() {
   const [requests, setRequests] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<UserProfile[]>([]);
   const [activeChat, setActiveChat] = useState<UserProfile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -200,10 +201,11 @@ export default function Home() {
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
 
-  // Загрузка друзей и заявок
+  // Загрузка друзей, заявок и рекомендаций
   useEffect(() => {
     if (user) {
       fetchFriends();
+      fetchSuggestedUsers();
       const interval = setInterval(fetchFriends, 5000); // Автообновление заявок
       return () => clearInterval(interval);
     }
@@ -247,6 +249,13 @@ export default function Home() {
         setRequests([]);
       }
     } catch(e) {}
+  };
+
+  const fetchSuggestedUsers = async () => {
+    if (!user) return;
+    // Берем 10 случайных пользователей, исключая себя
+    const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(10);
+    if (data) setSuggestedUsers(data);
   };
 
   const searchUsers = async (q: string) => {
@@ -342,7 +351,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -950,9 +959,9 @@ export default function Home() {
         )}
 
         {view === "friends" && user && (
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex overflow-hidden bg-transparent">
             {/* Левая колонка: Поиск и списки */}
-            <div className="w-80 border-r border-white/10 flex flex-col bg-black/20 shrink-0">
+            <div className="w-80 border-r border-white/10 flex flex-col bg-black/20 backdrop-blur-md shrink-0">
               <div className="p-4 border-b border-white/10">
                 <h2 className="text-xl font-bold mb-4">Сообщество</h2>
                 <input 
@@ -992,6 +1001,24 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Рекомендации (если ничего не ищем) */}
+              {!searchQuery && suggestedUsers.length > 0 && (
+                <div className="p-4 border-b border-white/10">
+                  <h3 className="text-sm font-bold text-zinc-400 mb-2">Рекомендации</h3>
+                  <div className="space-y-2">
+                    {suggestedUsers.map(u => (
+                      <div key={u.id} className="flex items-center justify-between bg-white/5 p-2 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-8 h-8" />
+                          <span className="text-sm truncate">{u.username}</span>
+                        </div>
+                        <button onClick={() => sendFriendRequest(u.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">+</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto p-4">
                 <h3 className="text-sm font-bold text-zinc-400 mb-2">Мои друзья</h3>
                 {friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}
@@ -1004,8 +1031,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Правая колонка: Чат */}
-            <div className="flex-1 flex flex-col bg-[#09090b]">
+            {/* Правая колонка: Чат (теперь прозрачный) */}
+            <div className="flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative">
               {activeChat ? (
                 <>
                   <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-black/40">
