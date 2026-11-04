@@ -243,7 +243,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName); if (!data.publicUrl) return; if (!data.publicUrl) return;
       
       const newPacks = modpacks.map(p => p.id === targetId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -264,7 +264,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName); if (!data.publicUrl) return; if (!data.publicUrl) return;
       
       const pack = modpacks.find(p => p.id === targetId);
       const currentScreens = pack?.screenshots || [];
@@ -1053,7 +1053,7 @@ export default function Home() {
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка</label>
                 <div className="flex items-center gap-4">
                   <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
-                    {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
+                    {modpacks.find(p => p.id === publishingPackId)?.cover_url ? <Image src={modpacks.find(p => p.id === publishingPackId)?.cover_url || ''} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
                   </div>
                   <div className="flex-1">
                     <input type="file" id="publish-cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
@@ -1066,14 +1066,14 @@ export default function Home() {
 
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Ссылка на YouTube-видео</label>
-                <input type="text" placeholder="https://youtube.com/watch?v=..." value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
+                <input type="text" placeholder="https://youtube.com/watch?v=..." value={modpacks.find(p => p.id === publishingPackId)?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
               </div>
 
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание</label>
                 <textarea 
                   placeholder="Расскажите о своей сборке на русском..." 
-                  value={activePack?.description || ""} 
+                  value={modpacks.find(p => p.id === publishingPackId)?.description || ""} 
                   onChange={(e) => updateActivePack({ description: e.target.value })}
                   className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-32 resize-none"
                 />
@@ -1082,7 +1082,7 @@ export default function Home() {
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {activePack?.screenshots?.map((url, i) => (
+                  {modpacks.find(p => p.id === publishingPackId)?.screenshots?.map((url, i) => (
                     <div key={i} className="w-20 h-20 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10">
                       <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
                     </div>
