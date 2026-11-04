@@ -247,7 +247,7 @@ export default function Home() {
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
-      saveToDB(newPacks, packId);
+      await saveToDB(newPacks, packId);
       
       if (activePack?.id === packId && activePack.published_id) {
           await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('id', activePack.published_id);
@@ -272,7 +272,7 @@ export default function Home() {
 
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, screenshots: newScreens } : p);
       setModpacks(newPacks);
-      saveToDB(newPacks, packId);
+      await saveToDB(newPacks, packId);
       
       if (activePack?.id === packId && activePack.published_id) {
           await supabase.from('published_packs').update({ screenshots: newScreens }).eq('id', activePack.published_id);
@@ -370,12 +370,13 @@ export default function Home() {
     if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return; }
     const pack = newPacks.find(p => p.id === currentId); if (!pack) return;
     try { 
-      await supabase.from('modpacks').upsert({ 
-        id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts,
+      const { error } = await supabase.from('modpacks').upsert({ 
+        id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts || {},
         description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null,
         published_id: pack.published_id || null
       }); 
-    } catch(e) {}
+      if (error) console.error("Save error:", error);
+    } catch(e) { console.error(e); }
   };
 
   const createNewPack = async (isInitial = false, currentUser = user) => {
@@ -449,7 +450,7 @@ export default function Home() {
           const pubId = (insertedData as any)[0].id;
           const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p);
           setModpacks(newPacks);
-          saveToDB(newPacks, activePackId);
+          await saveToDB(newPacks, activePackId);
         }
         showToast("Сборка опубликована в каталоге!", "success");
       }
@@ -557,7 +558,7 @@ export default function Home() {
       }
       
       const newPacks = modpacks.map(p => { if (p.id !== activePackId) return p; return { ...p, artifacts: { ...p.artifacts, ...newArtifacts } }; });
-      setModpacks(newPacks); saveToDB(newPacks, activePackId); setSelectedMod(null);
+      setModpacks(newPacks); await saveToDB(newPacks, activePackId); setSelectedMod(null);
       showToast("Мод добавлен в сборку", "success");
     } catch(e) {} finally { setIsAdding(null); }
   };
