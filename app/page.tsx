@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import JSZip from "jszip";
 import Image from "next/image";
 import { supabase } from "./supabase";
+import * as cheerio from "cheerio";
 
 const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 
@@ -113,12 +114,35 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
-  const translateDescription = async (text: string) => {
+  const translateDescription = async (html: string) => {
     try {
-      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(text.substring(0, 1000))}`);
+      const $ = cheerio.load(html);
+      
+      const textNodes: any[] = [];
+      $('*').contents().filter(function() {
+        return this.type === 'text' && this.data.trim().length > 0;
+      }).each(function() {
+        textNodes.push({ node: this, original: (this as any).data });
+      });
+
+      if (textNodes.length === 0) return;
+
+      const delimiter = " ||| ";
+      const combinedText = textNodes.map((item: any) => item.original.trim()).join(delimiter);
+      
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(combinedText.substring(0, 4000))}`);
       const data = await res.json();
-      const translated = data[0].map((item: any) => item[0]).join("");
-      setTranslatedDesc(translated);
+      const translatedFull = data[0].map((item: any) => item[0]).join("");
+      
+      const translatedParts = translatedFull.split(delimiter);
+
+      textNodes.forEach((item: any, index: number) => {
+        if (translatedParts[index]) {
+          item.node.data = translatedParts[index].trim();
+        }
+      });
+
+      setTranslatedDesc($.html());
     } catch (e) {
       showToast("Ошибка перевода", "error");
     }
@@ -193,7 +217,7 @@ export default function Home() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('avatars').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" });
       if (updateError) throw updateError;
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
