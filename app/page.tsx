@@ -111,7 +111,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
+  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null); const [activeTab, setActiveTab] = useState<"description" | "gallery" | "files">("description");
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
@@ -988,40 +988,74 @@ export default function Home() {
       )}
 
       {selectedMod && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" onClick={() => setSelectedMod(null)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-8 border-b border-white/10 flex items-start gap-8 bg-gradient-to-br from-white/[0.04] to-transparent relative">
-              <div className="w-32 h-32 rounded-3xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
-              <div className="flex-1">
-                <h2 className="text-4xl font-black text-white">{selectedMod.title}</h2>
-                <p className="text-zinc-300 mt-4 leading-relaxed text-base max-w-2xl">{selectedMod.description}</p>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 md:p-8" onClick={() => setSelectedMod(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            
+            {/* Шапка с иконкой и названием */}
+            <div className="p-6 md:p-8 border-b border-white/10 flex items-start gap-6 bg-gradient-to-br from-white/[0.04] to-transparent relative shrink-0">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
+              <div className="flex-1 min-w-0 pr-12">
+                <h2 className="text-3xl md:text-4xl font-black text-white truncate">{selectedMod.title}</h2>
+                <p className="text-zinc-300 mt-2 leading-relaxed text-sm md:text-base max-w-3xl line-clamp-2">{selectedMod.description}</p>
               </div>
-              <button onClick={() => setSelectedMod(null)} className="absolute top-8 right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setSelectedMod(null)} className="absolute top-6 right-6 md:top-8 md:right-8 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors">✕</button>
             </div>
-            <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2 space-y-8">
-                {selectedMod.body && (
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
-                    <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10 whitespace-pre-wrap">
+
+            {/* Вкладки */}
+            <div className="flex border-b border-white/10 px-6 md:px-8 shrink-0 bg-black/20">
+              <button onClick={() => setActiveTab("description")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "description" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Описание</button>
+              <button onClick={() => setActiveTab("gallery")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "gallery" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Галерея</button>
+              <button onClick={() => setActiveTab("files")} className={`py-4 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "files" ? "border-green-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>Файлы</button>
+            </div>
+
+            {/* Контент вкладок */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#09090b]">
+              
+              {activeTab === "description" && (
+                <div className="max-w-4xl mx-auto">
+                  {selectedMod.body ? (
+                    <div className="prose prose-invert prose-base max-w-none text-zinc-300 bg-white/5 p-6 md:p-8 rounded-2xl border border-white/10 whitespace-pre-wrap">
                       {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : <div dangerouslySetInnerHTML={{ __html: translatedDesc }} />}
                     </div>
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Версии</h3>
-                {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка...</div>) : (
-                  <div className="flex flex-col gap-3">
-                    {modVersions.slice(0, 5).map(v => (
-                      <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10">
-                        <div className="font-bold text-sm text-white">{v.name}</div>
-                        <button onClick={() => handleAddMod(selectedMod, v)} className="mt-3 w-full bg-white/10 hover:bg-green-500 hover:text-black text-zinc-300 px-3 py-2 rounded-lg text-xs font-bold transition-all">Добавить</button>
+                  ) : (
+                    <div className="text-center text-zinc-500 py-20">Описание отсутствует</div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "gallery" && (
+                <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
+                    selectedMod.gallery.map((img, i) => (
+                      <div key={i} className="w-full aspect-video rounded-2xl bg-zinc-800 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(img.url, '_blank')}>
+                        <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-zinc-500 py-20 col-span-full">Галерея пуста</div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "files" && (
+                <div className="max-w-3xl mx-auto space-y-4">
+                  <h3 className="text-xl font-bold text-white mb-6">Доступные версии</h3>
+                  {isModalLoading ? (<div className="text-center text-green-500 py-10">Загрузка...</div>) : (
+                    <div className="flex flex-col gap-3">
+                      {modVersions.map(v => (
+                        <div key={v.id} className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="font-bold text-sm text-white truncate">{v.name}</div>
+                            <div className="text-xs text-zinc-400 mt-1">Загрузчик: {v.loaders.join(", ")} • Игра: {v.game_versions.join(", ")}</div>
+                          </div>
+                          <button onClick={() => handleAddMod(selectedMod, v)} className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0">Добавить в сборку</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           </div>
         </div>
