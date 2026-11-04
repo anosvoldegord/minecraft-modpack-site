@@ -14,6 +14,8 @@ type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: b
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
+type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; };
+type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
 
 const CATEGORIES = [
   { id: "adventure", label: "Приключения" },
@@ -99,7 +101,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 };
 
 export default function Home() {
-  const [view, setView] = useState<"mods" | "catalog" | "profile">("mods");
+  const [view, setView] = useState<"mods" | "catalog" | "profile" | "friends">("mods");
   const [modpacks, setModpacks] = useState<Modpack[]>([]);
   const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
@@ -117,6 +119,16 @@ export default function Home() {
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+
+  // Состояния для друзей и чата
+  const [friends, setFriends] = useState<UserProfile[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+  const [activeChat, setActiveChat] = useState<UserProfile | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -161,7 +173,8 @@ export default function Home() {
   const [results, setResults] = useState<ModInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1); const [pageInput, setPageInput] = useState("1"); useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [totalHits, setTotalHits] = useState(0);
   
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
@@ -184,6 +197,92 @@ export default function Home() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const activePack = modpacks.find(p => p.id === activePackId) || modpacks[0];
+
+  useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
+
+  // Загрузка друзей и заявок
+  useEffect(() => {
+    if (user) {
+      fetchFriends();
+      const interval = setInterval(fetchFriends, 5000); // Автообновление заявок
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Загрузка сообщений и скролл вниз
+  useEffect(() => {
+    if (activeChat) {
+      fetchMessages(activeChat.id);
+      const interval = setInterval(() => fetchMessages(activeChat.id), 3000);
+      return () => clearInterval(interval);
+    }
+  }, [activeChat]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const fetchFriends = async () => {
+    if (!user) return;
+    try {
+      const { data: relations } = await supabase.from('friendships').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+      if (!relations) return;
+
+      const accepted = relations.filter(r => r.status === 'accepted');
+      const pending = relations.filter(r => r.status === 'pending' && r.receiver_id === user.id);
+
+      const friendIds = accepted.map(r => r.sender_id === user.id ? r.receiver_id : r.sender_id);
+      if (friendIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendIds);
+        setFriends(profiles || []);
+      } else {
+        setFriends([]);
+      }
+
+      const requestSenderIds = pending.map(r => r.sender_id);
+      if (requestSenderIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('*').in('id', requestSenderIds);
+        setRequests(pending.map(req => ({ ...req, profile: profs?.find(p => p.id === req.sender_id) })));
+      } else {
+        setRequests([]);
+      }
+    } catch(e) {}
+  };
+
+  const searchUsers = async (q: string) => {
+    setSearchQuery(q);
+    if (q.length < 2) { setSearchResults([]); return; }
+    const { data } = await supabase.from('profiles').select('*').ilike('username', `%${q}%`).neq('id', user?.id).limit(10);
+    setSearchResults(data || []);
+  };
+
+  const sendFriendRequest = async (receiverId: string) => {
+    await supabase.from('friendships').insert({ sender_id: user.id, receiver_id: receiverId, status: 'pending' });
+    showToast("Заявка отправлена!", "success");
+    setSearchQuery(""); setSearchResults([]);
+  };
+
+  const acceptRequest = async (id: string) => {
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
+    showToast("Теперь вы друзья!", "success");
+    fetchFriends();
+  };
+
+  const fetchMessages = async (friendId: string) => {
+    const { data } = await supabase.from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+      .order('created_at', { ascending: true });
+    setMessages(data || []);
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !activeChat) return;
+    const msg = newMessage.trim();
+    setNewMessage("");
+    await supabase.from('messages').insert({ sender_id: user.id, receiver_id: activeChat.id, content: msg });
+    fetchMessages(activeChat.id);
+  };
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -243,7 +342,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -362,20 +461,31 @@ export default function Home() {
         setActivePackId(data[0].id); 
       }
       else { createNewPack(true, user); }
-    } catch(e) { console.error("Fetch error:", e); showToast("Ошибка загрузки сборок", "error"); } setIsLoaded(true);
+    } catch(e) {}
+    setIsLoaded(true);
   };
 
   const saveToDB = async (newPacks: Modpack[], currentId: string): Promise<any> => {
     if (!user) { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); return true; }
     const pack = newPacks.find(p => p.id === currentId); if (!pack) return false;
     try { 
+      const cleanArtifacts = JSON.parse(JSON.stringify(pack.artifacts || {}));
       const { error } = await supabase.from('modpacks').upsert({ 
-        id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts || {},
+        id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: cleanArtifacts,
         description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null,
         published_id: pack.published_id || null
       }); 
-      if (error) { console.error("Save error:", error); showToast("Ошибка сохранения: " + error.message, "error"); }
-    } catch(e) { console.error(e); }
+      if (error) { 
+        console.error("Save error:", error); 
+        showToast("Ошибка БД: " + error.message, "error"); 
+        return false; 
+      }
+      return true;
+    } catch(e: any) { 
+      console.error(e); 
+      showToast("Ошибка БД: " + e.message, "error"); 
+      return false; 
+    }
   };
 
   const createNewPack = async (isInitial = false, currentUser = user) => {
@@ -417,7 +527,6 @@ export default function Home() {
     
     try {
       if (activePack.published_id) {
-        // Обновляем существующую
         const { error } = await supabase.from('published_packs').update({
           name: activePack.name,
           game_version: activePack.gameVersion,
@@ -431,7 +540,6 @@ export default function Home() {
         if (error) throw error;
         showToast("Сборка обновлена в каталоге!", "success");
       } else {
-        // Создаем новую
         const { data: insertedData, error } = await supabase.from('published_packs').insert({
           user_id: user.id,
           name: activePack.name,
@@ -481,10 +589,8 @@ export default function Home() {
         const { error } = await supabase.from('published_packs').delete().eq('id', id);
         if (error) throw error;
 
-        // Находим локальную сборку, которая была привязана к этой публикации
         const packToUpdate = modpacks.find(p => p.published_id === id);
         if (packToUpdate) {
-          // Очищаем published_id, чтобы кнопка снова стала "Опубликовать"
           const newPacks = modpacks.map(p => p.id === packToUpdate.id ? { ...p, published_id: undefined } : p);
           setModpacks(newPacks);
           await saveToDB(newPacks, packToUpdate.id);
@@ -645,6 +751,7 @@ export default function Home() {
         <div className="px-4 space-y-1 mb-4">
           <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
           <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
+          <button onClick={() => setView("friends")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сообщество</button>
           <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
         </div>
 
@@ -839,6 +946,101 @@ export default function Home() {
                 <button onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))} disabled={catalogPage === totalCatalogPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button>
               </div>
             )}
+          </div>
+        )}
+
+        {view === "friends" && user && (
+          <div className="flex-1 flex overflow-hidden">
+            {/* Левая колонка: Поиск и списки */}
+            <div className="w-80 border-r border-white/10 flex flex-col bg-black/20 shrink-0">
+              <div className="p-4 border-b border-white/10">
+                <h2 className="text-xl font-bold mb-4">Сообщество</h2>
+                <input 
+                  type="text" 
+                  placeholder="Поиск игроков..." 
+                  value={searchQuery}
+                  onChange={(e) => searchUsers(e.target.value)}
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500 text-white"
+                />
+                {searchResults.length > 0 && (
+                  <div className="mt-2 bg-[#121214] border border-white/10 rounded-xl overflow-hidden">
+                    {searchResults.map(u => (
+                      <div key={u.id} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-6 h-6" />
+                          <span className="text-sm truncate">{u.username}</span>
+                        </div>
+                        <button onClick={() => sendFriendRequest(u.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">+</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {requests.length > 0 && (
+                <div className="p-4 border-b border-white/10">
+                  <h3 className="text-sm font-bold text-zinc-400 mb-2">Заявки в друзья</h3>
+                  {requests.map(req => (
+                    <div key={req.id} className="flex items-center justify-between mb-2 bg-white/5 p-2 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AvatarWithFrame url={req.profile?.avatar_url} frame={req.profile?.frame} size="w-8 h-8" />
+                        <span className="text-sm truncate">{req.profile?.username}</span>
+                      </div>
+                      <button onClick={() => acceptRequest(req.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">Принять</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <h3 className="text-sm font-bold text-zinc-400 mb-2">Мои друзья</h3>
+                {friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}
+                {friends.map(f => (
+                  <div key={f.id} onClick={() => setActiveChat(f)} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
+                    <AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" />
+                    <div className="truncate font-bold text-sm">{f.username}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Правая колонка: Чат */}
+            <div className="flex-1 flex flex-col bg-[#09090b]">
+              {activeChat ? (
+                <>
+                  <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-black/40">
+                    <AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" />
+                    <h3 className="font-bold text-lg">{activeChat.username}</h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение!</div>}
+                    {messages.map(m => (
+                      <div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
+                          <p className="text-sm">{m.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="p-4 border-t border-white/10 bg-black/40 flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                      placeholder="Написать сообщение..."
+                      className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white"
+                    />
+                    <button onClick={sendMessage} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-xl font-bold">Отправить</button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-zinc-500">
+                  Выберите друга, чтобы начать переписку
+                </div>
+              )}
+            </div>
           </div>
         )}
 
