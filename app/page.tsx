@@ -974,7 +974,7 @@ export default function Home() {
                   <div>
                     <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4">Описание</h3>
                     <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-white/5 p-6 rounded-2xl border border-white/10 whitespace-pre-wrap">
-                      {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : translatedDesc}
+                      {!translatedDesc ? <span className="text-green-500 animate-pulse">Перевод...</span> : <div dangerouslySetInnerHTML={{ __html: translatedDesc }} />}
                     </div>
                   </div>
                 )}
