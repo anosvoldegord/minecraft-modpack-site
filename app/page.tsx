@@ -161,7 +161,7 @@ export default function Home() {
   const [results, setResults] = useState<ModInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1); const [pageInput, setPageInput] = useState("1"); useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
   const [totalHits, setTotalHits] = useState(0);
   
   const [catalog, setCatalog] = useState<PublishedPack[]>([]);
@@ -727,12 +727,27 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-400 font-bold">Страница</span>
                     <input 
-                      type="number" 
-                      value={currentPage} 
-                      onChange={(e) => { const val = Number(e.target.value); if (val >= 1 && val <= totalPages) setCurrentPage(val); }}
+                      type="text" 
+                      inputMode="numeric"
+                      value={pageInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setPageInput(val);
+                      }}
+                      onBlur={() => {
+                        const val = parseInt(pageInput, 10);
+                        if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                          setCurrentPage(val);
+                        } else {
+                          setPageInput(currentPage.toString());
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
                       className="w-16 bg-black/50 border border-white/20 rounded-xl px-2 py-2 text-center text-white font-bold focus:outline-none focus:border-green-500"
-                      min={1}
-                      max={totalPages}
                     />
                     <span className="text-sm text-zinc-400 font-bold">из {totalPages}</span>
                   </div>
