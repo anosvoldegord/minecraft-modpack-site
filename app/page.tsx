@@ -356,7 +356,7 @@ export default function Home() {
       if (data && data.length > 0) { 
         setModpacks(data.map(d => ({ 
           id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, 
-          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [], video_url: d.video_url || undefined
+          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [], video_url: d.video_url || undefined, published_id: d.published_id || undefined
         }))); 
         setActivePackId(data[0].id); 
       }
@@ -425,7 +425,7 @@ export default function Home() {
         screenshots: packToPublish.screenshots || [],
         video_url: packToPublish.video_url
       });
-      if (error) throw error; if (insertedData && (insertedData as any)[0]) { setPublishedPackId((insertedData as any)[0].id); } showToast("Сборка опубликована в каталоге!", "success");
+      if (error) throw error; if (insertedData && (insertedData as any)[0]) { const pubId = (insertedData as any)[0].id; setPublishedPackId(pubId); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); } showToast("Сборка опубликована в каталоге!", "success");
       setIsPublishModalOpen(false);
       fetchCatalog();
     } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
@@ -872,6 +872,19 @@ export default function Home() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+          {activePack?.screenshots && activePack.screenshots.length > 0 && (
+            <div className="mb-2">
+              <label className="text-xs text-zinc-400 mb-1 block">Скриншоты:</label>
+              <div className="flex flex-wrap gap-2">
+                {activePack.screenshots.map((url, i) => (
+                  <div key={i} className="w-12 h-12 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
+                    <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                    <button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); }} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-3">
