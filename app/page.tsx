@@ -14,7 +14,7 @@ type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: b
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
 type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
-type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; };
+type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; bio?: string; };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
 
 const CATEGORIES = [
@@ -156,6 +156,9 @@ export default function Home() {
   // Админ-панель
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminSearch, setAdminSearch] = useState("");
+
+  // Профиль (Инвентарь)
+  const [profileTab, setProfileTab] = useState<"frames" | "titles" | "items">("frames");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -440,7 +443,7 @@ export default function Home() {
     if (error) { setDbError(error.message); return; }
     if (data) { setProfile(data); } 
     else {
-      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default", role: "user", owned_titles: ["novice"] };
+      const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default", role: "user", owned_titles: ["novice"], bio: "" };
       const { error: insertError } = await supabase.from('profiles').insert(newProfile);
       if (insertError) setDbError(insertError.message);
       else setProfile(newProfile);
@@ -476,7 +479,7 @@ export default function Home() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('avatars').getPublicUrl(fileName);
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" });
       if (updateError) throw updateError;
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
@@ -514,7 +517,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
@@ -539,7 +542,8 @@ export default function Home() {
       username: updates.username, 
       title: updates.title || profile?.title || "Новичок", 
       avatar_url: profile?.avatar_url || null,
-      frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default"
+      frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default",
+      bio: updates.bio !== undefined ? updates.bio : profile?.bio || ""
     });
     if (error) showToast("Ошибка сохранения: " + error.message, "error");
     else {
@@ -1342,80 +1346,112 @@ export default function Home() {
 
         {view === "profile" && user && (
           <div className="flex-1 overflow-y-auto p-8 flex justify-center">
-            <div className="bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl w-full max-w-2xl shadow-2xl">
-              <h2 className="text-3xl font-black mb-8 text-center text-white">Мой профиль</h2>
+            <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
               
-              {dbError && (
-                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">
-                  Ошибка БД: {dbError}
-                </div>
-              )}
-
-              <div className="flex flex-col items-center gap-4 mb-8">
-                <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-32 h-32" />
-                <div className="text-xl font-bold text-green-400">{profile?.title || "Новичок"}</div>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Никнейм</label>
-                  <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" />
-                </div>
-                <div>
-                  <label className="text-sm text-zinc-400 mb-1 block">Аватарка (загрузить файл)</label>
-                  <div className="flex items-center gap-4">
-                    <input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" />
-                    <label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20">
-                      {isUploading ? "Загрузка..." : "Выбрать фото"}
-                    </label>
-                  </div>
-                </div>
+              {/* ЛЕВАЯ КОЛОНКА (ИНФОРМАЦИЯ) */}
+              <div className="w-full lg:w-1/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center h-fit">
                 
-                <div>
-                  <label className="text-sm text-zinc-400 mb-3 block font-bold">Рамка профиля (Инвентарь)</label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {FRAMES.filter(f => f.id === "default" || user?.id === ADMIN_ID).map(f => (
-                      <button 
-                        key={f.id} 
-                        onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }}
-                        className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-2 ${profile?.frame === f.id ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
-                        title={f.label}
-                      >
-                        {f.icon ? (
-                          <div className="w-10 h-10 relative">
-                            <Image src={f.icon} alt={f.label} fill className="object-contain" unoptimized />
-                          </div>
-                        ) : (
-                          <div className="text-2xl opacity-50">🚫</div>
-                        )}
-                        <span className="text-[10px] text-zinc-400 mt-1 text-center leading-tight">{f.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-40 h-40" />
+                
+                <div className="text-center mt-4 mb-8">
+                  <h2 className="text-2xl font-black text-white">{profile?.username || "Игрок"}</h2>
+                  <div className="text-green-400 font-bold mt-1">{profile?.title || "Новичок"}</div>
+                  <div className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">{profile?.role === 'admin' ? 'Администратор' : profile?.role === 'moderator' ? 'Модератор' : 'Пользователь'}</div>
                 </div>
 
-                <div>
-                  <label className="text-sm text-zinc-400 mb-3 block font-bold">Мои титулы</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {TITLES.map(t => {
-                      const isOwned = profile?.owned_titles?.includes(t.id) || (t.id === 'admin' && user.id === ADMIN_ID);
-                      if (!isOwned) return null;
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => saveProfile({ username: profile.username, title: t.name })}
-                          className={`px-4 py-3 rounded-xl border font-bold transition-all ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5"}`}
-                        >
-                          <span className={t.color}>{t.name}</span>
-                          <span className="block text-[10px] text-zinc-500 mt-1 uppercase">{t.type}</span>
-                        </button>
-                      );
-                    })}
+                <div className="w-full space-y-4">
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-1 block">Аватарка (загрузить файл)</label>
+                    <div className="flex items-center gap-4">
+                      <input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" />
+                      <label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20">
+                        {isUploading ? "Загрузка..." : "Выбрать фото"}
+                      </label>
+                    </div>
                   </div>
-                </div>
 
-                <button onClick={() => saveProfile({ username: profile.username })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl mt-4 transition-colors">Сохранить изменения</button>
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-1 block">Никнейм</label>
+                    <input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-1 block">О себе</label>
+                    <textarea value={profile?.bio || ""} onChange={(e) => setProfile({...profile, bio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-24 resize-none" placeholder="Расскажите о себе..."></textarea>
+                  </div>
+
+                  <button onClick={() => saveProfile({ username: profile.username, bio: profile.bio })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl transition-colors mt-4">Сохранить изменения</button>
+                </div>
               </div>
+
+              {/* ПРАВАЯ КОЛОНКА (ИНВЕНТАРЬ) */}
+              <div className="w-full lg:w-2/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col min-h-[500px]">
+                <h3 className="text-2xl font-black text-white mb-6">Инвентарь</h3>
+                
+                {/* Вкладки */}
+                <div className="flex gap-2 border-b border-white/10 mb-6 pb-2">
+                  <button onClick={() => setProfileTab("frames")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "frames" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Рамки</button>
+                  <button onClick={() => setProfileTab("titles")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "titles" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Титулы</button>
+                  <button onClick={() => setProfileTab("items")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "items" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Предметы</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {profileTab === "frames" && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {FRAMES.filter(f => f.id === "default" || user?.id === ADMIN_ID).map(f => (
+                        <button 
+                          key={f.id} 
+                          onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }}
+                          className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${profile?.frame === f.id ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
+                          title={f.label}
+                        >
+                          {f.icon ? (
+                            <div className="w-16 h-16 relative">
+                              <Image src={f.icon} alt={f.label} fill className="object-contain" unoptimized />
+                            </div>
+                          ) : (
+                            <div className="text-4xl opacity-50">🚫</div>
+                          )}
+                          <span className="text-xs text-zinc-400 mt-3 text-center leading-tight font-bold">{f.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {profileTab === "titles" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {TITLES.map(t => {
+                        const isOwned = profile?.owned_titles?.includes(t.id) || (t.id === 'admin' && user.id === ADMIN_ID);
+                        if (!isOwned) return null;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => saveProfile({ username: profile.username, title: t.name })}
+                            className={`flex items-center gap-4 px-6 py-4 rounded-2xl border-2 font-bold transition-all ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
+                          >
+                            <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-xl shrink-0">🏅</div>
+                            <div className="text-left">
+                              <div className={`text-lg ${t.color}`}>{t.name}</div>
+                              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{t.type}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {(!profile?.owned_titles || profile?.owned_titles.length === 0) && user.id !== ADMIN_ID && (
+                        <div className="text-zinc-500 col-span-full">У вас пока нет титулов</div>
+                      )}
+                    </div>
+                  )}
+
+                  {profileTab === "items" && (
+                    <div className="flex flex-col items-center justify-center h-full text-center text-zinc-500">
+                      <div className="text-6xl mb-4">📦</div>
+                      <p>Коллекционные предметы появятся здесь в будущих обновлениях.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         )}
