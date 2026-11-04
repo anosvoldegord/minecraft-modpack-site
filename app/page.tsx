@@ -183,7 +183,7 @@ export default function Home() {
   const [catalogVersion, setCatalogVersion] = useState<string>("all");
   const [catalogLoader, setCatalogLoader] = useState<string>("all");
   const [catalogSort, setCatalogSort] = useState<string>("newest");
-  const [catalogSearch, setCatalogSearch] = useState(""); // ДОБАВЛЕНО: Поиск по каталогу
+  const [catalogSearch, setCatalogSearch] = useState(""); // Поиск по каталогу
   const [catalogPage, setCatalogPage] = useState(1);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
@@ -228,28 +228,46 @@ export default function Home() {
   const fetchFriends = async () => {
     if (!user) return;
     try {
-      const { data: relations } = await supabase.from('friendships').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-      if (!relations) return;
+      // Отправленные заявки
+      const { data: sent, error: err1 } = await supabase.from('friendships').select('*').eq('sender_id', user.id);
+      // Полученные заявки
+      const { data: received, error: err2 } = await supabase.from('friendships').select('*').eq('receiver_id', user.id);
+      
+      if (err1 || err2) {
+        console.error("Friendship fetch error:", err1, err2);
+        return;
+      }
 
+      const relations = [...(sent || []), ...(received || [])];
       const accepted = relations.filter(r => r.status === 'accepted');
       const pending = relations.filter(r => r.status === 'pending' && r.receiver_id === user.id);
 
       const friendIds = accepted.map(r => r.sender_id === user.id ? r.receiver_id : r.sender_id);
+      
       if (friendIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendIds);
-        setFriends(profiles || []);
+        const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').in('id', friendIds);
+        if (profErr) {
+          console.error("Profiles fetch error:", profErr);
+          showToast("Ошибка загрузки профилей друзей", "error");
+        } else {
+          setFriends(profiles || []);
+        }
       } else {
         setFriends([]);
       }
 
       const requestSenderIds = pending.map(r => r.sender_id);
       if (requestSenderIds.length > 0) {
-        const { data: profs } = await supabase.from('profiles').select('*').in('id', requestSenderIds);
-        setRequests(pending.map(req => ({ ...req, profile: profs?.find(p => p.id === req.sender_id) })));
+        const { data: profs, error: profsErr } = await supabase.from('profiles').select('*').in('id', requestSenderIds);
+        if (!profsErr) {
+          setRequests(pending.map(req => ({ ...req, profile: profs?.find(p => p.id === req.sender_id) })));
+        }
       } else {
         setRequests([]);
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error("Exception in fetchFriends:", e);
+    }
   };
 
   const fetchSuggestedUsers = async () => {
@@ -272,9 +290,13 @@ export default function Home() {
   };
 
   const acceptRequest = async (id: string) => {
-    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
+    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
+    if (error) {
+      showToast("Ошибка: " + error.message, "error");
+      return;
+    }
     showToast("Теперь вы друзья!", "success");
-    fetchFriends();
+    await fetchFriends(); // Ждем обновления списка
   };
 
   const removeFriend = async (friendId: string, e: React.MouseEvent) => {
@@ -372,7 +394,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -436,7 +458,6 @@ export default function Home() {
     try {
       if (isLiked) {
         await supabase.from('pack_likes').delete().eq('pack_id', packId).eq('user_id', user.id);
-        // ФИКС: Защита от ухода в минус
         const newLikes = Math.max(0, (viewingPack?.likes || 1) - 1);
         await supabase.from('published_packs').update({ likes: newLikes }).eq('id', packId);
         setLikedPacks(prev => prev.filter(id => id !== packId));
@@ -740,7 +761,6 @@ export default function Home() {
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
-  // ОБНОВЛЕНО: Добавлен поиск по каталогу
   let filteredCatalog = catalog.filter(pack => {
     const matchVersion = catalogVersion === "all" || pack.game_version === catalogVersion;
     const matchLoader = catalogLoader === "all" || pack.loader === catalogLoader;
@@ -755,7 +775,6 @@ export default function Home() {
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
 
-  // ДОБАВЛЕНО: Топ-3 сборки для витрины
   const topPacks = [...catalog].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 3);
 
   const getYouTubeID = (url: string) => {
@@ -1079,7 +1098,10 @@ export default function Home() {
               )}
 
               <div className="flex-1 overflow-y-auto p-4">
-                <h3 className="text-sm font-bold text-zinc-400 mb-2">Мои друзья</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-bold text-zinc-400">Мои друзья</h3>
+                  <button onClick={fetchFriends} className="text-xs text-green-500 hover:text-green-400">Обновить</button>
+                </div>
                 {friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}
                 {friends.map(f => (
                   <div key={f.id} onClick={() => setActiveChat(f)} className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
