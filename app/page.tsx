@@ -214,6 +214,13 @@ export default function Home() {
     return /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(text) || text.includes('tenor.com/view') || text.includes('media.tenor.com') || text.includes('media.giphy.com') || text.includes('i.giphy.com');
   };
 
+  const calculateTopScore = (pack: PublishedPack) => {
+    const rating = Number(pack.rating) || 0;
+    const likes = pack.likes || 0;
+    const downloads = pack.downloads || 0;
+    return (rating * 100) + (likes * 5) + downloads;
+  };
+
   useEffect(() => {
     if (!user) return;
     const checkUnread = async () => {
@@ -1136,12 +1143,18 @@ export default function Home() {
 
   if (catalogSort === "downloads") {
     filteredCatalog.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+  } else if (catalogSort === "popularity") {
+    filteredCatalog.sort((a, b) => calculateTopScore(b) - calculateTopScore(a));
   }
 
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
 
-  const topPacks = [...catalog].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 3);
+  // ФИЛЬТР ДЛЯ ТОП-3: Рейтинг >= 3.0
+  const topPacks = [...catalog]
+    .filter(pack => Number(pack.rating || 0) >= 3.0)
+    .sort((a, b) => calculateTopScore(b) - calculateTopScore(a))
+    .slice(0, 3);
 
   const getYouTubeID = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -1337,7 +1350,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Сортировка</span>
-                <CustomSelect value={catalogSort} onChange={(v) => { setCatalogSort(v); setCatalogPage(1); }} options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }]} />
+                <CustomSelect value={catalogSort} onChange={(v) => { setCatalogSort(v); setCatalogPage(1); }} options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }, { value: "popularity", label: "По популярности (Топ)" }]} />
               </div>
             </div>
 
