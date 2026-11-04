@@ -183,6 +183,7 @@ export default function Home() {
   const [catalogVersion, setCatalogVersion] = useState<string>("all");
   const [catalogLoader, setCatalogLoader] = useState<string>("all");
   const [catalogSort, setCatalogSort] = useState<string>("newest");
+  const [catalogSearch, setCatalogSearch] = useState(""); // ДОБАВЛЕНО: Поиск по каталогу
   const [catalogPage, setCatalogPage] = useState(1);
   
   const [selectedMod, setSelectedMod] = useState<FullModInfo | null>(null);
@@ -253,7 +254,6 @@ export default function Home() {
 
   const fetchSuggestedUsers = async () => {
     if (!user) return;
-    // Берем 10 случайных пользователей, исключая себя
     const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(10);
     if (data) setSuggestedUsers(data);
   };
@@ -372,7 +372,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -436,14 +436,17 @@ export default function Home() {
     try {
       if (isLiked) {
         await supabase.from('pack_likes').delete().eq('pack_id', packId).eq('user_id', user.id);
-        await supabase.from('published_packs').update({ likes: (viewingPack?.likes || 1) - 1 }).eq('id', packId);
+        // ФИКС: Защита от ухода в минус
+        const newLikes = Math.max(0, (viewingPack?.likes || 1) - 1);
+        await supabase.from('published_packs').update({ likes: newLikes }).eq('id', packId);
         setLikedPacks(prev => prev.filter(id => id !== packId));
-        if (viewingPack) setViewingPack({ ...viewingPack, likes: viewingPack.likes - 1 });
+        if (viewingPack) setViewingPack({ ...viewingPack, likes: newLikes });
       } else {
         await supabase.from('pack_likes').insert({ pack_id: packId, user_id: user.id });
-        await supabase.from('published_packs').update({ likes: (viewingPack?.likes || 0) + 1 }).eq('id', packId);
+        const newLikes = (viewingPack?.likes || 0) + 1;
+        await supabase.from('published_packs').update({ likes: newLikes }).eq('id', packId);
         setLikedPacks(prev => [...prev, packId]);
-        if (viewingPack) setViewingPack({ ...viewingPack, likes: viewingPack.likes + 1 });
+        if (viewingPack) setViewingPack({ ...viewingPack, likes: newLikes });
       }
       fetchCatalog();
     } catch (e: any) { showToast("Ошибка лайка: " + e.message, "error"); }
@@ -737,10 +740,12 @@ export default function Home() {
   const libsList = artifactList.filter(a => a.isLibrary);
   const totalPages = Math.ceil(totalHits / ITEMS_PER_PAGE);
 
+  // ОБНОВЛЕНО: Добавлен поиск по каталогу
   let filteredCatalog = catalog.filter(pack => {
     const matchVersion = catalogVersion === "all" || pack.game_version === catalogVersion;
     const matchLoader = catalogLoader === "all" || pack.loader === catalogLoader;
-    return matchVersion && matchLoader;
+    const matchSearch = pack.name.toLowerCase().includes(catalogSearch.toLowerCase());
+    return matchVersion && matchLoader && matchSearch;
   });
 
   if (catalogSort === "downloads") {
@@ -749,6 +754,9 @@ export default function Home() {
 
   const totalCatalogPages = Math.ceil(filteredCatalog.length / CATALOG_PER_PAGE);
   const paginatedCatalog = filteredCatalog.slice((catalogPage - 1) * CATALOG_PER_PAGE, catalogPage * CATALOG_PER_PAGE);
+
+  // ДОБАВЛЕНО: Топ-3 сборки для витрины
+  const topPacks = [...catalog].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 3);
 
   const getYouTubeID = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -910,6 +918,10 @@ export default function Home() {
             <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
             <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative z-20">
+              <div className="flex-1 min-w-[200px] flex flex-col gap-1">
+                <span className="text-xs text-zinc-400 font-bold ml-1">Поиск</span>
+                <input type="text" placeholder="Название сборки..." value={catalogSearch} onChange={(e) => { setCatalogSearch(e.target.value); setCatalogPage(1); }} className="bg-black/30 border border-white/20 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 text-white placeholder-zinc-400" />
+              </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-zinc-400 font-bold ml-1">Версия игры</span>
                 <CustomSelect value={catalogVersion} onChange={(v) => { setCatalogVersion(v); setCatalogPage(1); }} options={[{ value: "all", label: "Все версии" }, { value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
@@ -926,6 +938,32 @@ export default function Home() {
 
             {catalogError && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка загрузки каталога: {catalogError}</div>
+            )}
+
+            {topPacks.length > 0 && !catalogSearch && catalogVersion === "all" && catalogLoader === "all" && (
+              <div className="mb-10">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><span className="text-yellow-400">🏆</span> Топ-3 сборки</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {topPacks.map((pack, idx) => (
+                    <div key={pack.id} onClick={() => setViewingPack(pack)} className="bg-[#121214]/90 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-yellow-500/50 transition-all hover:-translate-y-1">
+                      <div className="w-full h-32 bg-zinc-800 relative border-b border-white/10">
+                        {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">🖼️</div>}
+                        <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-xl text-xl font-black shadow-lg border border-white/20">
+                          {idx === 0 ? "🥇 1" : idx === 1 ? "🥈 2" : "🥉 3"}
+                        </div>
+                      </div>
+                      <div className="p-4 flex flex-col flex-1">
+                        <h4 className="text-lg font-bold truncate">{pack.name}</h4>
+                        <div className="text-sm text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div>
+                        <div className="flex justify-between items-center mt-auto pt-3">
+                          <span className="text-xs text-zinc-400">{pack.profiles?.username}</span>
+                          <span className="text-green-400 font-bold text-sm">⬇ {pack.downloads || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -1057,7 +1095,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Правая колонка: Чат (теперь прозрачный) */}
+            {/* Правая колонка: Чат (прозрачный) */}
             <div className="flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative">
               {activeChat ? (
                 <>
