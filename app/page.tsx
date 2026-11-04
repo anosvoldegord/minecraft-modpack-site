@@ -12,7 +12,7 @@ const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 type ModInfo = { project_id: string; title: string; icon_url: string; description: string; downloads: number; categories: string[]; };
 type FullModInfo = ModInfo & { body: string; gallery: { url: string; featured: boolean; title?: string }[]; };
 type Artifact = { project_id: string; version_id: string; title: string; isLibrary: boolean; icon_url?: string; file_url?: string; file_name?: string; version_number?: string; };
-type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; };
+type Modpack = { id: string; name: string; gameVersion: string; loader: string; artifacts: Record<string, Artifact>; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; published_id?: string; };
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 
 const CATEGORIES = [
@@ -116,7 +116,7 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false); const [publishingPackId, setPublishingPackId] = useState<string | null>(null); const [publishedPackId, setPublishedPackId] = useState<string | null>(null); const [existingPublishedPack, setExistingPublishedPack] = useState<any>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -236,46 +236,46 @@ export default function Home() {
     finally { setIsUploading(false); }
   };
 
-  const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const targetId = publishingPackId || packId;
+  const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => {
     const file = e.target.files?.[0]; if (!file || !user) return;
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName); if (!data.publicUrl) return; if (!data.publicUrl) return;
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
-      const newPacks = modpacks.map(p => p.id === targetId ? { ...p, cover_url: data.publicUrl } : p);
+      const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
-      saveToDB(newPacks, targetId);
+      saveToDB(newPacks, packId);
       
-      if (activePack?.id === targetId) {
-          await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('user_id', user.id).eq('name', activePack.name);
+      if (activePack?.id === packId && activePack.published_id) {
+          await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('id', activePack.published_id);
           fetchCatalog();
       }
       showToast("Обложка загружена!", "success");
     } catch (error: any) { showToast("Ошибка загрузки обложки: " + error.message, "error"); }
   };
 
-  const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const targetId = publishingPackId || packId;
+  const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => {
     const file = e.target.files?.[0]; if (!file || !user) return;
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName); if (!data.publicUrl) return; if (!data.publicUrl) return;
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
-      const pack = modpacks.find(p => p.id === targetId);
+      const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
       const newScreens = [...currentScreens, data.publicUrl];
 
-      const newPacks = modpacks.map(p => p.id === targetId ? { ...p, screenshots: newScreens } : p);
+      const newPacks = modpacks.map(p => p.id === packId ? { ...p, screenshots: newScreens } : p);
       setModpacks(newPacks);
-      saveToDB(newPacks, targetId);
+      saveToDB(newPacks, packId);
       
-      if (activePack?.id === targetId) {
-          await supabase.from('published_packs').update({ screenshots: newScreens }).eq('user_id', user.id).eq('name', activePack.name);
+      if (activePack?.id === packId && activePack.published_id) {
+          await supabase.from('published_packs').update({ screenshots: newScreens }).eq('id', activePack.published_id);
           fetchCatalog();
       }
       showToast("Скриншот добавлен!", "success");
@@ -331,7 +331,7 @@ export default function Home() {
     fetchCatalog();
   }, [user]);
 
-  const fetchCatalog = async () => { try { const { data: myPacks } = await supabase.from('published_packs').select('*').eq('user_id', user?.id); if (myPacks && activePack) { const found = myPacks.find(p => p.name === activePack.name); setExistingPublishedPack(found || null); setPublishedPackId(found?.id || null); } } catch(e) {}
+  const fetchCatalog = async () => {
     setCatalogError(null);
     try {
       const { data: packs, error: packsError } = await supabase.from('published_packs').select('*').order('created_at', { ascending: false });
@@ -350,13 +350,14 @@ export default function Home() {
     } catch (err: any) { setCatalogError(err.message || "Ошибка каталога"); }
   };
 
-  const fetchFromDB = async () => { const savedPublished = localStorage.getItem(`published_${activePackId}`); if (savedPublished) { setPublishedPackId(savedPublished); }
+  const fetchFromDB = async () => {
     try {
       const { data } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
       if (data && data.length > 0) { 
         setModpacks(data.map(d => ({ 
           id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, 
-          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [], video_url: d.video_url || undefined
+          cover_url: d.cover_url || undefined, description: d.description || undefined, screenshots: d.screenshots || [], video_url: d.video_url || undefined,
+          published_id: d.published_id || undefined
         }))); 
         setActivePackId(data[0].id); 
       }
@@ -371,7 +372,8 @@ export default function Home() {
     try { 
       await supabase.from('modpacks').upsert({ 
         id: pack.id, user_id: user.id, name: pack.name, game_version: pack.gameVersion, loader: pack.loader, artifacts: pack.artifacts,
-        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null
+        description: pack.description || null, screenshots: pack.screenshots || [], cover_url: pack.cover_url || null, video_url: pack.video_url || null,
+        published_id: pack.published_id || null
       }); 
     } catch(e) {}
   };
@@ -409,46 +411,53 @@ export default function Home() {
     }
   };
 
-  const publishPack = async () => { const packToPublish = modpacks.find(p => p.id === publishingPackId); if (!packToPublish) return;
+  const publishPack = async () => {
     if (!user || !activePack || Object.keys(activePack.artifacts).length === 0) return showToast("Сначала добавьте моды в сборку!", "error");
-    if (!packToPublish.description || packToPublish.description.trim() === "") return showToast("Добавьте описание перед публикацией!", "error");
+    if (!activePack.description || activePack.description.trim() === "") return showToast("Добавьте описание перед публикацией!", "error");
     
     try {
-      const { data: insertedData, error } = await supabase.from('published_packs').insert({
-        user_id: user.id,
-        name: packToPublish.name,
-        game_version: packToPublish.gameVersion,
-        loader: packToPublish.loader,
-        artifacts: packToPublish.artifacts,
-        cover_url: packToPublish.cover_url,
-        description: packToPublish.description,
-        screenshots: packToPublish.screenshots || [],
-        video_url: packToPublish.video_url
-      });
-      if (error) throw error; if (insertedData && (insertedData as any)[0]) { const pubId = (insertedData as any)[0].id; setPublishedPackId(pubId); localStorage.setItem(`published_${activePackId}`, pubId); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); } showToast("Сборка опубликована в каталоге!", "success");
+      if (activePack.published_id) {
+        // Обновляем существующую
+        const { error } = await supabase.from('published_packs').update({
+          name: activePack.name,
+          game_version: activePack.gameVersion,
+          loader: activePack.loader,
+          artifacts: activePack.artifacts,
+          cover_url: activePack.cover_url,
+          description: activePack.description,
+          screenshots: activePack.screenshots || [],
+          video_url: activePack.video_url
+        }).eq('id', activePack.published_id);
+        if (error) throw error;
+        showToast("Сборка обновлена в каталоге!", "success");
+      } else {
+        // Создаем новую
+        const { data: insertedData, error } = await supabase.from('published_packs').insert({
+          user_id: user.id,
+          name: activePack.name,
+          game_version: activePack.gameVersion,
+          loader: activePack.loader,
+          artifacts: activePack.artifacts,
+          cover_url: activePack.cover_url,
+          description: activePack.description,
+          screenshots: activePack.screenshots || [],
+          video_url: activePack.video_url
+        }).select();
+        if (error) throw error;
+        
+        if (insertedData && (insertedData as any)[0]) {
+          const pubId = (insertedData as any)[0].id;
+          const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, published_id: pubId } : p);
+          setModpacks(newPacks);
+          saveToDB(newPacks, activePackId);
+        }
+        showToast("Сборка опубликована в каталоге!", "success");
+      }
       setIsPublishModalOpen(false);
       fetchCatalog();
-    } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
+    } catch(e: any) { showToast("Ошибка: " + e.message, "error"); }
   };
 
-    const updatePublishedPack = async () => {
-    if (!user || !activePack || !publishedPackId) return;
-    try {
-      const { error } = await supabase.from('published_packs').update({
-        name: activePack.name,
-        game_version: activePack.gameVersion,
-        loader: activePack.loader,
-        artifacts: activePack.artifacts,
-        cover_url: activePack.cover_url,
-        description: activePack.description,
-        screenshots: activePack.screenshots || [],
-        video_url: activePack.video_url
-      }).eq('id', publishedPackId);
-      if (error) throw error;
-      showToast("Сборка обновлена в каталоге!", "success");
-      fetchCatalog();
-    } catch(e: any) { showToast("Ошибка обновления: " + e.message, "error"); }
-  };
   const importPack = async (pack: PublishedPack) => {
     const newId = crypto.randomUUID();
     const newPack = { 
@@ -872,19 +881,6 @@ export default function Home() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-          {activePack?.screenshots && activePack.screenshots.length > 0 && (
-            <div className="mb-2">
-              <label className="text-xs text-zinc-400 mb-1 block">Скриншоты:</label>
-              <div className="flex flex-wrap gap-2">
-                {activePack.screenshots.map((url, i) => (
-                  <div key={i} className="w-12 h-12 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
-                    <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
-                    <button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); }} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {modsList.map(mod => (
             <div key={mod.project_id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-3">
@@ -897,21 +893,11 @@ export default function Home() {
           {modsList.length === 0 && <div className="text-center text-zinc-400 mt-10">Пусто</div>}
         </div>
         <div className="p-4 border-t border-white/10 flex flex-col gap-2 shrink-0">
-          {activePack?.screenshots && activePack.screenshots.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {activePack.screenshots.map((url, i) => (
-                <div key={i} className="w-12 h-12 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
-                  <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
-                  <button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); const newPacks = modpacks.map(p => p.id === activePackId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); }} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                </div>
-              ))}
-            </div>
-          )}
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">
             {isDownloading ? "Скачивание..." : "Скачать .zip"}
           </button>
-          <button onClick={() => { setPublishingPackId(activePackId); setIsPublishModalOpen(true); }} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
-            Опубликовать в каталоге
+          <button onClick={() => setIsPublishModalOpen(true)} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">
+            {activePack?.published_id ? "Обновить в каталоге" : "Опубликовать в каталоге"}
           </button>
         </div>
       </div>
@@ -1117,7 +1103,7 @@ export default function Home() {
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка</label>
                 <div className="flex items-center gap-4">
                   <div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
-                    {modpacks.find(p => p.id === publishingPackId)?.cover_url ? <Image src={modpacks.find(p => p.id === publishingPackId)?.cover_url || ''} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
+                    {activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}
                   </div>
                   <div className="flex-1">
                     <input type="file" id="publish-cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" />
@@ -1130,14 +1116,14 @@ export default function Home() {
 
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Ссылка на YouTube-видео</label>
-                <input type="text" placeholder="https://youtube.com/watch?v=..." value={modpacks.find(p => p.id === publishingPackId)?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
+                <input type="text" placeholder="https://youtube.com/watch?v=..." value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
               </div>
 
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Описание</label>
                 <textarea 
                   placeholder="Расскажите о своей сборке на русском..." 
-                  value={modpacks.find(p => p.id === publishingPackId)?.description || ""} 
+                  value={activePack?.description || ""} 
                   onChange={(e) => updateActivePack({ description: e.target.value })}
                   className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-32 resize-none"
                 />
@@ -1146,9 +1132,18 @@ export default function Home() {
               <div>
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {modpacks.find(p => p.id === publishingPackId)?.screenshots?.map((url, i) => (
-                    <div key={i} className="w-20 h-20 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10">
+                  {activePack?.screenshots?.map((url, i) => (
+                    <div key={i} className="w-20 h-20 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
                       <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                      <button 
+                        onClick={() => {
+                          const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i);
+                          updateActivePack({ screenshots: newScreens });
+                        }}
+                        className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>
