@@ -42,73 +42,50 @@ const FRAMES = [
   { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
 ];
 
-// ПРОДВИНУТЫЙ ДИЗАЙН ТИТУЛОВ (CSS ONLY)
 const TITLES = [
-  { 
-    id: "novice", name: "Новичок", 
-    style: "bg-gradient-to-b from-zinc-600 to-zinc-800 border border-zinc-500 text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" 
-  },
-  { 
-    id: "player", name: "Игрок", 
-    style: "bg-gradient-to-b from-blue-500 to-blue-800 border border-blue-400 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_4px_rgba(0,0,0,0.5)]" 
-  },
-  { 
-    id: "master", name: "Мастер", 
-    style: "bg-gradient-to-b from-purple-500 to-purple-900 border border-purple-400 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_0_10px_rgba(168,85,247,0.4)]" 
-  },
-  { 
-    id: "vip", name: "VIP", 
-    style: "bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 border border-yellow-200 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(250,204,21,0.5)]" 
-  },
-  { 
-    id: "premium", name: "Premium", 
-    style: "bg-gradient-to-b from-cyan-300 via-blue-500 to-blue-800 border border-cyan-200 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(59,130,246,0.5)]" 
-  },
-  { 
-    id: "sponsor", name: "Спонсор", 
-    style: "bg-gradient-to-b from-orange-400 via-orange-600 to-red-800 border border-orange-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_15px_rgba(249,115,22,0.5)]" 
-  },
-  { 
-    id: "builder", name: "Строитель", 
-    style: "bg-gradient-to-b from-emerald-400 via-green-600 to-green-900 border border-emerald-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
-  },
-  { 
-    id: "explorer", name: "Исследователь", 
-    style: "bg-gradient-to-b from-teal-400 via-cyan-600 to-cyan-900 border border-teal-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
-  },
-  { 
-    id: "modder", name: "Мододел", 
-    style: "bg-gradient-to-b from-sky-400 via-indigo-600 to-indigo-900 border border-sky-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
-  },
-  { 
-    id: "event_hero", name: "Ивент-Герой", 
-    style: "bg-gradient-to-b from-fuchsia-400 via-pink-600 to-purple-900 border border-fuchsia-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_0_20px_rgba(217,70,239,0.6)]" 
-  },
-  { 
-    id: "founder", name: "Основатель", 
-    style: "bg-gradient-to-b from-red-500 via-red-700 to-black border border-red-400 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_20px_rgba(239,68,68,0.6)]" 
-  },
-  { 
-    id: "admin", name: "Администратор", 
-    style: "bg-gradient-to-b from-red-600 via-red-900 to-black border border-red-500 text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_30px_rgba(220,38,38,0.8)]" 
-  },
+  { id: "novice", name: "Новичок", type: "standard", color: "text-zinc-300", bg: "bg-gradient-to-b from-zinc-600 to-zinc-800 border border-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" },
+  { id: "player", name: "Игрок", type: "standard", color: "text-blue-300", bg: "bg-gradient-to-b from-blue-500 to-blue-800 border border-blue-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_4px_rgba(0,0,0,0.5)]" },
+  { id: "master", name: "Мастер", type: "standard", color: "text-purple-300", bg: "bg-gradient-to-b from-purple-500 to-purple-900 border border-purple-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_0_10px_rgba(168,85,247,0.4)]" },
+  
+  { id: "vip", name: "VIP", type: "donate", color: "text-yellow-300", bg: "bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 border border-yellow-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(250,204,21,0.5)]" },
+  { id: "premium", name: "Premium", type: "donate", color: "text-pink-300", bg: "bg-gradient-to-b from-cyan-300 via-blue-500 to-blue-800 border border-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(59,130,246,0.5)]" },
+  { id: "sponsor", name: "Спонсор", type: "donate", color: "text-orange-300", bg: "bg-gradient-to-b from-orange-400 via-orange-600 to-red-800 border border-orange-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_15px_rgba(249,115,22,0.5)]" },
+  
+  { id: "builder", name: "Строитель", type: "earned", color: "text-green-300", bg: "bg-gradient-to-b from-emerald-400 via-green-600 to-green-900 border border-emerald-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" },
+  { id: "explorer", name: "Исследователь", type: "earned", color: "text-cyan-300", bg: "bg-gradient-to-b from-teal-400 via-cyan-600 to-cyan-900 border border-teal-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" },
+  { id: "modder", name: "Мододел", type: "earned", color: "text-sky-300", bg: "bg-gradient-to-b from-sky-400 via-indigo-600 to-indigo-900 border border-sky-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" },
+  
+  { id: "event_hero", name: "Ивент-Герой", type: "exclusive", color: "text-fuchsia-300", bg: "bg-gradient-to-b from-fuchsia-400 via-pink-600 to-purple-900 border border-fuchsia-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_0_20px_rgba(217,70,239,0.6)]" },
+  { id: "founder", name: "Основатель", type: "exclusive", color: "text-red-300", bg: "bg-gradient-to-b from-red-500 via-red-700 to-black border border-red-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_20px_rgba(239,68,68,0.6)]" },
+  { id: "admin", name: "Администратор", type: "exclusive", color: "text-red-400 font-black", bg: "bg-gradient-to-b from-red-600 via-red-900 to-black border border-red-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_30px_rgba(220,38,38,0.8)]" },
 ];
 
 const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
+
+const EMOJIS = ["😀", "😂", "🤣", "😊", "😍", "🤩", "😎", "😭", "😡", "👍", "👎", "🔥", "💯", "❤️", "💔", "🎉", "💩", "👻", "💀", "🤖", "👾", "🎮", "🕹️", "💻"];
+
+const GIFFS = [
+  "https://media.tenor.com/2e0gS8t6c3AAAAAC/pepe-pepe-the-frog.gif",
+  "https://media.tenor.com/8vJj2k4k5jAAAAAC/cat-cat-meme.gif",
+  "https://media.tenor.com/5Fk4J3k2k1AAAAAC/dog-dog-meme.gif",
+  "https://media.tenor.com/9k8J7k6k5jAAAAAC/minecraft-minecraft-meme.gif",
+  "https://media.tenor.com/3k2J1k0k9jAAAAAC/dance-dancing.gif",
+  "https://media.tenor.com/6k5J4k3k2jAAAAAC/laugh-laughing.gif"
+];
 
 const TitleBadge = ({ titleName, size = "sm" }: { titleName: string, size?: "sm" | "lg" }) => {
   const t = TITLES.find(x => x.name === titleName) || TITLES[0];
   
   if (size === "lg") {
     return (
-      <div className={`inline-flex items-center justify-center px-6 py-2 rounded-lg font-black uppercase tracking-widest ${t.style}`}>
+      <div className={`inline-flex items-center justify-center px-6 py-2 rounded-lg font-black uppercase tracking-widest ${t.bg}`}>
         <span className="drop-shadow-md text-sm">{t.name}</span>
       </div>
     );
   }
   return (
-    <div className={`inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider ${t.style}`}>
+    <div className={`inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider ${t.bg}`}>
       <span className="drop-shadow-sm text-[10px]">{t.name}</span>
     </div>
   );
@@ -199,7 +176,15 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isFriendTyping, setIsFriendTyping] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   
+  // Состояния для прикрепления файла
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiTab, setEmojiTab] = useState<"emojis" | "gifs">("emojis");
+
   // Состояния для редактирования сообщений
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState("");
@@ -213,11 +198,16 @@ export default function Home() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const isImageUrl = (text: string) => {
+    return /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(text) || text.includes('tenor.com/view') || text.includes('media.tenor.com') || text.includes('media.giphy.com') || text.includes('i.giphy.com');
   };
 
   const translateDescription = async (markdown: string) => {
@@ -441,12 +431,55 @@ export default function Home() {
     setMessages(data || []);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !activeChat) return;
-    const msg = newMessage.trim();
+  const sendMessage = async (gifUrl?: string) => {
+    if (!newMessage.trim() && !attachedFile && !gifUrl) return;
+    if (!activeChat) return;
+    
+    setIsSendingFile(true);
+    let fileUrl = null;
+
+    if (attachedFile) {
+      const fileExt = attachedFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('chat_files').upload(fileName, attachedFile);
+      if (!error) {
+        const { data } = supabase.storage.from('chat_files').getPublicUrl(fileName);
+        fileUrl = data.publicUrl;
+      } else {
+        showToast("Ошибка загрузки файла", "error");
+        setIsSendingFile(false);
+        return;
+      }
+    }
+
+    const content = gifUrl || fileUrl || newMessage.trim();
+    
     setNewMessage("");
-    await supabase.from('messages').insert({ sender_id: user.id, receiver_id: activeChat.id, content: msg });
+    setAttachedFile(null);
+    setPreviewUrl(null);
+    setShowEmojiPicker(false);
+
+    await supabase.from('messages').insert({ sender_id: user.id, receiver_id: activeChat.id, content: content });
     fetchMessages(activeChat.id);
+    setIsSendingFile(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
   };
 
   const handleTyping = () => {
@@ -568,7 +601,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
@@ -692,9 +725,11 @@ export default function Home() {
     } catch (err: any) { setCatalogError(err.message || "Ошибка каталога"); }
   };
 
+  // ИСПРАВЛЕНО: Теперь загружаем ТОЛЬКО сборки текущего пользователя
   const fetchFromDB = async () => {
+    if (!user) return;
     try {
-      const { data } = await supabase.from('modpacks').select('*').order('created_at', { ascending: true });
+      const { data } = await supabase.from('modpacks').select('*').eq('user_id', user.id).order('created_at', { ascending: true });
       if (data && data.length > 0) { 
         setModpacks(data.map(d => ({ 
           id: d.id, name: d.name, gameVersion: d.game_version, loader: d.loader, artifacts: d.artifacts || {}, 
@@ -1334,7 +1369,13 @@ export default function Home() {
                       Очистить чат
                     </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  
+                  <div 
+                    className={`flex-1 overflow-y-auto p-6 space-y-4 relative transition-colors ${isDraggingOver ? "bg-green-500/10 border-2 border-dashed border-green-500" : ""}`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+                    onDragLeave={() => setIsDraggingOver(false)}
+                    onDrop={handleDrop}
+                  >
                     {messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение!</div>}
                     {messages.map(m => (
                       <div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"} group`}>
@@ -1354,16 +1395,27 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className={`relative max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
-                            <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                            {isImageUrl(m.content) ? (
+                              <div className="rounded-lg overflow-hidden max-w-sm cursor-pointer" onClick={() => window.open(m.content, '_blank')}>
+                                <img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain" />
+                              </div>
+                            ) : (
+                              <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                            )}
                             <div className={`text-[10px] mt-1 text-right ${m.sender_id === user.id ? "text-green-800" : "text-zinc-400"}`}>
                               {formatTime(m.created_at)}
                             </div>
                             
                             {/* Кнопки редактирования и удаления (только для своих) */}
-                            {m.sender_id === user.id && (
+                            {m.sender_id === user.id && !isImageUrl(m.content) && (
                               <div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => startEditMessage(m.id, m.content)} className="text-zinc-400 hover:text-white p-1" title="Редактировать">✎</button>
                                 <button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1" title="Удалить">✕</button>
+                              </div>
+                            )}
+                            {m.sender_id === user.id && isImageUrl(m.content) && (
+                              <div className="absolute top-1/2 -translate-y-1/2 -left-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1 bg-black/50 rounded-full" title="Удалить">✕</button>
                               </div>
                             )}
                           </div>
@@ -1383,16 +1435,68 @@ export default function Home() {
 
                     <div ref={chatEndRef} />
                   </div>
-                  <div className="p-4 border-t border-white/10 bg-black/40 flex gap-2">
-                    <input 
-                      type="text" 
-                      value={newMessage}
-                      onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
-                      onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                      placeholder="Написать сообщение..."
-                      className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white"
-                    />
-                    <button onClick={sendMessage} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-xl font-bold">Отправить</button>
+
+                  <div className="p-4 border-t border-white/10 bg-black/40 flex flex-col gap-2">
+                    {previewUrl && (
+                      <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-green-500 mb-2 group">
+                        <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                        <button onClick={() => { setAttachedFile(null); setPreviewUrl(null); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2 items-center relative">
+                      {/* Панель эмодзи и гифок */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full mb-2 left-0 bg-[#121214] border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-72 animate-in slide-in-from-bottom-2">
+                          <div className="flex gap-2 mb-3 border-b border-white/10 pb-2">
+                            <button onClick={() => setEmojiTab("emojis")} className={`text-sm font-bold ${emojiTab === "emojis" ? "text-green-400" : "text-zinc-400"}`}>Эмодзи</button>
+                            <button onClick={() => setEmojiTab("gifs")} className={`text-sm font-bold ${emojiTab === "gifs" ? "text-green-400" : "text-zinc-400"}`}>Гифки</button>
+                          </div>
+                          
+                          {emojiTab === "emojis" ? (
+                            <div className="grid grid-cols-6 gap-2">
+                              {EMOJIS.map(e => (
+                                <button key={e} onClick={() => setNewMessage(prev => prev + e)} className="text-2xl hover:bg-white/10 rounded-lg p-1 transition-colors">{e}</button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 gap-2">
+                              {GIFFS.map((gif, i) => (
+                                <div key={i} onClick={() => sendMessage(gif)} className="cursor-pointer hover:opacity-80 rounded-lg overflow-hidden border border-white/10 h-20">
+                                  <img src={gif} alt="gif" className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                              <button 
+                                onClick={() => { setShowEmojiPicker(false); fileInputRef.current?.click(); }} 
+                                className="h-20 border border-dashed border-white/30 rounded-lg flex flex-col items-center justify-center text-xs text-zinc-400 hover:bg-white/5"
+                              >
+                                <span>+</span> Загрузить
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors">
+                        😊
+                      </button>
+                      <button onClick={() => fileInputRef.current?.click()} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors">
+                        📎
+                      </button>
+                      <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
+                      
+                      <input 
+                        type="text" 
+                        value={newMessage}
+                        onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
+                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                        placeholder="Написать сообщение..."
+                        className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white"
+                      />
+                      <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-xl font-bold disabled:opacity-50">
+                        {isSendingFile ? "..." : "Отправить"}
+                      </button>
+                    </div>
                   </div>
                 </>
               ) : (
