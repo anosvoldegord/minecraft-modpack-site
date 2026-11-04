@@ -964,8 +964,10 @@ export default function Home() {
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); saveToDB(newPacks, newId);
     try {
-      await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
-      setViewingPack(prev => prev ? { ...prev, downloads: (prev.downloads || 0) + 1 } : null);
+      const { data: newCount } = await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
+      if (typeof newCount === 'number') {
+        setViewingPack(prev => prev && prev.id === pack.id ? { ...prev, downloads: newCount } : prev);
+      }
       fetchCatalog();
     } catch(e) { console.error(e); }
     showToast("Сборка добавлена в ваш личный кабинет!", "success");
@@ -1094,9 +1096,9 @@ export default function Home() {
       a.click(); 
       
       if (pack.id && pack.downloads !== undefined) {
-        await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
-        if (viewingPack && viewingPack.id === pack.id) {
-          setViewingPack({ ...viewingPack, downloads: (viewingPack.downloads || 0) + 1 });
+        const { data: newCount } = await supabase.rpc('increment_pack_downloads', { pack_id: pack.id });
+        if (typeof newCount === 'number' && viewingPack && viewingPack.id === pack.id) {
+          setViewingPack({ ...viewingPack, downloads: newCount });
         }
         fetchCatalog();
       }
