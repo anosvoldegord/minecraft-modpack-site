@@ -116,7 +116,7 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false); const [publishingPackId, setPublishingPackId] = useState<string | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false); const [publishingPackId, setPublishingPackId] = useState<string | null>(null); const [publishedPackId, setPublishedPackId] = useState<string | null>(null);
 
   const translateDescription = async (markdown: string) => {
     try {
@@ -414,7 +414,7 @@ export default function Home() {
     if (!packToPublish.description || packToPublish.description.trim() === "") return showToast("Добавьте описание перед публикацией!", "error");
     
     try {
-      const { error } = await supabase.from('published_packs').insert({
+      const { data: insertedData, error } = await supabase.from('published_packs').insert({
         user_id: user.id,
         name: packToPublish.name,
         game_version: packToPublish.gameVersion,
@@ -425,13 +425,30 @@ export default function Home() {
         screenshots: packToPublish.screenshots || [],
         video_url: packToPublish.video_url
       });
-      if (error) throw error;
-      showToast("Сборка опубликована в каталоге!", "success");
+      if (error) throw error; if (insertedData && (insertedData as any)[0]) { setPublishedPackId((insertedData as any)[0].id); } showToast("Сборка опубликована в каталоге!", "success");
       setIsPublishModalOpen(false);
       fetchCatalog();
     } catch(e: any) { showToast("Ошибка публикации: " + e.message, "error"); }
   };
 
+    const updatePublishedPack = async () => {
+    if (!user || !activePack || !publishedPackId) return;
+    try {
+      const { error } = await supabase.from('published_packs').update({
+        name: activePack.name,
+        game_version: activePack.gameVersion,
+        loader: activePack.loader,
+        artifacts: activePack.artifacts,
+        cover_url: activePack.cover_url,
+        description: activePack.description,
+        screenshots: activePack.screenshots || [],
+        video_url: activePack.video_url
+      }).eq('id', publishedPackId);
+      if (error) throw error;
+      showToast("Сборка обновлена в каталоге!", "success");
+      fetchCatalog();
+    } catch(e: any) { showToast("Ошибка обновления: " + e.message, "error"); }
+  };
   const importPack = async (pack: PublishedPack) => {
     const newId = crypto.randomUUID();
     const newPack = { 
