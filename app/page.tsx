@@ -42,26 +42,77 @@ const FRAMES = [
   { id: "snow", label: "Зимняя", icon: "/frames/snow.png" },
 ];
 
+// ПРОДВИНУТЫЙ ДИЗАЙН ТИТУЛОВ (CSS ONLY)
 const TITLES = [
-  { id: "novice", name: "Новичок", type: "standard", color: "text-zinc-400" },
-  { id: "player", name: "Игрок", type: "standard", color: "text-blue-400" },
-  { id: "master", name: "Мастер", type: "standard", color: "text-purple-400" },
-  
-  { id: "vip", name: "VIP", type: "donate", color: "text-yellow-400" },
-  { id: "premium", name: "Premium", type: "donate", color: "text-yellow-500" },
-  { id: "sponsor", name: "Спонсор", type: "donate", color: "text-orange-400" },
-  
-  { id: "builder", name: "Строитель", type: "earned", color: "text-green-400" },
-  { id: "explorer", name: "Исследователь", type: "earned", color: "text-emerald-400" },
-  { id: "modder", name: "Мододел", type: "earned", color: "text-cyan-400" },
-  
-  { id: "event_hero", name: "Ивент-Герой", type: "exclusive", color: "text-pink-400" },
-  { id: "founder", name: "Основатель", type: "exclusive", color: "text-red-400" },
-  { id: "admin", name: "Администратор", type: "exclusive", color: "text-red-500 font-black" },
+  { 
+    id: "novice", name: "Новичок", 
+    style: "bg-gradient-to-b from-zinc-600 to-zinc-800 border border-zinc-500 text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" 
+  },
+  { 
+    id: "player", name: "Игрок", 
+    style: "bg-gradient-to-b from-blue-500 to-blue-800 border border-blue-400 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_4px_rgba(0,0,0,0.5)]" 
+  },
+  { 
+    id: "master", name: "Мастер", 
+    style: "bg-gradient-to-b from-purple-500 to-purple-900 border border-purple-400 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_0_10px_rgba(168,85,247,0.4)]" 
+  },
+  { 
+    id: "vip", name: "VIP", 
+    style: "bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700 border border-yellow-200 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(250,204,21,0.5)]" 
+  },
+  { 
+    id: "premium", name: "Premium", 
+    style: "bg-gradient-to-b from-cyan-300 via-blue-500 to-blue-800 border border-cyan-200 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_15px_rgba(59,130,246,0.5)]" 
+  },
+  { 
+    id: "sponsor", name: "Спонсор", 
+    style: "bg-gradient-to-b from-orange-400 via-orange-600 to-red-800 border border-orange-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_15px_rgba(249,115,22,0.5)]" 
+  },
+  { 
+    id: "builder", name: "Строитель", 
+    style: "bg-gradient-to-b from-emerald-400 via-green-600 to-green-900 border border-emerald-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
+  },
+  { 
+    id: "explorer", name: "Исследователь", 
+    style: "bg-gradient-to-b from-teal-400 via-cyan-600 to-cyan-900 border border-teal-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
+  },
+  { 
+    id: "modder", name: "Мододел", 
+    style: "bg-gradient-to-b from-sky-400 via-indigo-600 to-indigo-900 border border-sky-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.5)]" 
+  },
+  { 
+    id: "event_hero", name: "Ивент-Герой", 
+    style: "bg-gradient-to-b from-fuchsia-400 via-pink-600 to-purple-900 border border-fuchsia-300 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_0_20px_rgba(217,70,239,0.6)]" 
+  },
+  { 
+    id: "founder", name: "Основатель", 
+    style: "bg-gradient-to-b from-red-500 via-red-700 to-black border border-red-400 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_20px_rgba(239,68,68,0.6)]" 
+  },
+  { 
+    id: "admin", name: "Администратор", 
+    style: "bg-gradient-to-b from-red-600 via-red-900 to-black border border-red-500 text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_30px_rgba(220,38,38,0.8)]" 
+  },
 ];
 
 const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
+
+const TitleBadge = ({ titleName, size = "sm" }: { titleName: string, size?: "sm" | "lg" }) => {
+  const t = TITLES.find(x => x.name === titleName) || TITLES[0];
+  
+  if (size === "lg") {
+    return (
+      <div className={`inline-flex items-center justify-center px-6 py-2 rounded-lg font-black uppercase tracking-widest ${t.style}`}>
+        <span className="drop-shadow-md text-sm">{t.name}</span>
+      </div>
+    );
+  }
+  return (
+    <div className={`inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider ${t.style}`}>
+      <span className="drop-shadow-sm text-[10px]">{t.name}</span>
+    </div>
+  );
+};
 
 const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -479,7 +530,7 @@ export default function Home() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('avatars').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" });
       if (updateError) throw updateError;
       setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
@@ -496,7 +547,7 @@ export default function Home() {
       const fileName = `cover-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
       
       const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p);
       setModpacks(newPacks);
@@ -1150,7 +1201,10 @@ export default function Home() {
                     <div className="flex items-center gap-3 border-b border-white/10 pb-3">
                       <AvatarWithFrame url={pack.profiles?.avatar_url} frame={pack.profiles?.frame} size="w-10 h-10" />
                       <div>
-                        <div className="font-bold text-xs text-green-400">{pack.profiles?.username || "Игрок"}</div>
+                        <div className="font-bold text-xs text-green-400 flex items-center gap-2">
+                          {pack.profiles?.username || "Игрок"}
+                          <TitleBadge titleName={pack.profiles?.title || "Новичок"} />
+                        </div>
                         <div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div>
                       </div>
                     </div>
@@ -1269,7 +1323,10 @@ export default function Home() {
                       <button onClick={() => setActiveChat(null)} className="md:hidden text-zinc-400 hover:text-white mr-2 text-xl">←</button>
                       <AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" />
                       <div>
-                        <h3 className="font-bold text-lg leading-tight">{activeChat.username}</h3>
+                        <h3 className="font-bold text-lg leading-tight flex items-center gap-2">
+                          {activeChat.username}
+                          <TitleBadge titleName={activeChat.title || "Новичок"} />
+                        </h3>
                         {isFriendTyping && <span className="text-xs text-green-400 animate-pulse">Печатает...</span>}
                       </div>
                     </div>
@@ -1358,7 +1415,9 @@ export default function Home() {
                 
                 <div className="text-center mt-4 mb-8">
                   <h2 className="text-2xl font-black text-white">{profile?.username || "Игрок"}</h2>
-                  <div className="text-green-400 font-bold mt-1">{profile?.title || "Новичок"}</div>
+                  <div className="mt-3 mb-2 flex justify-center">
+                    <TitleBadge titleName={profile?.title || "Новичок"} size="lg" />
+                  </div>
                   <div className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">{profile?.role === 'admin' ? 'Администратор' : profile?.role === 'moderator' ? 'Модератор' : 'Пользователь'}</div>
                 </div>
 
@@ -1430,13 +1489,10 @@ export default function Home() {
                           <button
                             key={t.id}
                             onClick={() => saveProfile({ username: profile.username, title: t.name })}
-                            className={`flex items-center gap-4 px-6 py-4 rounded-2xl border-2 font-bold transition-all ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
+                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}
                           >
-                            <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-xl shrink-0">🏅</div>
-                            <div className="text-left">
-                              <div className={`text-lg ${t.color}`}>{t.name}</div>
-                              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{t.type}</div>
-                            </div>
+                            <TitleBadge titleName={t.name} />
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{(t as any).type}</div>
                           </button>
                         );
                       })}
@@ -1566,6 +1622,7 @@ export default function Home() {
                 <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
                   <AvatarWithFrame url={viewingPack.profiles?.avatar_url} frame={viewingPack.profiles?.frame} size="w-8 h-8" />
                   <span className="font-bold text-sm text-white">{viewingPack.profiles?.username || "Игрок"}</span>
+                  <TitleBadge titleName={viewingPack.profiles?.title || "Новичок"} />
                 </div>
                 <div className="bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-bold">
                   {viewingPack.game_version} • {viewingPack.loader.toUpperCase()}
