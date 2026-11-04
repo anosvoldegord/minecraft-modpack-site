@@ -378,11 +378,35 @@ export default function Home() {
 
   const createNewPack = async (isInitial = false, currentUser = user) => {
     const newId = crypto.randomUUID();
-    const newPack = { id: newId, name: isInitial ? "Моя сборка" : "Новая сборка", gameVersion: "1.16.5", loader: "forge", artifacts: {}, screenshots: [] };
+    const newPack = { 
+      id: newId, 
+      name: isInitial ? "Моя сборка" : "Новая сборка", 
+      gameVersion: "1.16.5", 
+      loader: "forge", 
+      artifacts: {}, 
+      screenshots: [], 
+      cover_url: undefined, 
+      description: "", 
+      video_url: "" 
+    };
     const newPacks = [...modpacks, newPack];
     setModpacks(newPacks); setActivePackId(newId); setIsSidebarOpen(true);
-    if (currentUser) { try { await supabase.from('modpacks').insert({ id: newId, user_id: currentUser.id, name: newPack.name, game_version: newPack.gameVersion, loader: newPack.loader, artifacts: {} }); } catch(e) {} } 
-    else { localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); }
+    if (currentUser) { 
+      try { 
+        await supabase.from('modpacks').insert({ 
+          id: newId, 
+          user_id: currentUser.id, 
+          name: newPack.name, 
+          game_version: newPack.gameVersion, 
+          loader: newPack.loader, 
+          artifacts: {},
+          description: "",
+          screenshots: []
+        }); 
+      } catch(e) {} 
+    } else { 
+      localStorage.setItem("modbuilder_packs", JSON.stringify(newPacks)); 
+    }
   };
 
   const publishPack = async () => { const packToPublish = modpacks.find(p => p.id === publishingPackId); if (!packToPublish) return;
