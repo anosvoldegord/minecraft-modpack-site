@@ -762,19 +762,15 @@ export default function Home() {
 
       if (error) throw error;
 
-      const { data: allRatings } = await supabase.from('pack_ratings').select('rating').eq('pack_id', packId);
+      const { data: updatedPack } = await supabase.from('published_packs').select('rating').eq('id', packId).single();
       
-      if (allRatings && allRatings.length > 0) {
-        const sum = allRatings.reduce((acc, curr) => acc + curr.rating, 0);
-        const avg = sum / allRatings.length;
-        
-        await supabase.from('published_packs').update({ rating: avg }).eq('id', packId);
-
-        if (viewingPack) setViewingPack({ ...viewingPack, rating: avg });
-        setUserRatings(prev => ({ ...prev, [packId]: score }));
-        fetchCatalog();
-        showToast("Оценка сохранена!", "success");
+      if (updatedPack) {
+        if (viewingPack) setViewingPack({ ...viewingPack, rating: updatedPack.rating });
       }
+
+      setUserRatings(prev => ({ ...prev, [packId]: score }));
+      fetchCatalog();
+      showToast("Оценка сохранена!", "success");
     } catch (err: any) {
       showToast("Ошибка: " + err.message, "error");
     }
