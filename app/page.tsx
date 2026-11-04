@@ -237,12 +237,16 @@ export default function Home() {
         console.error("Friendship fetch error:", err1, err2);
         return;
       }
+      
+      console.log("DEBUG: Sent =", sent);
+      console.log("DEBUG: Received =", received);
 
       const relations = [...(sent || []), ...(received || [])];
       const accepted = relations.filter(r => r.status === 'accepted');
       const pending = relations.filter(r => r.status === 'pending' && r.receiver_id === user.id);
 
       const friendIds = accepted.map(r => r.sender_id === user.id ? r.receiver_id : r.sender_id);
+      console.log("DEBUG: Accepted Friend IDs =", friendIds);
       
       if (friendIds.length > 0) {
         const { data: profiles, error: profErr } = await supabase.from('profiles').select('*').in('id', friendIds);
@@ -250,6 +254,10 @@ export default function Home() {
           console.error("Profiles fetch error:", profErr);
           showToast("Ошибка загрузки профилей друзей", "error");
         } else {
+          console.log("DEBUG: Profiles =", profiles);
+          if (profiles && profiles.length === 0) {
+             showToast("Не удалось загрузить профиль друга (проблема с правами RLS)", "error");
+          }
           setFriends(profiles || []);
         }
       } else {
@@ -290,11 +298,18 @@ export default function Home() {
   };
 
   const acceptRequest = async (id: string) => {
-    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
+    // Принудительно запрашиваем обновленные данные, чтобы убедиться, что обновление прошло
+    const { data: updated, error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id).select();
+    
     if (error) {
-      showToast("Ошибка: " + error.message, "error");
+      showToast("Ошибка БД: " + error.message, "error");
       return;
     }
+    if (!updated || updated.length === 0) {
+      showToast("Не удалось принять заявку. Проверьте права (RLS) на таблице friendships.", "error");
+      return;
+    }
+
     showToast("Теперь вы друзья!", "success");
     await fetchFriends(); // Ждем обновления списка
   };
@@ -303,7 +318,10 @@ export default function Home() {
     e.stopPropagation();
     if (!confirm("Вы уверены, что хотите удалить этого пользователя из друзей?")) return;
     try {
-      await supabase.from('friendships').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`);
+      // Удаляем в два шага, чтобы избежать багов с .or()
+      await supabase.from('friendships').delete().eq('sender_id', user.id).eq('receiver_id', friendId);
+      await supabase.from('friendships').delete().eq('sender_id', friendId).eq('receiver_id', user.id);
+      
       if (activeChat?.id === friendId) setActiveChat(null);
       fetchFriends();
       showToast("Пользователь удален из друзей", "success");
@@ -314,7 +332,8 @@ export default function Home() {
     if (!activeChat || !user) return;
     if (!confirm("Очистить всю историю переписки с этим пользователем?")) return;
     try {
-      await supabase.from('messages').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeChat.id}),and(sender_id.eq.${activeChat.id},receiver_id.eq.${user.id})`);
+      await supabase.from('messages').delete().eq('sender_id', user.id).eq('receiver_id', activeChat.id);
+      await supabase.from('messages').delete().eq('sender_id', activeChat.id).eq('receiver_id', user.id);
       setMessages([]);
       showToast("Чат успешно очищен", "success");
     } catch (err: any) { showToast("Ошибка очистки: " + err.message, "error"); }
@@ -415,7 +434,7 @@ export default function Home() {
       const fileName = `screen-${packId}-${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+      const { data } = await supabase.storage.from('covers').getPublicUrl(fileName);
       
       const pack = modpacks.find(p => p.id === packId);
       const currentScreens = pack?.screenshots || [];
