@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import JSZip from "jszip";
@@ -275,6 +275,27 @@ export default function Home() {
     await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id);
     showToast("Теперь вы друзья!", "success");
     fetchFriends();
+  };
+
+  const removeFriend = async (friendId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Вы уверены, что хотите удалить этого пользователя из друзей?")) return;
+    try {
+      await supabase.from('friendships').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`);
+      if (activeChat?.id === friendId) setActiveChat(null);
+      fetchFriends();
+      showToast("Пользователь удален из друзей", "success");
+    } catch (err: any) { showToast("Ошибка удаления: " + err.message, "error"); }
+  };
+
+  const clearChat = async () => {
+    if (!activeChat || !user) return;
+    if (!confirm("Очистить всю историю переписки с этим пользователем?")) return;
+    try {
+      await supabase.from('messages').delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeChat.id}),and(sender_id.eq.${activeChat.id},receiver_id.eq.${user.id})`);
+      setMessages([]);
+      showToast("Чат успешно очищен", "success");
+    } catch (err: any) { showToast("Ошибка очистки: " + err.message, "error"); }
   };
 
   const fetchMessages = async (friendId: string) => {
@@ -1023,9 +1044,14 @@ export default function Home() {
                 <h3 className="text-sm font-bold text-zinc-400 mb-2">Мои друзья</h3>
                 {friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}
                 {friends.map(f => (
-                  <div key={f.id} onClick={() => setActiveChat(f)} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
-                    <AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" />
-                    <div className="truncate font-bold text-sm">{f.username}</div>
+                  <div key={f.id} onClick={() => setActiveChat(f)} className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}>
+                    <div className="flex items-center gap-3 truncate">
+                      <AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" />
+                      <div className="truncate font-bold text-sm">{f.username}</div>
+                    </div>
+                    <button onClick={(e) => removeFriend(f.id, e)} className="text-zinc-500 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Удалить из друзей">
+                      ✕
+                    </button>
                   </div>
                 ))}
               </div>
@@ -1035,9 +1061,14 @@ export default function Home() {
             <div className="flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative">
               {activeChat ? (
                 <>
-                  <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-black/40">
-                    <AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" />
-                    <h3 className="font-bold text-lg">{activeChat.username}</h3>
+                  <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
+                    <div className="flex items-center gap-3">
+                      <AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" />
+                      <h3 className="font-bold text-lg">{activeChat.username}</h3>
+                    </div>
+                    <button onClick={clearChat} className="text-zinc-400 hover:text-red-400 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                      Очистить чат
+                    </button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение!</div>}
