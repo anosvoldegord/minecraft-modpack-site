@@ -200,6 +200,12 @@ export default function Home() {
   // Профиль (Инвентарь)
   const [profileTab, setProfileTab] = useState<"frames" | "titles" | "items">("frames");
 
+  // Чужие профили и комментарии
+  const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
+  const [viewingUserPacks, setViewingUserPacks] = useState<PublishedPack[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -731,6 +737,44 @@ export default function Home() {
     } catch (e: any) { showToast("Ошибка лайка: " + e.message, "error"); }
   };
 
+  // ==== ЧУЖИЕ ПРОФИЛИ И КОММЕНТАРИИ ====
+  const openUserProfile = async (userId: string) => {
+    const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (prof) setViewingUser(prof);
+    
+    const { data: packs } = await supabase.from('published_packs').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (packs) setViewingUserPacks(packs as any);
+  };
+
+  const fetchComments = async (packId: string) => {
+    const { data } = await supabase.from('comments')
+      .select('*, profiles(username, avatar_url, title, frame)')
+      .eq('pack_id', packId)
+      .order('created_at', { ascending: true });
+    if (data) setComments(data);
+  };
+
+  const postComment = async () => {
+    if (!newComment.trim() || !user || !viewingPack) return;
+    const { error } = await supabase.from('comments').insert({
+      pack_id: viewingPack.id,
+      user_id: user.id,
+      content: newComment.trim()
+    });
+    if (error) showToast("Ошибка: " + error.message, "error");
+    else {
+      setNewComment("");
+      fetchComments(viewingPack.id);
+      showToast("Комментарий добавлен", "success");
+    }
+  };
+
+  useEffect(() => {
+    if (viewingPack) {
+      fetchComments(viewingPack.id);
+    }
+  }, [viewingPack]);
+
   useEffect(() => {
     if (user) fetchFromDB();
     else {
@@ -1099,15 +1143,21 @@ export default function Home() {
         </div>
       )}
 
-      <aside className={`bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 transition-all z-10 ${isSidebarOpen ? "w-72" : "w-0 overflow-hidden opacity-0"}`}>
+      {/* МОБИЛЬНЫЙ ОВЕРЛЕЙ ДЛЯ САЙДБАРА */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      <aside className={`bg-black/90 md:bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 transition-transform duration-300 z-40 fixed inset-y-0 left-0 md:relative md:translate-x-0 w-72 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"}`}>
         <div className="p-6 flex justify-between items-center">
           <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">ModBuilder</h1>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-zinc-400 hover:text-white p-2">✕</button>
         </div>
         
         <div className="px-4 space-y-1 mb-4">
-          <button onClick={() => setView("mods")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
-          <button onClick={() => setView("catalog")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
-          <button onClick={() => setView("friends")} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>
+          <button onClick={() => { setView("mods"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
+          <button onClick={() => { setView("catalog"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
+          <button onClick={() => { setView("friends"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>
             Сообщество
             {unreadCount > 0 && (
               <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]">
@@ -1115,11 +1165,10 @@ export default function Home() {
               </span>
             )}
           </button>
-          <button onClick={() => setView("profile")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
+          <button onClick={() => { setView("profile"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
           
-          {/* Админ-кнопка */}
           {user?.id === ADMIN_ID && (
-            <button onClick={() => setView("admin")} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500/10"}`}>👑 Админ-панель</button>
+            <button onClick={() => { setView("admin"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500/10"}`}>👑 Админ-панель</button>
           )}
         </div>
 
@@ -1131,14 +1180,14 @@ export default function Home() {
             </div>
             <div className="flex-1 overflow-y-auto px-3 space-y-2">
               {modpacks.map(pack => (
-                <div key={pack.id} onClick={() => setActivePackId(pack.id)} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
+                <div key={pack.id} onClick={() => { setActivePackId(pack.id); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>
                   {editingPackId === pack.id ? (
                     <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" />
                   ) : (
                     <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>
                   )}
                   <div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div>
-                  <div className="absolute top-4 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-4 right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20">✎</button>
                     <button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20">✕</button>
                   </div>
@@ -1170,17 +1219,19 @@ export default function Home() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 relative z-10">
+      <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
         {view === "mods" && (
           <>
-            <header className="p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20">
-              <div className="flex items-center justify-between gap-4">
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">Меню</button>
-                <input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
-                <div className="flex gap-2 shrink-0">
+            <header className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                  <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">Меню</button>
+                  <input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 md:flex-none md:w-96 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" />
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0 w-full md:w-auto">
                   <CustomSelect value={activePack?.gameVersion || "1.16.5"} onChange={(val) => updateActivePack({ gameVersion: val, artifacts: {} })} options={[{ value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} />
                   <CustomSelect value={activePack?.loader || "forge"} onChange={(val) => updateActivePack({ loader: val, artifacts: {} })} options={[{ value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} />
-                  <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)]">Сборка ({modsList.length})</button>
+                  <button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)] flex-1 md:flex-none">Сборка ({modsList.length})</button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1189,9 +1240,9 @@ export default function Home() {
                 ))}
               </div>
             </header>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
               {isLoading ? <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div></div> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
                   {results.map(mod => (
                     <div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-black/50 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:border-green-500/50 hover:bg-black/60 cursor-pointer flex flex-col gap-4 shadow-xl hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all duration-300 hover:-translate-y-1 group">
                       <div className="flex items-center gap-4 relative z-10">
@@ -1244,7 +1295,7 @@ export default function Home() {
         )}
 
         {view === "catalog" && (
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
             <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2>
             
             <div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative z-20">
@@ -1306,7 +1357,7 @@ export default function Home() {
                     {user && user.id === pack.user_id && (
                       <button 
                         onClick={(e) => deleteFromCatalog(pack.id, e)} 
-                        className="absolute top-4 right-4 text-zinc-300 hover:text-red-500 bg-black/60 hover:bg-black/90 p-2.5 rounded-xl transition-all opacity-0 group-hover:opacity-100 z-10"
+                        className="absolute top-4 right-4 text-zinc-300 hover:text-red-500 bg-black/60 hover:bg-black/90 p-2.5 rounded-xl transition-all opacity-100 md:opacity-0 group-hover:opacity-100 z-10"
                         title="Удалить из каталога"
                       >
                         ✕
@@ -1318,7 +1369,7 @@ export default function Home() {
                     <div className="flex items-center gap-3 border-b border-white/10 pb-3">
                       <AvatarWithFrame url={pack.profiles?.avatar_url} frame={pack.profiles?.frame} size="w-10 h-10" />
                       <div>
-                        <div className="font-bold text-xs text-green-400 flex items-center gap-2">
+                        <div className="font-bold text-xs text-green-400 flex items-center gap-2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); openUserProfile(pack.user_id); }}>
                           {pack.profiles?.username || "Игрок"}
                           <TitleBadge titleName={pack.profiles?.title || "Новичок"} />
                         </div>
@@ -1367,9 +1418,9 @@ export default function Home() {
                   <div className="mt-2 bg-[#121214] border border-white/10 rounded-xl overflow-hidden">
                     {searchResults.map(u => (
                       <div key={u.id} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => openUserProfile(u.id)}>
                           <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-6 h-6" />
-                          <span className="text-sm truncate">{u.username}</span>
+                          <span className="text-sm truncate hover:underline">{u.username}</span>
                         </div>
                         <button onClick={() => sendFriendRequest(u.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">+</button>
                       </div>
@@ -1403,9 +1454,9 @@ export default function Home() {
                       .slice(0, 5)
                       .map(u => (
                       <div key={u.id} className="flex items-center justify-between bg-white/5 p-2 rounded-lg">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => openUserProfile(u.id)}>
                           <AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-8 h-8" />
-                          <span className="text-sm truncate">{u.username}</span>
+                          <span className="text-sm truncate hover:underline">{u.username}</span>
                         </div>
                         <button onClick={() => sendFriendRequest(u.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">+</button>
                       </div>
@@ -1426,7 +1477,7 @@ export default function Home() {
                       <AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" />
                       <div className="truncate font-bold text-sm">{f.username}</div>
                     </div>
-                    <button onClick={(e) => removeFriend(f.id, e)} className="text-zinc-500 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Удалить из друзей">
+                    <button onClick={(e) => removeFriend(f.id, e)} className="text-zinc-500 hover:text-red-500 p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" title="Удалить из друзей">
                       ✕
                     </button>
                   </div>
@@ -1451,7 +1502,7 @@ export default function Home() {
                       </div>
                     </div>
                     <button onClick={clearChat} className="text-zinc-400 hover:text-red-400 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
-                      Очистить чат
+                      Очистить
                     </button>
                   </div>
                   
@@ -1479,7 +1530,7 @@ export default function Home() {
                             </div>
                           </div>
                         ) : (
-                          <div className={`relative max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
+                          <div className={`relative max-w-[85%] md:max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>
                             {isImageUrl(m.content) ? (
                               <div className="rounded-lg overflow-hidden max-w-sm cursor-pointer" onClick={() => window.open(m.content, '_blank')}>
                                 <img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain" />
@@ -1493,13 +1544,13 @@ export default function Home() {
                             
                             {/* Кнопки редактирования и удаления (только для своих) */}
                             {m.sender_id === user.id && !isImageUrl(m.content) && (
-                              <div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => startEditMessage(m.id, m.content)} className="text-zinc-400 hover:text-white p-1" title="Редактировать">✎</button>
                                 <button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1" title="Удалить">✕</button>
                               </div>
                             )}
                             {m.sender_id === user.id && isImageUrl(m.content) && (
-                              <div className="absolute top-1/2 -translate-y-1/2 -left-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute top-1/2 -translate-y-1/2 -left-10 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1 bg-black/50 rounded-full" title="Удалить">✕</button>
                               </div>
                             )}
@@ -1524,8 +1575,8 @@ export default function Home() {
                   <div className="p-4 border-t border-white/10 bg-black/40 flex flex-col gap-2">
                     {previewUrl && (
                       <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-green-500 mb-2 group">
-                        <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
-                        <button onClick={() => { setAttachedFile(null); setPreviewUrl(null); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                        <img src={previewUrl} alt="preview" className="w-full h-full object-contain bg-black/50" />
+                        <button onClick={() => { setAttachedFile(null); setPreviewUrl(null); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                       </div>
                     )}
                     
@@ -1562,10 +1613,10 @@ export default function Home() {
                         </div>
                       )}
 
-                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors">
+                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors hidden md:block">
                         😊
                       </button>
-                      <button onClick={() => fileInputRef.current?.click()} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors">
+                      <button onClick={() => fileInputRef.current?.click()} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors hidden md:block">
                         📎
                       </button>
                       <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
@@ -1575,10 +1626,10 @@ export default function Home() {
                         value={newMessage}
                         onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
                         onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                        placeholder="Написать сообщение..."
+                        placeholder="Написать..."
                         className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white"
                       />
-                      <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-xl font-bold disabled:opacity-50">
+                      <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-green-500 hover:bg-green-400 text-black px-4 md:px-6 py-3 rounded-xl font-bold disabled:opacity-50">
                         {isSendingFile ? "..." : "Отправить"}
                       </button>
                     </div>
@@ -1594,7 +1645,7 @@ export default function Home() {
         )}
 
         {view === "profile" && user && (
-          <div className="flex-1 overflow-y-auto p-8 flex justify-center">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center">
             <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
               
               {/* ЛЕВАЯ КОЛОНКА (ИНФОРМАЦИЯ) */}
@@ -1706,15 +1757,15 @@ export default function Home() {
 
         {/* ==== АДМИН-ПАНЕЛЬ ==== */}
         {view === "admin" && user?.id === ADMIN_ID && (
-          <div className="flex-1 overflow-y-auto p-8">
-            <div className="flex justify-between items-center mb-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <h2 className="text-3xl font-black text-red-500 drop-shadow-lg">Админ-панель</h2>
               <input 
                 type="text" 
                 placeholder="Поиск игрока..." 
                 value={adminSearch}
                 onChange={(e) => setAdminSearch(e.target.value)}
-                className="bg-black/50 border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:border-red-500 text-white"
+                className="bg-black/50 border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:border-red-500 text-white w-full md:w-auto"
               />
             </div>
 
@@ -1768,7 +1819,8 @@ export default function Home() {
         )}
       </main>
 
-      <div className={`fixed inset-y-0 right-0 w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
+      {/* ПАНЕЛЬ МОЕЙ СБОРКИ (Мобильная - поверх всего) */}
+      <div className={`fixed inset-y-0 right-0 w-full md:w-[28rem] bg-[#0c0c0e]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[60] transform transition-transform duration-300 ease-out flex flex-col ${isPackOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-2xl font-black text-white">Моя сборка</h2>
           <button onClick={() => setIsPackOpen(false)} className="bg-white/10 hover:bg-white/20 border border-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-white">✕</button>
@@ -1818,12 +1870,12 @@ export default function Home() {
             
             <button onClick={() => setViewingPack(null)} className="absolute top-8 right-8 text-white bg-black/50 hover:bg-black/80 w-12 h-12 rounded-full flex items-center justify-center transition-colors backdrop-blur-md z-10">✕</button>
             
-            <div className="absolute bottom-10 left-10 max-w-4xl">
-              <h1 className="text-5xl font-black text-white drop-shadow-2xl mb-4">{viewingPack.name}</h1>
-              <div className="flex items-center gap-4 text-zinc-300">
-                <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
+            <div className="absolute bottom-10 left-4 md:left-10 max-w-4xl">
+              <h1 className="text-3xl md:text-5xl font-black text-white drop-shadow-2xl mb-4">{viewingPack.name}</h1>
+              <div className="flex flex-wrap items-center gap-4 text-zinc-300">
+                <div onClick={() => openUserProfile(viewingPack.user_id)} className="flex items-center gap-2 bg-black/40 hover:bg-black/60 cursor-pointer px-4 py-2 rounded-xl backdrop-blur-md transition-colors">
                   <AvatarWithFrame url={viewingPack.profiles?.avatar_url} frame={viewingPack.profiles?.frame} size="w-8 h-8" />
-                  <span className="font-bold text-sm text-white">{viewingPack.profiles?.username || "Игрок"}</span>
+                  <span className="font-bold text-sm text-white hover:underline">{viewingPack.profiles?.username || "Игрок"}</span>
                   <TitleBadge titleName={viewingPack.profiles?.title || "Новичок"} />
                 </div>
                 <div className="bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-bold">
@@ -1833,7 +1885,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto w-full px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="max-w-6xl mx-auto w-full px-4 md:px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
             <div className="lg:col-span-2 space-y-12">
               
               {viewingPack.video_url && getYouTubeID(viewingPack.video_url) && (
@@ -1851,10 +1903,10 @@ export default function Home() {
               {viewingPack.screenshots && viewingPack.screenshots.length > 0 && (
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Скриншоты</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {viewingPack.screenshots.map((url, i) => (
-                      <div key={i} className="w-full aspect-video rounded-2xl bg-zinc-800 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(url, '_blank')}>
-                        <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                      <div key={i} className="w-full aspect-video rounded-2xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(url, '_blank')}>
+                        <Image src={url} alt="screenshot" fill className="object-contain" unoptimized />
                       </div>
                     ))}
                   </div>
@@ -1863,7 +1915,7 @@ export default function Home() {
 
               <div>
                 <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Описание</h3>
-                <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-[#121214] p-8 rounded-3xl border border-white/5 shadow-xl leading-relaxed whitespace-pre-wrap">
+                <div className="prose prose-invert prose-sm max-w-none text-zinc-300 bg-[#121214] p-6 md:p-8 rounded-3xl border border-white/5 shadow-xl leading-relaxed whitespace-pre-wrap">
                   {viewingPack.description || "Автор пока не добавил описание к этой сборке."}
                 </div>
               </div>
@@ -1881,6 +1933,47 @@ export default function Home() {
                       <div className="min-w-0">
                         <div className="text-sm font-bold truncate text-white">{mod.title}</div>
                         <div className="text-xs text-zinc-500 truncate">{mod.isLibrary ? "Библиотека" : "Мод"}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* БЛОК КОММЕНТАРИЕВ */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Комментарии</h3>
+                
+                {user ? (
+                  <div className="flex gap-3 mb-6">
+                    <AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" />
+                    <div className="flex-1 flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Написать комментарий..." 
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && postComment()}
+                        className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500 text-white" 
+                      />
+                      <button onClick={postComment} className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-xl font-bold transition-colors">Отправить</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-zinc-500 mb-6 bg-white/5 p-4 rounded-xl text-center">Войдите, чтобы оставить комментарий</div>
+                )}
+
+                <div className="space-y-4">
+                  {comments.length === 0 && <div className="text-zinc-500 text-sm">Пока нет комментариев. Будьте первым!</div>}
+                  {comments.map(c => (
+                    <div key={c.id} className="bg-[#121214] p-4 rounded-2xl border border-white/5 flex gap-3">
+                      <AvatarWithFrame url={c.profiles?.avatar_url} frame={c.profiles?.frame} size="w-8 h-8" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-sm text-green-400">{c.profiles?.username || "Игрок"}</span>
+                          <TitleBadge titleName={c.profiles?.title || "Новичок"} />
+                          <span className="text-[10px] text-zinc-500">{new Date(c.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm text-zinc-300 whitespace-pre-wrap">{c.content}</p>
                       </div>
                     </div>
                   ))}
@@ -1931,8 +2024,8 @@ export default function Home() {
       )}
 
       {selectedMod && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedMod(null)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-[95vw] h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setSelectedMod(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             
             <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-black/20 relative shrink-0">
               <div className="w-12 h-12 rounded-xl bg-zinc-800 overflow-hidden relative shadow-2xl shrink-0 border border-white/10"><Image src={selectedMod.icon_url || '/placeholder.png'} alt={selectedMod.title} fill className="object-cover" unoptimized /></div>
@@ -1967,8 +2060,8 @@ export default function Home() {
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
                     selectedMod.gallery.map((img, i) => (
-                      <div key={i} className="w-full aspect-video rounded-2xl bg-zinc-800 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(img.url, '_blank')}>
-                        <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized />
+                      <div key={i} className="w-full aspect-video rounded-2xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => window.open(img.url, '_blank')}>
+                        <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-contain" unoptimized />
                       </div>
                     ))
                   ) : (
@@ -2008,9 +2101,48 @@ export default function Home() {
         </div>
       )}
 
+      {viewingUser && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setViewingUser(null)}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl p-6 md:p-10 relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setViewingUser(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button>
+            
+            <div className="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4">
+              <AvatarWithFrame url={viewingUser.avatar_url} frame={viewingUser.frame} size="w-32 h-32" />
+              <div className="text-center md:text-left">
+                <h2 className="text-3xl font-black text-white mb-2">{viewingUser.username}</h2>
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                  <TitleBadge titleName={viewingUser.title || "Новичок"} size="lg" />
+                  <span className="text-xs text-zinc-400 uppercase tracking-widest">{viewingUser.role === 'admin' ? 'Админ' : viewingUser.role === 'moderator' ? 'Модер' : 'Игрок'}</span>
+                </div>
+                <p className="text-zinc-300 text-sm max-w-lg whitespace-pre-wrap">{viewingUser.bio || "Этот пользователь еще не рассказал о себе."}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-6">
+              <h3 className="text-xl font-bold text-white mb-4">Сборки пользователя ({viewingUserPacks.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {viewingUserPacks.length === 0 && <div className="text-zinc-500 col-span-full">У пользователя пока нет опубликованных сборок.</div>}
+                {viewingUserPacks.map(pack => (
+                  <div key={pack.id} onClick={() => { setViewingUser(null); setViewingPack(pack); }} className="bg-[#121214] border border-white/10 p-4 rounded-2xl hover:border-green-500/50 cursor-pointer transition-all flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 border border-white/10">
+                      {pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🖼️</div>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white truncate">{pack.name}</div>
+                      <div className="text-xs text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div>
+                      <div className="text-xs text-green-400 mt-1">⬇ {pack.downloads || 0}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isPublishModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4" onClick={() => setIsPublishModalOpen(false)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8" onClick={e => e.stopPropagation()}>
             <h2 className="text-2xl font-black text-white mb-6">Публикация сборки</h2>
             
             <div className="space-y-6">
@@ -2048,14 +2180,14 @@ export default function Home() {
                 <label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {activePack?.screenshots?.map((url, i) => (
-                    <div key={i} className="w-20 h-20 rounded-lg bg-zinc-800 relative overflow-hidden border border-white/10 group">
-                      <Image src={url} alt="screenshot" fill className="object-cover" unoptimized />
+                    <div key={i} className="w-20 h-20 rounded-lg bg-black/50 relative overflow-hidden border border-white/10 group">
+                      <Image src={url} alt="screenshot" fill className="object-contain" unoptimized />
                       <button 
                         onClick={() => {
                           const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i);
                           updateActivePack({ screenshots: newScreens });
                         }}
-                        className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         ✕
                       </button>
