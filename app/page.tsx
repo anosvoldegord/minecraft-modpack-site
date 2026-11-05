@@ -529,6 +529,12 @@ export default function Home() {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
+        @keyframes swirl {
+          0% { transform: rotate(0deg) translateX(80px) rotate(0deg); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); opacity: 0; }
+        }
         .animate-float {
           animation: float 3s ease-in-out infinite;
         }
