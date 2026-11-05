@@ -28,7 +28,6 @@ const TITLES = [
   { id: "admin", name: "Администратор", type: "exclusive", bg: "bg-gradient-to-b from-red-600 via-red-900 to-black border border-red-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_30px_rgba(220,38,38,0.8)]" },
 ];
 
-// ТЕ САМЫЕ TELEGRAM-СТИЛЬ АНИМАЦИИ
 const GACHA_BANNERS = [
   {
     id: "standard", name: "Стандартный", desc: "Классические предметы и рамки.", color: "from-zinc-700 to-zinc-900",
@@ -59,6 +58,8 @@ const GACHA_BANNERS = [
 const ALL_ITEMS: GachaItem[] = GACHA_BANNERS.flatMap(b => b.pool).filter((v, i, a) => a.findIndex(v2 => v2.id === v.id) === i);
 const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
+const EMOJIS = ["😀", "😂", "🤣", "😊", "😍", "🤩", "😎", "😭", "😡", "👍", "👎", "🔥", "💯", "❤️", "💔", "🎉", "💩", "👻", "💀", "🤖", "👾", "🎮", "🕹️", "💻"];
+const GIFFS = ["https://media.tenor.com/2e0gS8t6c3AAAAAC/pepe-pepe-the-frog.gif","https://media.tenor.com/8vJj2k4k5jAAAAAC/cat-cat-meme.gif","https://media.tenor.com/5Fk4J3k2k1AAAAAC/dog-dog-meme.gif"];
 
 const TitleBadge = ({ titleName, size = "sm" }: { titleName: string, size?: "sm" | "lg" }) => {
   const t = TITLES.find(x => x.name === titleName) || TITLES[0];
@@ -66,9 +67,59 @@ const TitleBadge = ({ titleName, size = "sm" }: { titleName: string, size?: "sm"
   return <div className={`inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider ${t.bg}`}><span className="drop-shadow-sm text-[10px]">{t.name}</span></div>;
 };
 
-// Стилизованный компонент для отображения анимированного предмета
+const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value: string, options: { value: string, label: string }[], onChange: (val: string) => void, widthClass?: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setIsOpen(false); };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  const selectedOption = options.find(o => o.value === value);
+  return (
+    <div className={`relative z-50 ${widthClass}`} ref={ref}>
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full bg-black/30 backdrop-blur-md hover:bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-sm font-medium flex items-center justify-between gap-2 text-white">
+        <span className="truncate">{selectedOption?.label || value}</span>
+        <svg className={`w-4 h-4 text-zinc-400 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50 py-2 min-w-[120%] animate-in fade-in slide-in-from-top-2">
+          {options.map((opt) => (
+            <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt.value ? "bg-white/10 text-green-400 font-medium" : "text-zinc-300 hover:bg-white/5 hover:text-white"}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AvatarWithFrame = ({ url, frame, size = "w-10 h-10" }: { url?: string, frame?: string, size?: string }) => {
+  const equippedFrame = ALL_ITEMS.find(i => i.id === frame && i.type === "frame");
+  const frameStyle = equippedFrame?.style || "border-white/10";
+  return (
+    <div className={`relative ${size} shrink-0 rounded-full border-2 ${frameStyle} bg-zinc-900 overflow-hidden group`}>
+      <div className="absolute inset-0.5 rounded-full overflow-hidden">
+        {url ? <Image src={url} alt="avatar" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-lg">👤</div>}
+      </div>
+    </div>
+  );
+};
+
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => {
+  useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
+  const borderColor = type === 'success' ? 'border-l-green-500' : type === 'error' ? 'border-l-red-500' : 'border-l-blue-500';
+  return (
+    <div className={`fixed top-6 right-6 px-5 py-3 rounded-r-xl rounded-l-md bg-[#121214]/95 border border-white/10 border-l-4 ${borderColor} shadow-2xl z-[100] animate-in slide-in-from-top-5 flex items-center gap-3 font-medium text-sm text-zinc-200 backdrop-blur-xl`}>
+      {type === 'success' && <span className="text-green-500 text-lg">✓</span>}
+      {type === 'error' && <span className="text-red-500 text-lg">✕</span>}
+      {message}
+    </div>
+  );
+};
+
 const AnimatedItem = ({ src, className, alt }: { src: string, className?: string, alt: string }) => {
-  // Используем сторонний скрипт lottie для проигрывания анимации
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent rounded-full blur-xl scale-75 animate-pulse" />
@@ -218,8 +269,8 @@ export default function Home() {
   const fetchUserLikes = async (userId: string) => { const { data } = await supabase.from('pack_likes').select('pack_id').eq('user_id', userId); if (data) setLikedPacks(data.map(d => d.pack_id)); };
   const fetchUserRatings = async (userId: string) => { const { data } = await supabase.from('pack_ratings').select('pack_id, rating').eq('user_id', userId); if (data) { const ratingsMap: Record<string, number> = {}; data.forEach(r => { ratingsMap[r.pack_id] = r.rating; }); setUserRatings(ratingsMap); } };
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file || !user) return; setIsUploading(true); try { const fileExt = file.name.split('.').pop(); const fileName = `${user.id}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('avatars').getPublicUrl(fileName); await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" }); setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl })); fetchProfile(user.id); showToast("Аватарка обновлена!", "success"); } catch (error: any) { showToast(error.message || "Ошибка", "error"); } finally { setIsUploading(false); } };
-  const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `cover-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('covers').getPublicUrl(fileName); const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Обложка загружена!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
-  const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `screen-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = await supabase.storage.from('covers').getPublicUrl(fileName); const pack = modpacks.find(p => p.id === packId); const newScreens = [...(pack?.screenshots || []), data.publicUrl]; const newPacks = modpacks.map(p => p.id === packId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ screenshots: newScreens }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Скриншот добавлен!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
+  const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `cover-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = await supabase.storage.from('covers').getPublicUrl(fileName); const newPacks = modpacks.map(p => p.id === packId ? { ...p, cover_url: data.publicUrl } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Обложка загружена!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
+  const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `screen-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('covers').getPublicUrl(fileName); const pack = modpacks.find(p => p.id === packId); const newScreens = [...(pack?.screenshots || []), data.publicUrl]; const newPacks = modpacks.map(p => p.id === packId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ screenshots: newScreens }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Скриншот добавлен!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
 
   const saveProfile = async (updates: any) => { if (!user) return; const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username || profile?.username || "Игрок", title: updates.title || profile?.title || "Новичок", avatar_url: profile?.avatar_url || null, frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default", bio: updates.bio !== undefined ? updates.bio : profile?.bio || "", owned_items: updates.owned_items !== undefined ? updates.owned_items : profile?.owned_items || [], coins: updates.coins !== undefined ? updates.coins : profile?.coins || 500 }); if (error) showToast("Ошибка: " + error.message, "error"); else { setProfile((prev: any) => ({ ...prev, ...updates })); fetchProfile(user.id); showToast("Сохранено!", "success"); } };
   const toggleTitle = async (targetUserId: string, titleId: string) => { const targetUser = adminUsers.find(u => u.id === targetUserId); if (!targetUser) return; const currentOwned = targetUser.owned_titles || ['novice']; const hasTitle = currentOwned.includes(titleId); const newOwned = hasTitle ? currentOwned.filter((id: string) => id !== titleId) : [...currentOwned, titleId]; await supabase.from('profiles').update({ owned_titles: newOwned }).eq('id', targetUserId); showToast(hasTitle ? "Забран!" : "Выдан!", "success"); setAdminUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, owned_titles: newOwned } : u)); };
