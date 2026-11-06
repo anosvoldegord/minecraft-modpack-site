@@ -169,7 +169,8 @@ export default function Home() {
   const [activeBanner, setActiveBanner] = useState<any>(GACHA_BANNERS[0]);
   const [isPulling, setIsPulling] = useState(false);
   const [gachaAnim, setGachaAnim] = useState<"idle" | "spinning" | "result">("idle");
-  const [gachaResult, setGachaResult] = useState<any>(null);
+  const [gachaResults, setGachaResults] = useState<any[]>([]);
+  const [gachaVisibleCount, setGachaVisibleCount] = useState(0);
   const [gachaVideoDone, setGachaVideoDone] = useState(false);
   const [gachaItemVisible, setGachaItemVisible] = useState(false);
 
@@ -355,52 +356,60 @@ export default function Home() {
     return (Date.now() - new Date(profile.last_gacha_pull).getTime()) > 24 * 60 * 60 * 1000;
   })();
 
-  const pullGacha = async (isFree = false) => {
+  const pullGacha = async (isFree = false, count = 1) => {
     if (!user || !profile) return showToast("Войдите", "error");
     if (isFree && !canFreePull) return showToast("Бесплатная крутка уже использована", "error");
-    if (!isFree && (profile.coins || 0) < 100) return showToast("Недостаточно монет", "error");
-    setIsPulling(true); setGachaAnim("spinning"); setGachaResult(null); setGachaVideoDone(false); setGachaItemVisible(false);
+    const totalCost = isFree ? 0 : (count === 10 ? 900 : 100);
+    if (!isFree && (profile.coins || 0) < totalCost) return showToast("Недостаточно монет", "error");
     
-    const roll = Math.random() * 100;
-    let currentChance = 0;
-    let selectedItem = activeBanner.pool[0];
+    setIsPulling(true); setGachaAnim("spinning"); setGachaResults([]); setGachaVideoDone(false); setGachaItemVisible(false); setGachaVisibleCount(0);
     
-    for (const item of activeBanner.pool) {
-      currentChance += item.chance;
-      if (roll <= currentChance) {
-        selectedItem = item;
-        break;
+    const results = [];
+    for (let i = 0; i < count; i++) {
+      const roll = Math.random() * 100;
+      let currentChance = 0;
+      let selectedItem = activeBanner.pool[0];
+      for (const item of activeBanner.pool) {
+        currentChance += item.chance;
+        if (roll <= currentChance) {
+          selectedItem = item;
+          break;
+        }
       }
+      results.push(selectedItem);
     }
 
-    // Результат предмета (сохранение в БД) — сразу, чтобы к моменту всплытия предмета он уже был в инвентаре.
-    const currentOwned = profile.owned_items || [];
-    const currentCount = getItemCount(currentOwned, selectedItem.id);
-    const newCount = currentCount + 1;
+    let currentOwned = profile.owned_items || [];
+    for (const selectedItem of results) {
+      const currentCount = getItemCount(currentOwned, selectedItem.id);
+      const newCount = currentCount + 1;
+      currentOwned = currentOwned.filter((s: string) => !s.startsWith(selectedItem.id) && s !== selectedItem.id);
+      currentOwned.push(newCount > 1 ? `${selectedItem.id}:${newCount}` : selectedItem.id);
+    }
     
-    let newOwned = currentOwned.filter((s: string) => !s.startsWith(selectedItem.id) && s !== selectedItem.id);
-    newOwned.push(newCount > 1 ? `${selectedItem.id}:${newCount}` : selectedItem.id);
-
-    const cost = isFree ? 0 : 100;
-    const newCoins = (profile.coins || 0) - cost;
+    const newOwned = currentOwned;
+    const newCoins = (profile.coins || 0) - totalCost;
     const updates: any = { owned_items: newOwned, coins: newCoins, last_gacha_pull: new Date().toISOString() };
     await supabase.from('profiles').update(updates).eq('id', user.id);
     setProfile((p: any) => ({ ...p, ...updates }));
-    setGachaResult({ ...selectedItem, count: newCount });
-
-    // Предмет всплывает на 10-й секунде (последние 5 сек видео из 15).
+    
+    setGachaResults(results.map((item: any) => ({ ...item, count: getItemCount(newOwned, item.id) })));
+    
     setTimeout(() => {
       setGachaAnim("result");
       setGachaItemVisible(true);
-      showToast(currentCount > 0 ? `Выбито: ${selectedItem.name} (x${newCount})` : `Новый предмет: ${selectedItem.name}`, 'success');
-    }, 10000);
+      for (let i = 0; i < results.length; i++) {
+        setTimeout(() => setGachaVisibleCount(i + 1), i * 100);
+      }
+    }, 3000);
 
-    // Видео закончилось (15 сек) — разрешаем снова крутить, прячем кат-сцену.
     setTimeout(() => {
       setGachaVideoDone(true);
-      setGachaItemVisible(false);
       setIsPulling(false);
-    }, 15000);
+      setGachaResults([]);
+      setGachaItemVisible(false);
+      setGachaAnim("idle");
+    }, 7000);
   };
 
   const sellItem = async (itemId: string) => {
@@ -519,37 +528,35 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes spinMagic {
-          0% { transform: rotate(0deg) scale(0.8); opacity: 0; }
-          20% { opacity: 1; scale: 1; }
-          80% { transform: rotate(720deg) scale(1.2); opacity: 1; }
-          100% { transform: rotate(1080deg) scale(0); opacity: 0; }
+        @keyframes cometFall {
+          0% { transform: translateY(-100vh) scale(0.5); opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateY(50vh) scale(1.5); opacity: 0; }
         }
-        @keyframes glowPulse {
-          0%, 100% { box-shadow: 0 0 20px 10px rgba(168,85,247,0.4); }
-          50% { box-shadow: 0 0 60px 30px rgba(168,85,247,0.8); }
+        @keyframes magicSwirl {
+          0% { transform: rotate(0deg) translateX(200px) scale(0.5); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: rotate(720deg) translateX(0px) scale(2); opacity: 0; }
         }
-        @keyframes particlesFly {
-          0% { transform: translateY(0) scale(1); opacity: 1; }
-          100% { transform: translateY(-100px) scale(0); opacity: 0; }
+        @keyframes flash {
+          0%, 75% { opacity: 0; }
+          80% { opacity: 1; }
+          100% { opacity: 0; }
         }
-        @keyframes textGlow {
-          0%, 100% { text-shadow: 0 0 10px #fff, 0 0 20px #a855f7; }
-          50% { text-shadow: 0 0 20px #fff, 0 0 40px #a855f7; }
+        @keyframes splashIn {
+          0% { transform: scale(0); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
-        @keyframes swirl {
-          0% { transform: rotate(0deg) translateX(80px) rotate(0deg); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); opacity: 0; }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
+        .animate-comet { animation: cometFall 2.5s cubic-bezier(0.5, 0, 1, 1) infinite; }
+        .animate-swirl { animation: magicSwirl 3s linear infinite; }
+        .animate-flash { animation: flash 4s ease-out forwards; }
+        .animate-splash { animation: splashIn 0.5s ease-out forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -672,26 +679,61 @@ export default function Home() {
 
       {viewingUser && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setViewingUser(null)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl p-6 md:p-10 relative" onClick={e => e.stopPropagation()}><button onClick={() => setViewingUser(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button><div className="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4"><AvatarWithFrame url={viewingUser.avatar_url} frame={viewingUser.frame} size="w-32 h-32" /><div className="text-center md:text-left"><h2 className="text-3xl font-black text-white mb-2">{viewingUser.username}</h2><div className="flex items-center justify-center md:justify-start gap-3 mb-3"><TitleBadge titleName={viewingUser.title || "Новичок"} size="lg" /><span className="text-xs text-zinc-400 uppercase tracking-widest">{viewingUser.role === 'admin' ? 'Админ' : viewingUser.role === 'moderator' ? 'Модер' : 'Игрок'}</span></div><p className="text-zinc-300 text-sm max-w-lg whitespace-pre-wrap">{viewingUser.bio || "Этот пользователь еще не рассказал о себе."}</p></div></div><div className="border-t border-white/10 pt-6"><h3 className="text-xl font-bold text-white mb-4">Сборки пользователя ({viewingUserPacks.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{viewingUserPacks.length === 0 && <div className="text-zinc-500 col-span-full">У пользователя пока нет опубликованных сборок.</div>}{viewingUserPacks.map(pack => (<div key={pack.id} onClick={() => { setViewingUser(null); setViewingPack(pack); }} className="bg-[#121214] border border-white/10 p-4 rounded-2xl hover:border-green-500/50 cursor-pointer transition-all flex items-center gap-4"><div className="w-16 h-16 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 border border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🖼️</div>}</div><div className="min-w-0 flex-1"><div className="font-bold text-white truncate">{pack.name}</div><div className="text-xs text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="text-xs text-green-400 mt-1">⬇ {pack.downloads || 0}</div></div></div>))}</div></div></div></div>)}
 
-      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResult(null); setGachaVideoDone(true); setGachaItemVisible(false); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResult(null); setGachaVideoDone(false); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-40 flex items-center justify-center relative">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaResult && gachaAnim === "result" && (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div><ItemImage src={gachaResult.img} emoji={gachaResult.emoji} alt={gachaResult.name} className="relative z-10 w-40 h-40 object-contain drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] animate-float" /></div><div className="mt-2 font-black text-white text-lg drop-shadow-lg">{gachaResult.name} {gachaResult.count > 1 && <span className="text-purple-400 font-black text-xl ml-2">x{gachaResult.count}</span>}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-bold transition-colors drop-shadow-md">{canFreePull ? "🎁 Бесплатно (1/сутки)" : "Бесплатно использовано"}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-6 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)]">Крутить за 100 🪙</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
+      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaResults([]); setGachaVideoDone(true); setGachaItemVisible(false); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); setGachaResults([]); setGachaVideoDone(false); setGachaItemVisible(false); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-40 flex items-center justify-center relative">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaResults.length > 0 && gachaAnim === "result" && (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div><ItemImage src={gachaResults[0].img} emoji={gachaResults[0].emoji} alt={gachaResults[0].name} className="relative z-10 w-40 h-40 object-contain drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] animate-float" /></div><div className="mt-2 font-black text-white text-lg drop-shadow-lg">{gachaResults[0].name} {gachaResults[0].count > 1 && <span className="text-purple-400 font-black text-xl ml-2">x{gachaResults[0].count}</span>}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button><button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
 
-      {gachaResult && !gachaVideoDone && (
-        <div className="fixed inset-0 z-[200] bg-black animate-in fade-in duration-300">
-          <video autoPlay muted playsInline className="w-full h-full object-cover">
-            <source src="/gacha/gacha_cutscene.mp4" type="video/mp4" />
-          </video>
-          {gachaItemVisible && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className="flex flex-col items-center animate-in zoom-in duration-700">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-white blur-3xl opacity-60 rounded-full animate-pulse"></div>
-                  <ItemImage src={gachaResult.img} emoji={gachaResult.emoji} alt={gachaResult.name} className="relative z-10 w-56 h-56 md:w-72 md:h-72 object-contain drop-shadow-[0_0_50px_rgba(255,255,255,1)] animate-float" />
-                </div>
-                <div className="mt-4 font-black text-white text-2xl md:text-3xl drop-shadow-[0_0_20px_rgba(0,0,0,1)] text-center">
-                  {gachaResult.name} {gachaResult.count > 1 && <span className="text-purple-300 font-black ml-2">x{gachaResult.count}</span>}
-                </div>
+      {gachaResults.length > 0 && !gachaVideoDone && (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300 overflow-hidden">
+          <div className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.3)] border border-white/10 flex items-center justify-center bg-[#0c0c0e]">
+            
+            {/* Фоновая анимация полета (0-3 сек) */}
+            {gachaAnim === "spinning" && (
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
+                 {activeBanner.id === "space" && (
+                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
+                     <div key={i} className="absolute w-4 h-32 bg-gradient-to-b from-green-400 to-transparent rounded-full blur-[2px] animate-comet" style={{ left: `${20 + Math.random() * 60}%`, animationDelay: `${Math.random() * 1.5}s` }}></div>
+                   ))
+                 )}
+                 {activeBanner.id === "halloween" && (
+                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
+                     <div key={i} className="absolute w-8 h-8 bg-orange-500 rounded-full blur-md animate-swirl shadow-[0_0_20px_rgba(168,85,247,0.8)]" style={{ animationDelay: `${Math.random() * 2}s` }}></div>
+                   ))
+                 )}
+                 {activeBanner.id === "standard" && (
+                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
+                     <div key={i} className="absolute w-2 h-48 bg-gradient-to-b from-yellow-200 to-transparent blur-[1px] animate-comet" style={{ left: `${20 + Math.random() * 60}%`, animationDelay: `${Math.random() * 1.5}s` }}></div>
+                   ))
+                 )}
+                 {/* Белая вспышка на 2.5-й секунде */}
+                 <div className="absolute inset-0 bg-white animate-flash pointer-events-none"></div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Финальное пятно и предметы (3-7 сек) */}
+            {gachaItemVisible && (
+              <div className="relative w-full h-full flex items-center justify-center animate-splash">
+                  {/* Само пятно */}
+                  <div className={`absolute w-[80%] h-[80%] rounded-full blur-3xl opacity-60
+                      ${activeBanner.id === 'space' ? 'bg-green-500' : 
+                        activeBanner.id === 'halloween' ? 'bg-purple-600' : 'bg-yellow-500'}`}>
+                  </div>
+                  
+                  {/* Сетка предметов */}
+                  <div className={`relative z-10 grid gap-2 md:gap-4 w-full p-8 ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
+                    {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => (
+                      <div key={idx} className={`flex flex-col items-center animate-in zoom-in duration-500 ${gachaResults.length === 1 ? "scale-100" : "scale-90"}`}>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div>
+                          <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.9)] animate-float ${gachaResults.length > 1 ? "w-20 h-20 md:w-28 md:h-28" : "w-56 h-56 md:w-72 md:h-72"}`} />
+                        </div>
+                        <div className={`mt-1 font-black text-white drop-shadow-[0_0_10px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px] md:text-xs" : "text-2xl md:text-3xl mt-4"}`}>
+                          {res.name} {res.count > 1 && <span className="text-purple-300 font-black ml-1">x{res.count}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
