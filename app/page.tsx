@@ -531,25 +531,39 @@ export default function Home() {
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes orbFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.03); } }
         @keyframes orbPulse { 0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 30px rgba(168,85,247,0.6)); } 50% { transform: scale(1.08); filter: brightness(1.3) drop-shadow(0 0 60px rgba(168,85,247,1)); } }
-        @keyframes whirPool {
-          0% { transform: rotate(0deg) translateX(var(--radius, 100px)) rotate(0deg) scale(1); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: rotate(360deg) translateX(var(--radius, 100px)) rotate(-360deg) scale(0.5); opacity: 0; }
+        
+        /* Хаотичный полет (ветер) */
+        @keyframes windBlow1 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.8; }
+          25% { transform: translate(60px, -80px) rotate(45deg) scale(1.2); opacity: 1; }
+          50% { transform: translate(-50px, -150px) rotate(-30deg) scale(0.9); opacity: 0.6; }
+          75% { transform: translate(-80px, 40px) rotate(20deg) scale(1.1); opacity: 0.9; }
         }
-        @keyframes twinkle { 0%, 100% { opacity: 1; filter: brightness(1); } 50% { opacity: 0.4; filter: brightness(2); } }
+        @keyframes windBlow2 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.7; }
+          25% { transform: translate(-70px, -60px) rotate(-45deg) scale(1.3); opacity: 1; }
+          50% { transform: translate(80px, -130px) rotate(30deg) scale(0.8); opacity: 0.5; }
+          75% { transform: translate(40px, 60px) rotate(-20deg) scale(1.2); opacity: 0.9; }
+        }
+        @keyframes windBlow3 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.9; }
+          25% { transform: translate(50px, 100px) rotate(90deg) scale(0.9); opacity: 0.6; }
+          50% { transform: translate(-100px, 60px) rotate(-90deg) scale(1.2); opacity: 1; }
+          75% { transform: translate(-40px, -90px) rotate(45deg) scale(0.8); opacity: 0.7; }
+        }
+        @keyframes windBlow4 {
+          0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0.6; }
+          25% { transform: translate(-90px, 90px) rotate(-90deg) scale(1.1); opacity: 0.9; }
+          50% { transform: translate(100px, 40px) rotate(90deg) scale(0.9); opacity: 1; }
+          75% { transform: translate(60px, -110px) rotate(-45deg) scale(1.3); opacity: 0.7; }
+        }
+        
+        @keyframes twinkle { 0%, 100% { opacity: 1; filter: brightness(1); } 50% { opacity: 0.3; filter: brightness(2); } }
         @keyframes flash { 0%, 100% { opacity: 0; transform: scale(0.2); } 50% { opacity: 1; transform: scale(1.5); } }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes rotateSlow { 100% { transform: rotate(360deg); } }
         @keyframes rotateReverse { 100% { transform: rotate(-360deg); } }
-        @keyframes spriteFloat {
-          0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-          25% { transform: translate(20px, -30px) scale(1.2); opacity: 1; }
-          50% { transform: translate(-10px, -60px) scale(0.9); opacity: 0.6; }
-          75% { transform: translate(-30px, -20px) scale(1.1); opacity: 0.9; }
-          100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-        }
         
         .animate-spin-slow { animation: spin 6s linear infinite; }
         .animate-orb-float { animation: orbFloat 2.5s ease-in-out infinite; }
@@ -560,7 +574,11 @@ export default function Home() {
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-rotate-slow { animation: rotateSlow 12s linear infinite; }
         .animate-rotate-reverse { animation: rotateReverse 8s linear infinite; }
-        .particle-whirl { animation: whirPool 4s linear infinite; }
+        
+        .particle-wind-1 { animation: windBlow1 5s ease-in-out infinite; }
+        .particle-wind-2 { animation: windBlow2 6s ease-in-out infinite; }
+        .particle-wind-3 { animation: windBlow3 4.5s ease-in-out infinite; }
+        .particle-wind-4 { animation: windBlow4 7s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -687,10 +705,9 @@ export default function Home() {
           
           {gachaAnim === "spinning" && (
             <div className="absolute inset-0 flex items-center justify-center">
-              {/* Вращающиеся магические круги */}
-              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-white/20 animate-rotate-slow"></div>
-              <div className="absolute w-80 h-80 rounded-full border border-white/10 animate-rotate-reverse"></div>
-              <div className="absolute w-96 h-96 rounded-full border border-dashed border-white/5 animate-rotate-slow" style={{ animationDuration: '20s' }}></div>
+              {/* Вращающиеся магические круги (для фона) */}
+              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-white/10 animate-rotate-slow"></div>
+              <div className="absolute w-80 h-80 rounded-full border border-white/5 animate-rotate-reverse"></div>
 
               {/* Вспышки света (Блики) */}
               {Array.from({ length: 8 }).map((_, i) => (
@@ -704,7 +721,7 @@ export default function Home() {
                      }}></div>
               ))}
 
-              {/* Вихрь летающих частиц (Снежинки / Пыль) */}
+              {/* Летающие частицы (Ветер) */}
               {(() => {
                 const minChance = gachaResults.length > 0 ? Math.min(...gachaResults.map((r: any) => r.chance)) : 100;
                 const bestItem = gachaResults.find((r: any) => r.chance === minChance) || { color: 'bg-purple-500' };
@@ -722,15 +739,14 @@ export default function Home() {
                 };
 
                 return Array.from({ length: 35 }).map((_, i) => {
-                  // Разные радиусы, чтобы частицы летали не по одной линии, а вихрем
-                  const radius = 60 + Math.random() * 120; 
+                  // Выбираем одну из 4 траекторий ветра
+                  const windType = (i % 4) + 1;
                   return (
-                    <div key={i} className="absolute particle-whirl" 
+                    <div key={i} className={`absolute particle-wind-${windType}`} 
                          style={{ 
-                           '--radius': `${radius}px`,
-                           animationDelay: `${-Math.random() * 5}s`, // Отрицательная задержка, чтобы они сразу были распределены
-                           animationDuration: `${3 + Math.random() * 4}s` // Разная скорость
-                         } as React.CSSProperties}>
+                           animationDelay: `${-Math.random() * 5}s`, // Сразу распределены
+                           animationDuration: `${4 + Math.random() * 4}s` // Разная скорость
+                         }}>
                       <div className="animate-twinkle" style={{ animationDelay: `${Math.random() * 2}s` }}>
                         {getParticleContent(i)}
                       </div>
