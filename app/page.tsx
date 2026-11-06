@@ -6,6 +6,7 @@ import Image from "next/image";
 import { supabase } from "./supabase";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import GachaChest3D from "./components/GachaChest3D";
 
 const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 
@@ -1117,18 +1118,7 @@ export default function Home() {
                     <div className="gacha-chest-aura"></div>
                     <div className="gacha-chest-shadow"></div>
                     <div className="gacha-chest-light"></div>
-
-                    <div className="gacha-chest-body">
-                      <div className="gacha-chest-front"></div>
-                      <div className="gacha-chest-band"></div>
-                    </div>
-
-                    <div className="gacha-chest-lid"></div>
-
-                    <div className="gacha-chest-lock">
-                      <div className="gacha-lock-ring"></div>
-                      <div className="gacha-lock-plate">✦</div>
-                    </div>
+                    <GachaChest3D theme={activeBanner.id} />
                   </div>
 
                   <div className="mt-5 text-center px-4">
