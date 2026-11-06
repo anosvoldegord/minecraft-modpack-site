@@ -118,6 +118,8 @@ export default function Home() {
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentPackId, setPaymentPackId] = useState<string | null>(null);
 
   const [friends, setFriends] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -172,8 +174,6 @@ export default function Home() {
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentPackId, setPaymentPackId] = useState<string | null>(null);
 
   const handleBoostPayment = (packId: string) => {
     setPaymentPackId(packId);
