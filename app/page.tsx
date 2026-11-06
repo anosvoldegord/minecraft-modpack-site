@@ -16,7 +16,7 @@ type Modpack = { id: string; name: string; gameVersion: string; loader: string; 
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; rating?: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; bumped_until?: string; created_at?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; bio?: string; owned_items?: string[]; coins?: number; last_gacha_pull?: string; };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
-type GachaItem = { id: string; name: string; type: "frame" | "item" | "boost"; rarity: number; chance: number; img: string; emoji: string; style?: string; bonus: string; };
+type GachaItem = { id: string; name: string; type: "frame" | "item" | "boost"; rarity: number; chance: number; img: string; emoji: string; style?: string; bonus: string; color?: string; };
 type MarketItem = { id: string; seller_id: string; item_id: string; price: number; created_at: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 
 const CATEGORIES = [{ id: "adventure", label: "Приключения" }, { id: "technology", label: "Технологии" }, { id: "magic", label: "Магия" }, { id: "mobs", label: "Животные и Мобы" }, { id: "worldgen", label: "Генерация мира" }, { id: "equipment", label: "Снаряжение" }, { id: "decoration", label: "Декор" }, { id: "optimization", label: "Оптимизация" }, { id: "storage", label: "Хранение" }, { id: "food", label: "Еда" }, { id: "library", label: "Библиотеки" }, { id: "utility", label: "Утилиты" }, { id: "quests", label: "Квесты" }, { id: "game-mechanics", label: "Механики" }];
@@ -33,31 +33,31 @@ const GACHA_BANNERS = [
   {
     id: "standard", name: "Стандартный", desc: "Классические предметы и рамки.", color: "from-zinc-700 to-zinc-900", bannerImg: "/gacha/banner_standard.png",
     pool: [
-      { id: "cat_mage", name: "Мурлыка-Чародей", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/cat_mage.png", emoji: "🐱", bonus: "Приносит удачу в крутках" },
-      { id: "mushroom_house", name: "Грибной Хоббит", type: "item" as const, rarity: 4, chance: 5, img: "/gacha/mushroom_house.png", emoji: "🍄", bonus: "Уютный домик в инвентаре" },
-      { id: "sky_whale", name: "Облачный Странник", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/sky_whale.png", emoji: "🐳", bonus: "Плавает в облаках" },
-      { id: "dragon_fruit", name: "Драконий Плод", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/dragon_fruit.png", emoji: "🐉", bonus: "Сладкий и полезный" },
-      { id: "sleepy_fox", name: "Сонный Лисенок", type: "item" as const, rarity: 3, chance: 54, img: "/gacha/sleepy_fox.png", emoji: "🦊", bonus: "Спит в рюкзаке" },
+      { id: "cat_mage", name: "Мурлыка-Чародей", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/cat_mage.png", emoji: "🐱", bonus: "Приносит удачу в крутках", color: "bg-yellow-400" },
+      { id: "mushroom_house", name: "Грибной Хоббит", type: "item" as const, rarity: 4, chance: 5, img: "/gacha/mushroom_house.png", emoji: "🍄", bonus: "Уютный домик в инвентаре", color: "bg-red-500" },
+      { id: "sky_whale", name: "Облачный Странник", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/sky_whale.png", emoji: "🐳", bonus: "Плавает в облаках", color: "bg-blue-400" },
+      { id: "dragon_fruit", name: "Драконий Плод", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/dragon_fruit.png", emoji: "🐉", bonus: "Сладкий и полезный", color: "bg-orange-500" },
+      { id: "sleepy_fox", name: "Сонный Лисенок", type: "item" as const, rarity: 3, chance: 54, img: "/gacha/sleepy_fox.png", emoji: "🦊", bonus: "Спит в рюкзаке", color: "bg-orange-400" },
     ]
   },
   {
     id: "halloween", name: "Хэллоуин", desc: "Жуткие рамки и редкие предметы.", color: "from-orange-800 to-purple-900", bannerImg: "/gacha/banner_halloween.png",
     pool: [
-      { id: "ghost_teapot", name: "Чайник Духов", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/ghost_teapot.png", emoji: "🫖", bonus: "Заваривает призрачный чай" },
-      { id: "winged_lantern", name: "Свет Небес", type: "frame" as const, rarity: 4, chance: 5, img: "/gacha/winged_lantern.png", emoji: "🏮", bonus: "Освещает путь" },
-      { id: "pumpkin_slime", name: "Тыквенный Слайм", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/pumpkin_slime.png", emoji: "🎃", bonus: "Прыгает по комнате" },
-      { id: "witch_cauldron", name: "Ведьмин Котел", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/witch_cauldron.png", emoji: "🍲", bonus: "Варит зелья" },
-      { id: "cute_bat", name: "Летучая Мышка", type: "item" as const, rarity: 3, chance: 49, img: "/gacha/cute_bat.png", emoji: "🦇", bonus: "Летает по ночам" },
+      { id: "ghost_teapot", name: "Чайник Духов", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/ghost_teapot.png", emoji: "🫖", bonus: "Заваривает призрачный чай", color: "bg-purple-600" },
+      { id: "winged_lantern", name: "Свет Небес", type: "frame" as const, rarity: 4, chance: 5, img: "/gacha/winged_lantern.png", emoji: "🏮", bonus: "Освещает путь", color: "bg-orange-500" },
+      { id: "pumpkin_slime", name: "Тыквенный Слайм", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/pumpkin_slime.png", emoji: "🎃", bonus: "Прыгает по комнате", color: "bg-orange-600" },
+      { id: "witch_cauldron", name: "Ведьмин Котел", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/witch_cauldron.png", emoji: "🍲", bonus: "Варит зелья", color: "bg-green-700" },
+      { id: "cute_bat", name: "Летучая Мышка", type: "item" as const, rarity: 3, chance: 49, img: "/gacha/cute_bat.png", emoji: "🦇", bonus: "Летает по ночам", color: "bg-indigo-600" },
     ]
   },
   {
     id: "space", name: "Космос", desc: "Галактические редкости и астро-рамки.", color: "from-indigo-900 via-purple-900 to-black", bannerImg: "",
     pool: [
-      { id: "space_helmet", name: "Космический Шлем", type: "frame" as const, rarity: 5, chance: 1, img: "/gacha/space_helmet.png", emoji: "👨‍🚀", bonus: "Позволяет дышать в космосе" },
-      { id: "star_crystal", name: "Звездный Кристалл", type: "item" as const, rarity: 5, chance: 4, img: "/gacha/star_crystal.png", emoji: "🌟", bonus: "Светится как звезда" },
-      { id: "magic_comet", name: "Магическая Комета", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/magic_comet.png", emoji: "☄️", bonus: "Оставляет радужный след" },
-      { id: "forest_amulet", name: "Лесной Амулет", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/forest_amulet.png", emoji: "🌿", bonus: "Защищает от сглаза" },
-      { id: "moon_rabbit", name: "Лунный Кролик", type: "item" as const, rarity: 3, chance: 70, img: "/gacha/moon_rabbit.png", emoji: "🐰", bonus: "Живет на Луне" },
+      { id: "space_helmet", name: "Космический Шлем", type: "frame" as const, rarity: 5, chance: 1, img: "/gacha/space_helmet.png", emoji: "👨‍🚀", bonus: "Позволяет дышать в космосе", color: "bg-cyan-400" },
+      { id: "star_crystal", name: "Звездный Кристалл", type: "item" as const, rarity: 5, chance: 4, img: "/gacha/star_crystal.png", emoji: "🌟", bonus: "Светится как звезда", color: "bg-yellow-300" },
+      { id: "magic_comet", name: "Магическая Комета", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/magic_comet.png", emoji: "☄️", bonus: "Оставляет радужный след", color: "bg-purple-500" },
+      { id: "forest_amulet", name: "Лесной Амулет", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/forest_amulet.png", emoji: "🌿", bonus: "Защищает от сглаза", color: "bg-emerald-500" },
+      { id: "moon_rabbit", name: "Лунный Кролик", type: "item" as const, rarity: 3, chance: 70, img: "/gacha/moon_rabbit.png", emoji: "🐰", bonus: "Живет на Луне", color: "bg-pink-400" },
     ]
   }
 ];
@@ -67,6 +67,10 @@ const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
 const EMOJIS = ["😀", "😂", "🤣", "😊", "😍", "🤩", "😎", "😭", "😡", "👍", "👎", "🔥", "💯", "❤️", "💔", "🎉", "💩", "👻", "💀", "🤖", "👾", "🎮", "🕹️", "💻"];
 const GIFFS = ["https://media.tenor.com/2e0gS8t6c3AAAAAC/pepe-pepe-the-frog.gif","https://media.tenor.com/8vJj2k4k5jAAAAAC/cat-cat-meme.gif","https://media.tenor.com/5Fk4J3k2k1AAAAAC/dog-dog-meme.gif"];
+
+const getItemColor = (item: any) => {
+  return item?.color || "bg-gray-500";
+};
 
 const getItemCount = (ownedItems: string[] | undefined, itemId: string) => {
   if (!ownedItems) return 0;
@@ -528,34 +532,29 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes cometFall {
-          0% { transform: translateY(-100vh) scale(0.5); opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateY(50vh) scale(1.5); opacity: 0; }
+        @keyframes saoLine {
+          0% { transform: scaleY(0); opacity: 0; }
+          20% { transform: scaleY(1); opacity: 1; }
+          80% { transform: scaleY(1); opacity: 1; }
+          100% { transform: scaleY(0); opacity: 0; }
         }
-        @keyframes magicSwirl {
-          0% { transform: rotate(0deg) translateX(200px) scale(0.5); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: rotate(720deg) translateX(0px) scale(2); opacity: 0; }
-        }
-        @keyframes flash {
-          0%, 75% { opacity: 0; }
-          80% { opacity: 1; }
+        @keyframes screenFlash {
+          0%, 70% { opacity: 0; }
+          75% { opacity: 1; }
           100% { opacity: 0; }
         }
-        @keyframes splashIn {
+        @keyframes splashPop {
           0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.1); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
-        .animate-comet { animation: cometFall 2.5s cubic-bezier(0.5, 0, 1, 1) infinite; }
-        .animate-swirl { animation: magicSwirl 3s linear infinite; }
-        .animate-flash { animation: flash 4s ease-out forwards; }
-        .animate-splash { animation: splashIn 0.5s ease-out forwards; }
+        .animate-sao-line { animation: saoLine 1.5s ease-out forwards; }
+        .animate-screen-flash { animation: screenFlash 2s ease-out forwards; }
+        .animate-splash-pop { animation: splashPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-float { animation: float 3s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -679,57 +678,49 @@ export default function Home() {
 
       {viewingUser && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setViewingUser(null)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl p-6 md:p-10 relative" onClick={e => e.stopPropagation()}><button onClick={() => setViewingUser(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button><div className="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4"><AvatarWithFrame url={viewingUser.avatar_url} frame={viewingUser.frame} size="w-32 h-32" /><div className="text-center md:text-left"><h2 className="text-3xl font-black text-white mb-2">{viewingUser.username}</h2><div className="flex items-center justify-center md:justify-start gap-3 mb-3"><TitleBadge titleName={viewingUser.title || "Новичок"} size="lg" /><span className="text-xs text-zinc-400 uppercase tracking-widest">{viewingUser.role === 'admin' ? 'Админ' : viewingUser.role === 'moderator' ? 'Модер' : 'Игрок'}</span></div><p className="text-zinc-300 text-sm max-w-lg whitespace-pre-wrap">{viewingUser.bio || "Этот пользователь еще не рассказал о себе."}</p></div></div><div className="border-t border-white/10 pt-6"><h3 className="text-xl font-bold text-white mb-4">Сборки пользователя ({viewingUserPacks.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{viewingUserPacks.length === 0 && <div className="text-zinc-500 col-span-full">У пользователя пока нет опубликованных сборок.</div>}{viewingUserPacks.map(pack => (<div key={pack.id} onClick={() => { setViewingUser(null); setViewingPack(pack); }} className="bg-[#121214] border border-white/10 p-4 rounded-2xl hover:border-green-500/50 cursor-pointer transition-all flex items-center gap-4"><div className="w-16 h-16 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 border border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🖼️</div>}</div><div className="min-w-0 flex-1"><div className="font-bold text-white truncate">{pack.name}</div><div className="text-xs text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="text-xs text-green-400 mt-1">⬇ {pack.downloads || 0}</div></div></div>))}</div></div></div></div>)}
 
-      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaResults([]); setGachaVideoDone(true); setGachaItemVisible(false); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); setGachaResults([]); setGachaVideoDone(false); setGachaItemVisible(false); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-40 flex items-center justify-center relative">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaResults.length > 0 && gachaAnim === "result" && (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div><ItemImage src={gachaResults[0].img} emoji={gachaResults[0].emoji} alt={gachaResults[0].name} className="relative z-10 w-40 h-40 object-contain drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] animate-float" /></div><div className="mt-2 font-black text-white text-lg drop-shadow-lg">{gachaResults[0].name} {gachaResults[0].count > 1 && <span className="text-purple-400 font-black text-xl ml-2">x{gachaResults[0].count}</span>}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button><button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
+      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaVideoDone(true); setGachaItemVisible(false); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); setGachaVideoDone(false); setGachaItemVisible(false); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-40 flex items-center justify-center relative">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaResults.length > 0 && gachaAnim === "result" && (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div><ItemImage src={gachaResults[0].img} emoji={gachaResults[0].emoji} alt={gachaResults[0].name} className="relative z-10 w-40 h-40 object-contain drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] animate-float" /></div><div className="mt-2 font-black text-white text-lg drop-shadow-lg">{gachaResults[0].name} {gachaResults[0].count > 1 && <span className="text-purple-400 font-black text-xl ml-2">x{gachaResults[0].count}</span>}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button><button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
 
       {gachaResults.length > 0 && !gachaVideoDone && (
         <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300 overflow-hidden">
           <div className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.3)] border border-white/10 flex items-center justify-center bg-[#0c0c0e]">
             
-            {/* Фоновая анимация полета (0-3 сек) */}
+            {/* САО Линии (0-1.5 сек) */}
             {gachaAnim === "spinning" && (
               <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
-                 {activeBanner.id === "space" && (
-                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
-                     <div key={i} className="absolute w-4 h-32 bg-gradient-to-b from-green-400 to-transparent rounded-full blur-[2px] animate-comet" style={{ left: `${20 + Math.random() * 60}%`, animationDelay: `${Math.random() * 1.5}s` }}></div>
-                   ))
-                 )}
-                 {activeBanner.id === "halloween" && (
-                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
-                     <div key={i} className="absolute w-8 h-8 bg-orange-500 rounded-full blur-md animate-swirl shadow-[0_0_20px_rgba(168,85,247,0.8)]" style={{ animationDelay: `${Math.random() * 2}s` }}></div>
-                   ))
-                 )}
-                 {activeBanner.id === "standard" && (
-                   Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => (
-                     <div key={i} className="absolute w-2 h-48 bg-gradient-to-b from-yellow-200 to-transparent blur-[1px] animate-comet" style={{ left: `${20 + Math.random() * 60}%`, animationDelay: `${Math.random() * 1.5}s` }}></div>
-                   ))
-                 )}
-                 {/* Белая вспышка на 2.5-й секунде */}
-                 <div className="absolute inset-0 bg-white animate-flash pointer-events-none"></div>
+                {Array.from({ length: 15 }).map((_, i) => {
+                  const minChance = Math.min(...gachaResults.map((r: any) => r.chance), 100);
+                  const bestItem = gachaResults.find((r: any) => r.chance === minChance);
+                  const colorClass = getItemColor(bestItem);
+                  return (
+                    <div key={i} className={`absolute h-1 w-full opacity-80 blur-[1px] animate-sao-line ${colorClass}`} style={{ top: `${(i * 7) + 2}%`, animationDelay: `${Math.random() * 0.3}s` }}></div>
+                  );
+                })}
+                <div className="absolute inset-0 bg-white animate-screen-flash pointer-events-none"></div>
               </div>
             )}
 
-            {/* Финальное пятно и предметы (3-7 сек) */}
+            {/* Кляксы и предметы (1.5-5 сек) */}
             {gachaItemVisible && (
-              <div className="relative w-full h-full flex items-center justify-center animate-splash">
-                  {/* Само пятно */}
-                  <div className={`absolute w-[80%] h-[80%] rounded-full blur-3xl opacity-60
-                      ${activeBanner.id === 'space' ? 'bg-green-500' : 
-                        activeBanner.id === 'halloween' ? 'bg-purple-600' : 'bg-yellow-500'}`}>
-                  </div>
-                  
-                  {/* Сетка предметов */}
-                  <div className={`relative z-10 grid gap-2 md:gap-4 w-full p-8 ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
-                    {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => (
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                  {/* Сетка предметов и их кляксы */}
+                  <div className={`relative z-10 grid gap-4 md:gap-8 w-full p-8 ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
+                    {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => {
+                      const splashColor = getItemColor(res);
+                      return (
                       <div key={idx} className={`flex flex-col items-center animate-in zoom-in duration-500 ${gachaResults.length === 1 ? "scale-100" : "scale-90"}`}>
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div>
+                        <div className="relative flex items-center justify-center w-full aspect-square">
+                          {/* Клякса цвета предмета */}
+                          <div className={`absolute inset-0 rounded-full blur-2xl opacity-70 animate-splash-pop ${splashColor}`}></div>
+                          <div className={`absolute inset-4 rounded-full blur-xl opacity-90 animate-splash-pop ${splashColor}`}></div>
+                          
+                          {/* Предмет */}
                           <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.9)] animate-float ${gachaResults.length > 1 ? "w-20 h-20 md:w-28 md:h-28" : "w-56 h-56 md:w-72 md:h-72"}`} />
                         </div>
                         <div className={`mt-1 font-black text-white drop-shadow-[0_0_10px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px] md:text-xs" : "text-2xl md:text-3xl mt-4"}`}>
                           {res.name} {res.count > 1 && <span className="text-purple-300 font-black ml-1">x{res.count}</span>}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
               </div>
             )}
