@@ -535,34 +535,28 @@ export default function Home() {
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
         @keyframes spherePulse {
-          0% { transform: scale(0.8); filter: brightness(1); }
-          50% { transform: scale(1.2); filter: brightness(1.5); }
-          100% { transform: scale(0.8); filter: brightness(1); }
+          0% { transform: scale(0.9); filter: brightness(1); box-shadow: 0 0 20px currentColor; }
+          50% { transform: scale(1.1); filter: brightness(1.3); box-shadow: 0 0 50px currentColor; }
+          100% { transform: scale(0.9); filter: brightness(1); box-shadow: 0 0 20px currentColor; }
         }
         @keyframes orbit {
-          0% { transform: rotate(0deg) translateX(60px) rotate(0deg); }
-          100% { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+          0% { transform: rotate(0deg) translateX(50px) rotate(0deg); }
+          100% { transform: rotate(360deg) translateX(50px) rotate(-360deg); }
         }
-        @keyframes flashWhite {
-          0%, 70% { opacity: 0; }
-          80% { opacity: 1; background-color: white; }
-          100% { opacity: 0; background-color: white; }
-        }
-        @keyframes splashGrow {
+        @keyframes itemPop {
           0% { transform: scale(0); opacity: 0; }
-          70% { transform: scale(1.05); opacity: 1; }
+          70% { transform: scale(1.1); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
         @keyframes itemFloat {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
         }
         
         .animate-sphere-pulse { animation: spherePulse 1.5s ease-in-out infinite; }
-        .animate-orbit { animation: orbit 2s linear infinite; }
-        .animate-flash-white { animation: flashWhite 3s ease-out forwards; }
-        .animate-splash-grow { animation: splashGrow 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-item-float { animation: itemFloat 4s ease-in-out infinite; }
+        .animate-orbit { animation: orbit 2.5s linear infinite; }
+        .animate-item-pop { animation: itemPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-item-float { animation: itemFloat 3s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
