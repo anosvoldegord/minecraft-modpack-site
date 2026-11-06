@@ -80,7 +80,7 @@ const getItemCount = (ownedItems: string[] | undefined, itemId: string) => {
 
 const isItemLocked = (ownedItems: string[] | undefined, itemId: string) => {
   if (!ownedItems) return false;
-  return ownedItems.some((s: string) => s.startsWith(`${itemId}:locked`));
+  return ownedItems.some((s: string) => s.startsWith(`${itemId}:locked`) || s === `${itemId}:1:locked`);
 };
 
 const getCleanItems = (ownedItems: string[] | undefined) => {
@@ -529,16 +529,31 @@ export default function Home() {
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes orbFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-15px) scale(1.05); } }
+        @keyframes orbFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.03); } }
+        @keyframes orbPulse { 0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 30px rgba(168,85,247,0.6)); } 50% { transform: scale(1.08); filter: brightness(1.3) drop-shadow(0 0 60px rgba(168,85,247,1)); } }
         @keyframes orbitSpark { 0% { transform: rotate(0deg) translateX(90px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(90px) rotate(-360deg); } }
+        @keyframes orbitSpark2 { 0% { transform: rotate(0deg) translateX(130px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(130px) rotate(-360deg); } }
+        @keyframes orbitSpark3 { 0% { transform: rotate(0deg) translateX(160px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(160px) rotate(-360deg); } }
+        @keyframes twinkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } }
+        @keyframes flash { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.2); } }
+        @keyframes sparkle { 0% { opacity: 0; transform: translate(0,0) scale(0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(1); } }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes rotateSlow { 100% { transform: rotate(360deg); } }
+        @keyframes rotateReverse { 100% { transform: rotate(-360deg); } }
         
         .animate-spin-slow { animation: spin 6s linear infinite; }
         .animate-orb-float { animation: orbFloat 2.5s ease-in-out infinite; }
+        .animate-orb-pulse { animation: orbPulse 2s ease-in-out infinite; }
         .animate-orbit-spark { animation: orbitSpark 3s linear infinite; }
+        .animate-orbit-spark2 { animation: orbitSpark2 4s linear infinite; }
+        .animate-orbit-spark3 { animation: orbitSpark3 5s linear infinite; }
+        .animate-twinkle { animation: twinkle 1.5s ease-in-out infinite; }
+        .animate-flash { animation: flash 1.2s ease-in-out infinite; }
         .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-rotate-slow { animation: rotateSlow 12s linear infinite; }
+        .animate-rotate-reverse { animation: rotateReverse 8s linear infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -661,44 +676,99 @@ export default function Home() {
 
       {viewingUser && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setViewingUser(null)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl p-6 md:p-10 relative" onClick={e => e.stopPropagation()}><button onClick={() => setViewingUser(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button><div className="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4"><AvatarWithFrame url={viewingUser.avatar_url} frame={viewingUser.frame} size="w-32 h-32" /><div className="text-center md:text-left"><h2 className="text-3xl font-black text-white mb-2">{viewingUser.username}</h2><div className="flex items-center justify-center md:justify-start gap-3 mb-3"><TitleBadge titleName={viewingUser.title || "Новичок"} size="lg" /><span className="text-xs text-zinc-400 uppercase tracking-widest">{viewingUser.role === 'admin' ? 'Админ' : viewingUser.role === 'moderator' ? 'Модер' : 'Игрок'}</span></div><p className="text-zinc-300 text-sm max-w-lg whitespace-pre-wrap">{viewingUser.bio || "Этот пользователь еще не рассказал о себе."}</p></div></div><div className="border-t border-white/10 pt-6"><h3 className="text-xl font-bold text-white mb-4">Сборки пользователя ({viewingUserPacks.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{viewingUserPacks.length === 0 && <div className="text-zinc-500 col-span-full">У пользователя пока нет опубликованных сборок.</div>}{viewingUserPacks.map(pack => (<div key={pack.id} onClick={() => { setViewingUser(null); setViewingPack(pack); }} className="bg-[#121214] border border-white/10 p-4 rounded-2xl hover:border-green-500/50 cursor-pointer transition-all flex items-center gap-4"><div className="w-16 h-16 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 border border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🖼️</div>}</div><div className="min-w-0 flex-1"><div className="font-bold text-white truncate">{pack.name}</div><div className="text-xs text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="text-xs text-green-400 mt-1">⬇ {pack.downloads || 0}</div></div></div>))}</div></div></div></div>)}
 
-      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-64 flex items-center justify-center relative overflow-hidden">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaAnim === "spinning" && (<div className="absolute inset-0 flex items-center justify-center">
-              {/* Вращающиеся кольца */}
-              <div className="absolute w-56 h-56 rounded-full border-2 border-dashed border-white/20 animate-spin-slow"></div>
-              <div className="absolute w-72 h-72 rounded-full border border-white/10 animate-spin-slow" style={{ animationDirection: 'reverse', animationDuration: '8s' }}></div>
-              
-              {/* Летающие частицы (зависят от баннера) */}
+      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-72 flex items-center justify-center relative overflow-hidden">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}
+          
+          {gachaAnim === "spinning" && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Вращающиеся магические круги */}
+              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-white/20 animate-rotate-slow"></div>
+              <div className="absolute w-80 h-80 rounded-full border border-white/10 animate-rotate-reverse"></div>
+              <div className="absolute w-96 h-96 rounded-full border border-dashed border-white/5 animate-rotate-slow" style={{ animationDuration: '20s' }}></div>
+
+              {/* Вспышки света */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="absolute w-4 h-4 rounded-full bg-white animate-flash" 
+                     style={{ 
+                       left: `${20 + Math.random() * 60}%`, 
+                       top: `${20 + Math.random() * 60}%`,
+                       animationDelay: `${i * 0.3}s`,
+                       boxShadow: '0 0 15px 5px rgba(255,255,255,0.8)'
+                     }}></div>
+              ))}
+
+              {/* Летающие частицы (орбиты) */}
               {(() => {
                 const minChance = gachaResults.length > 0 ? Math.min(...gachaResults.map((r: any) => r.chance)) : 100;
                 const bestItem = gachaResults.find((r: any) => r.chance === minChance) || { color: 'bg-purple-500' };
                 const colorClass = getItemColor(bestItem);
                 
-                return Array.from({ length: 8 }).map((_, i) => {
-                  let particleContent = null;
-                  let extraClass = "";
-                  
+                const getParticleContent = (i: number) => {
                   if (activeBanner.id === "standard") {
-                    const runes = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ"];
-                    particleContent = <span className="text-yellow-400 font-bold text-lg drop-shadow-[0_0_8px_rgba(250,204,21,1)]">{runes[i % runes.length]}</span>;
+                    const runes = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "ᛁ", "ᛃ"];
+                    return <span className="text-yellow-400 font-bold text-lg drop-shadow-[0_0_8px_rgba(250,204,21,1)] animate-twinkle" style={{ animationDelay: `${i * 0.2}s` }}>{runes[i % runes.length]}</span>;
                   } else if (activeBanner.id === "halloween") {
-                    particleContent = <span className="text-purple-400 text-xl drop-shadow-[0_0_8px_rgba(168,85,247,1)]">{i % 2 === 0 ? "💀" : "👻"}</span>;
+                    return <span className="text-purple-400 text-xl drop-shadow-[0_0_8px_rgba(168,85,247,1)] animate-twinkle" style={{ animationDelay: `${i * 0.2}s` }}>{i % 2 === 0 ? "💀" : "👻"}</span>;
                   } else {
-                    particleContent = <span className={`text-2xl drop-shadow-[0_0_8px_currentColor] ${colorClass.replace('bg-', 'text-')}`}>{i % 2 === 0 ? "💎" : "✨"}</span>;
+                    return <span className={`text-2xl drop-shadow-[0_0_8px_currentColor] ${colorClass.replace('bg-', 'text-')} animate-twinkle`} style={{ animationDelay: `${i * 0.2}s` }}>{i % 2 === 0 ? "💎" : "✨"}</span>;
                   }
-                  return (
-                    <div key={i} className={`absolute flex items-center justify-center animate-orbit-spark ${extraClass}`} 
-                         style={{ animationDelay: `${i * 0.4}s` }}>
-                      {particleContent}
-                    </div>
-                  );
-                });
+                };
+
+                return (
+                  <>
+                    {/* Внутренняя орбита */}
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={`orbit1-${i}`} className="absolute animate-orbit-spark" style={{ animationDelay: `${i * 0.6}s` }}>
+                        {getParticleContent(i)}
+                      </div>
+                    ))}
+                    {/* Средняя орбита */}
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={`orbit2-${i}`} className="absolute animate-orbit-spark2" style={{ animationDelay: `${i * 0.8}s` }}>
+                        {getParticleContent(i + 2)}
+                      </div>
+                    ))}
+                    {/* Внешняя орбита */}
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={`orbit3-${i}`} className="absolute animate-orbit-spark3" style={{ animationDelay: `${i * 1}s` }}>
+                        {getParticleContent(i + 4)}
+                      </div>
+                    ))}
+                  </>
+                );
               })()}
 
               {/* Сама сфера */}
-              <div className="relative w-56 h-56 animate-orb-float flex items-center justify-center z-10">
+              <div className="relative w-48 h-48 animate-orb-pulse flex items-center justify-center z-10">
                 <div className="absolute inset-0 bg-purple-600 blur-[50px] opacity-30 rounded-full animate-pulse"></div>
-                <Image src="/gacha/gacha_sphere.png" alt="Magic Sphere" fill className="object-contain drop-shadow-[0_0_40px_rgba(168,85,247,0.8)]" unoptimized />
+                <Image src="/gacha/gacha_sphere.png" alt="Magic Sphere" fill className="object-contain drop-shadow-[0_0_60px_rgba(168,85,247,1)]" unoptimized />
               </div>
-            </div>)}{gachaAnim === "result" && gachaResults.length > 0 && (<div className="flex flex-col items-center w-full z-10"><div className={`grid gap-2 w-full ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>{gachaResults.slice(0, gachaVisibleCount).map((res, idx) => { const splashColor = getItemColor(res); return (<div key={idx} className="flex flex-col items-center relative animate-pop" style={{ animationDelay: `${idx * 100}ms` }}><ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] animate-float ${gachaResults.length > 1 ? "w-16 h-16 md:w-20 md:h-20" : "w-32 h-32"}`} /><div className={`mt-1 font-black text-white drop-shadow-[0_0_8px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px]" : "text-lg"}`}>{res.name} {res.count > 1 && <span className="text-purple-300">x{res.count}</span>}</div></div>); })}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button><button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
+            </div>
+          )}
+
+          {gachaAnim === "result" && gachaResults.length > 0 && (
+            <div className="flex flex-col items-center w-full z-10">
+              <div className={`grid gap-2 w-full ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
+                {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => { const splashColor = getItemColor(res); return (
+                  <div key={idx} className="flex flex-col items-center relative animate-pop" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] animate-float ${gachaResults.length > 1 ? "w-16 h-16 md:w-20 md:h-20" : "w-32 h-32"}`} />
+                    <div className={`mt-1 font-black text-white drop-shadow-[0_0_8px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px]" : "text-lg"}`}>{res.name} {res.count > 1 && <span className="text-purple-300">x{res.count}</span>}</div>
+                  </div>
+                ); })}
+              </div>
+            </div>
+          )}
+          
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+            <button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button>
+            <button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button>
+            <button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button>
+          </div>
+          </div>
+          </div>
+          <div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div>
+          </div>
+          </div>)}
 
       {isPublishModalOpen && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4" onClick={() => setIsPublishModalOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8" onClick={e => e.stopPropagation()}><h2 className="text-2xl font-black text-white mb-6">Публикация сборки</h2><div className="space-y-6"><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка</label><div className="flex items-center gap-4"><div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">{activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}</div><div className="flex-1"><input type="file" id="publish-cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" /><label htmlFor="publish-cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">Загрузить обложку</label></div></div></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Ссылка на YouTube-видео</label><input type="text" placeholder="https://youtube.com/watch?v=..." value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" /></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Описание</label><textarea placeholder="Расскажите о своей сборке..." value={activePack?.description || ""} onChange={(e) => updateActivePack({ description: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-32 resize-none" /></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label><div className="flex flex-wrap gap-2 mb-3">{activePack?.screenshots?.map((url, i) => (<div key={i} className="w-20 h-20 rounded-lg bg-black/50 relative overflow-hidden border border-white/10 group"><Image src={url} alt="screenshot" fill className="object-contain" unoptimized /><button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); updateActivePack({ screenshots: newScreens }); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">✕</button></div>))}</div><input type="file" id="publish-screenshot-upload" accept="image/*" onChange={(e) => uploadScreenshot(e, activePackId)} className="hidden" /><label htmlFor="publish-screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">+ Добавить скриншот</label></div><div className="flex gap-3 pt-4"><button onClick={() => setIsPublishModalOpen(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">Отмена</button><button onClick={publishPack} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-bold transition-colors">Опубликовать</button></div></div></div></div>)}
 
