@@ -403,13 +403,13 @@ export default function Home() {
       for (let i = 0; i < results.length; i++) {
         setTimeout(() => setGachaVisibleCount(i + 1), i * 150);
       }
-    }, 3000);
+    }, 3500);
 
     setTimeout(() => {
       setIsPulling(false);
       setGachaAnim("idle");
       setGachaResults([]);
-    }, 8000);
+    }, 8500);
   };
 
   const sellItem = async (itemId: string) => {
