@@ -532,18 +532,14 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes orbFloat {
-          0% { transform: scale(0.5); opacity: 0; }
-          20% { opacity: 1; transform: scale(1); }
-          50% { transform: scale(1.1); opacity: 1; }
-          80% { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1.5); opacity: 0; }
+        @keyframes spherePulse {
+          0% { transform: scale(0.8); filter: brightness(1); }
+          50% { transform: scale(1.2); filter: brightness(1.5); }
+          100% { transform: scale(0.8); filter: brightness(1); }
         }
-        @keyframes orbSparks {
-          0% { transform: rotate(0deg) translateX(100px) scale(0.5); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: rotate(360deg) translateX(0px) scale(0); opacity: 0; }
+        @keyframes orbit {
+          0% { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+          100% { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
         }
         @keyframes flashWhite {
           0%, 70% { opacity: 0; }
@@ -560,8 +556,8 @@ export default function Home() {
           50% { transform: translateY(-15px) rotate(2deg); }
         }
         
-        .animate-orb-float { animation: orbFloat 3s ease-in-out forwards; }
-        .animate-orb-spark { animation: orbSparks 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .animate-sphere-pulse { animation: spherePulse 1.5s ease-in-out infinite; }
+        .animate-orbit { animation: orbit 2s linear infinite; }
         .animate-flash-white { animation: flashWhite 3s ease-out forwards; }
         .animate-splash-grow { animation: splashGrow 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-item-float { animation: itemFloat 4s ease-in-out infinite; }
