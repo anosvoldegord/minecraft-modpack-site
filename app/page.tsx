@@ -532,15 +532,20 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes magicSpin {
-          0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+        @keyframes pulseCore {
+          0% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 20px currentColor; }
+          50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 60px currentColor; }
+          100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 20px currentColor; }
+        }
+        @keyframes orbitSpark {
+          0% { transform: rotate(0deg) translateX(120px) scale(0.5); opacity: 0; }
           20% { opacity: 1; }
-          80% { transform: rotate(720deg) scale(1.5); opacity: 1; }
-          100% { transform: rotate(1080deg) scale(0); opacity: 0; }
+          80% { opacity: 1; }
+          100% { transform: rotate(360deg) translateX(0px) scale(0); opacity: 0; }
         }
         @keyframes flashWhite {
-          0%, 70% { opacity: 0; }
-          80% { opacity: 1; background-color: white; }
+          0%, 60% { opacity: 0; }
+          75% { opacity: 1; background-color: white; }
           100% { opacity: 0; background-color: white; }
         }
         @keyframes splashGrow {
@@ -552,7 +557,8 @@ export default function Home() {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-15px) rotate(2deg); }
         }
-        .animate-magic-spin { animation: magicSpin 2s cubic-bezier(0.5, 0, 1, 1) infinite; }
+        .animate-pulse-core { animation: pulseCore 1.5s ease-in-out infinite; }
+        .animate-orbit-spark { animation: orbitSpark 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
         .animate-flash-white { animation: flashWhite 3s ease-out forwards; }
         .animate-splash-grow { animation: splashGrow 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-item-float { animation: itemFloat 4s ease-in-out infinite; }
@@ -684,30 +690,39 @@ export default function Home() {
         <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300 overflow-hidden">
           <div className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.3)] border border-white/10 flex items-center justify-center bg-[#0c0c0e]">
             
-            {/* Анимация полета (0-4 сек) */}
+            {/* Анимация магического ядра (0-4 сек) */}
             {gachaAnim === "spinning" && (
               <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-900 to-black opacity-90"></div>
                 
-                {/* Магические круги и частицы */}
+                {/* Магические круги */}
                 <div className="absolute w-[300px] h-[300px] rounded-full border-2 border-dashed border-purple-500/30 animate-[spin_4s_linear_infinite]"></div>
                 <div className="absolute w-[400px] h-[400px] rounded-full border-2 border-dashed border-blue-500/20 animate-[spin_6s_linear_infinite_reverse]"></div>
                 
-                {/* Сходящиеся частицы */}
-                {Array.from({ length: 15 }).map((_, i) => {
+                {/* Пульсирующее ядро (цвет лучшего предмета) */}
+                {(() => {
                   const minChance = Math.min(...gachaResults.map((r: any) => r.chance), 100);
                   const bestItem = gachaResults.find((r: any) => r.chance === minChance);
                   const colorClass = getItemColor(bestItem);
                   
                   return (
-                    <div key={i} className={`absolute w-2 h-20 rounded-full blur-sm animate-magic-spin ${colorClass}`} 
+                    <div className={`absolute w-24 h-24 rounded-full ${colorClass} animate-pulse-core`}></div>
+                  );
+                })()}
+
+                {/* Разлетающиеся искры */}
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const minChance = Math.min(...gachaResults.map((r: any) => r.chance), 100);
+                  const bestItem = gachaResults.find((r: any) => r.chance === minChance);
+                  const colorClass = getItemColor(bestItem);
+                  
+                  return (
+                    <div key={i} className={`absolute w-3 h-3 rounded-full blur-[2px] animate-orbit-spark ${colorClass}`} 
                          style={{ 
                            left: '50%', 
                            top: '50%',
                            transformOrigin: 'center center',
-                           animationDelay: `${Math.random() * 1.5}s`,
-                           marginLeft: `-${Math.random() * 100}px`,
-                           marginTop: `-${Math.random() * 100}px`
+                           animationDelay: `${i * 0.2}s`
                          }}>
                     </div>
                   );
