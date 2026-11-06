@@ -1,0 +1,842 @@
+2026-11-06T07:58:29.665554Z DEBUG ThreadId(01) dcc_mcp_skills::scanner: Discovered 0 skill(s) across 1 search path(s)
+2026-11-06T07:58:29.665701Z  INFO ThreadId(01) dcc_mcp_skills::catalog::catalog::discovery_impl: SkillCatalog: discovered 0 new skill(s), total 0
+2026-11-06T07:58:29.665727Z  INFO ThreadId(01) dcc_mcp_http_py::bridge: create_skill_server(blender): discovered 0 skill(s)
+2026-11-06T07:58:29.665751Z  INFO ThreadId(01) dcc_mcp_http_py::bridge: create_skill_server(blender): discovered 0 accumulated skill(s)
+2026-11-06T07:58:29.666522Z DEBUG ThreadId(01) opentelemetry: name="NoopMeterProvider.MeterCreation" meter_name="dcc-mcp-blender" Meter was obtained from a NoopMeterProvider. No metrics will be recorded. If global::meter_with_scope()/meter() was used, ensure that a valid MeterProvider is set globally before creating Meter.
+2026-11-06T07:58:29.670585Z  INFO ThreadId(01) dcc_mcp_http_py::skill_server: McpHttpServer: in-process executor registered — load_skill() will use in-process handlers (issue #464)
+2026-11-06T07:58:29.670665Z  INFO ThreadId(01) dcc_mcp_http_py::skill_server: McpHttpServer: main-thread dispatcher attached — tools/call will route through DccDispatcher::post
+2026-11-06T07:58:29.670817Z  INFO ThreadId(01) dcc_mcp_http_py::skill_server: McpHttpServer: readiness probe installed — /mcp and /v1/call will share it (issue #714)
+2026-11-06T07:58:29.674532Z DEBUG ThreadId(01) dcc_mcp_skills::scanner: Discovered 42 skill(s) across 7 search path(s)
+2026-11-06T07:58:29.674917Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.674929Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.674936Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.674942Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.674947Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.674951Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.675827Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.675838Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.675843Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.675849Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.675854Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.675859Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.676385Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.676396Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.676401Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.676406Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.676411Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.676416Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.677245Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.677257Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.677263Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.677268Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.677273Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.677278Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.678016Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.678030Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.678038Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.678046Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.678053Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.678061Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.678488Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.678498Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.678504Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.678509Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.678514Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.678519Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.679579Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.679590Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.679595Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.679600Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.679605Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.679609Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.680793Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.680806Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.680814Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.680873Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.680884Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.680889Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.681544Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.681553Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.681559Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.681564Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.681569Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.681574Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.682467Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.682479Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.682487Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.682495Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.682503Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.683013Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.683022Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.683027Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.683033Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.683038Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.683043Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.683589Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.683599Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.683604Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.683610Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.683615Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.683619Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.684940Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.684958Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.684970Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.684980Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.684988Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.684996Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.685619Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.685638Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.685644Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.685649Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.685654Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.685659Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.686771Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.686781Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.686786Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.686792Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.686797Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.686801Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.687828Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.687840Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.687848Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.687856Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.687863Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.687870Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.688304Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.688314Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.688319Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.688324Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.688330Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.688370Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.689355Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.689370Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.689377Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.689383Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.689388Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.689393Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.689845Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.689854Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.689860Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.689865Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.689869Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.689874Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.690325Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.690334Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.690339Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.690345Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.690350Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.690354Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.693129Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.693141Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.693146Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.693151Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.693156Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.693161Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.693682Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.693693Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.693701Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.693707Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.693712Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.693717Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.695034Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.695045Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.695053Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.695058Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.695063Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.695068Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.697174Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.697189Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.697198Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.697206Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.697213Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.697221Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.698048Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.698058Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.698063Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.698069Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.698074Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.698078Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.698639Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.698649Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.698655Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.698660Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.698665Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.698670Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.701104Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.701125Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.701131Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.701137Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.701142Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.701148Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.703459Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.703477Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.703482Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.703487Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.703492Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.703497Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.703962Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.703972Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.703977Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.703982Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.703988Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.703992Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.705049Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.705060Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.705065Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.705071Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.705076Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.705081Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.705636Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.705646Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.705652Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.705661Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.705668Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.705673Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.706865Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.706875Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.706881Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.706886Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.706892Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.706901Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.707379Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.707389Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.707394Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.707400Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.707406Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.707411Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.708069Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.708079Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.708084Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.708090Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.708095Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.708101Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.709346Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.709355Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.709361Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.709367Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.709372Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.709378Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.717722Z  INFO ThreadId(01) dcc_mcp_skills::catalog::catalog::discovery_impl: SkillCatalog: discovered 42 new skill(s), total 42
+2026-11-06T07:58:29.723646Z DEBUG ThreadId(01) dcc_mcp_skills::scanner: Discovered 42 skill(s) across 7 search path(s)
+2026-11-06T07:58:29.723909Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.723922Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.723927Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.723933Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.723938Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.723943Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-animation: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.724691Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.724703Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.724709Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.724714Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.724719Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.724723Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-asset-source: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.725192Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.725204Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.725212Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.725221Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.725228Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.725238Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-attributes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.725889Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.725901Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.725908Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.725914Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.725920Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.725925Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-camera: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.726548Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.726560Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.726605Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.726613Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.726618Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.726623Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-collection: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.727018Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.727027Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.727033Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.727038Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.727044Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.727048Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-compositor: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.728050Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.728059Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.728065Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.728069Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.728074Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.728079Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-dev: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.729162Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.729174Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.729182Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.729188Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.729194Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.729199Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-export-preset: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.729751Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.729761Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.729766Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.729771Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.729776Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.729808Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-expressions: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.730681Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.730693Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.730701Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.730708Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.730715Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-extensions: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.731195Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.731203Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.731209Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.731214Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.731219Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.731223Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.731890Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.731909Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.731918Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.731927Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.731935Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.731942Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-geometry-nodes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.733097Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.733110Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.733116Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.733121Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.733127Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.733131Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-import-to-scene: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.733668Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.733678Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.733684Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.733731Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.733740Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.733745Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-interchange: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.734805Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.734816Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.734822Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.734828Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.734834Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.734839Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-light-rig: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.735883Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.735895Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.735903Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.735911Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.735920Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.735928Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-lighting: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.736380Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.736391Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.736397Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.736402Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.736407Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.736420Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-material-library: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.737394Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.737405Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.737410Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.737415Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.737426Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.737432Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-materials: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.737885Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.737898Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.737904Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.737909Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.737914Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.737919Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.738355Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.738365Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.738371Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.738376Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.738382Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.738387Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-mesh-ops: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.741034Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.741046Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.741052Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.741058Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.741063Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.741069Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-node-graph: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.741569Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.741579Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.741585Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.741590Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.741596Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.741601Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-objects: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.742806Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.742817Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.742823Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.742829Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.742837Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.742844Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-physics: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.744882Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.744896Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.744905Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.744913Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.744920Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.744928Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pipeline: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.745761Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.745772Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.745777Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.745783Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.745788Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.745793Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-pose-library: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.746386Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.746396Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.746402Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.746408Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.746413Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.746419Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-render: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.748673Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.748689Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.748694Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.748700Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.748705Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.748710Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-rigging: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.750594Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.750609Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.750622Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.750631Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.750652Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.750658Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.751115Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.751126Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.751131Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.751137Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.751142Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.751147Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scene-assembly: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.752088Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.752098Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.752104Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.752110Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.752116Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.752121Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-scripting: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.752612Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.752621Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.752627Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.752632Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.752637Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.752642Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shader-nodes: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.753872Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.753885Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.753893Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.753901Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.753909Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.753920Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-shot-export: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.754393Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.754402Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.754407Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.754412Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.754418Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.754422Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-texture-bake: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.755121Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.755132Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.755138Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.755143Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.755148Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.755153Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-uv-ops: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.756424Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.intent key — ignoring
+2026-11-06T07:58:29.756436Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.recall-context key — ignoring
+2026-11-06T07:58:29.756445Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.preconditions key — ignoring
+2026-11-06T07:58:29.756453Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.side-effects key — ignoring
+2026-11-06T07:58:29.756461Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.produces key — ignoring
+2026-11-06T07:58:29.756468Z DEBUG ThreadId(01) dcc_mcp_skills::loader: skill blender-validation: unknown metadata.dcc-mcp.requires key — ignoring
+2026-11-06T07:58:29.766007Z DEBUG ThreadId(01) opentelemetry_sdk: name="MeterProvider.Building" builder="MeterProviderBuilder { resource: Some(Resource { inner: ResourceInner { attrs: {Owned(\"dcc.name\"): String(Owned(\"blender\")), Static(\"service.name\"): String(Owned(\"dcc-mcp-blender\")), Owned(\"dcc.pid\"): String(Owned(\"4536\")), Static(\"service.version\"): String(Owned(\"0.20.33\"))}, schema_url: None } }), readers: [], views: 0 }"
+2026-11-06T07:58:29.766049Z DEBUG ThreadId(01) opentelemetry_sdk: name="MeterProvider.Built"
+2026-11-06T07:58:29.766096Z  INFO ThreadId(01) opentelemetry: name="MeterProvider.GlobalSet" Global meter provider is set. Meters can now be created using global::meter() or global::meter_with_scope().
+2026-11-06T07:58:36.876519Z  INFO ThreadId(01) dcc_mcp_http::handler::rmcp_mount: rmcp MCP endpoint mounted at /mcp (legacy + 2026 stateless dispatcher)
+2026-11-06T07:58:36.876824Z  INFO ThreadId(01) dcc_mcp_http::server: MCP HTTP server dcc-mcp-blender v0.2.6 listening on http://127.0.0.1:52230/mcp server_name=dcc-mcp-blender server_version=0.2.6
+2026-11-06T07:58:36.878050Z  INFO tokio-rt-worker dcc_mcp_transport::discovery::file_registry: registering service dcc_type=blender instance_id=cc0876f0-b70b-4423-b0cb-a3367fa314f9 host=127.0.0.1 port=52230
+2026-11-06T07:58:36.886376Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::runner: Registered in FileRegistry instance=cc0876f0-b70b-4423-b0cb-a3367fa314f9
+2026-11-06T07:58:36.887374Z  INFO tokio-rt-worker dcc_mcp_transport::discovery::file_registry: registering service dcc_type=__gateway__ instance_id=84f83cd7-53bc-4aa1-aaa1-d689b1b9798c host=127.0.0.1 port=9765
+2026-11-06T07:58:36.893325Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::runner: Gateway remote listener enabled host=0.0.0.0 port=59765
+2026-11-06T07:58:36.894929Z DEBUG tokio-rt-worker dcc_mcp_gateway::gateway::tasks: Gateway: instance set changed — broadcasting resources/list_changed
+2026-11-06T07:58:36.895480Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::router: Admin UI mounted at /admin
+2026-11-06T07:58:36.896177Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::tasks: Gateway listening on http://127.0.0.1:9765  (GET /mcp = SSE stream, POST /mcp = MCP endpoint)
+2026-11-06T07:58:36.896191Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::tasks: Gateway remote listener on http://0.0.0.0:59765  (LAN clients should use the machine IP, not 0.0.0.0)
+2026-11-06T07:58:36.896524Z DEBUG ThreadId(01) dcc_mcp_gateway::gateway::tasks::probe: Gateway self-probe succeeded addr=127.0.0.1:9765 attempt=1
+2026-11-06T07:58:36.896685Z DEBUG tokio-rt-worker dcc_mcp_gateway::gateway::handlers::marketplace_ws: global heartbeat task exiting
+2026-11-06T07:58:36.896793Z DEBUG ThreadId(01) dcc_mcp_gateway::gateway::tasks::probe: Gateway self-probe succeeded addr=127.0.0.1:59765 attempt=1
+2026-11-06T07:58:36.896944Z  INFO ThreadId(01) dcc_mcp_gateway::gateway::runner: Won gateway election version=0.2.6
+2026-11-06T07:58:36.897002Z DEBUG tokio-rt-worker reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-11-06T07:58:36.897264Z DEBUG tokio-rt-worker reqwest::connect: starting new connection 'Some("127.0.0.1")'
+2026-11-06T07:58:36.899449Z DEBUG dcc-mcp-http-52230 dcc_mcp_http_server::session: session created: 5641754f-abd9-41fd-b7d7-f9b244a5b3ea
+2026-11-06T07:58:36.899766Z DEBUG    tokio-rt-worker dcc_mcp_gateway::gateway::sse_subscriber::reconnect: gateway SSE: backend in stateless mode — no MCP-Session-Id / __session_id backend=http://127.0.0.1:52230/mcp
+2026-11-06T07:58:36.899793Z  INFO    tokio-rt-worker dcc_mcp_gateway::gateway::sse_subscriber::reconnect: gateway SSE: stateless MCP backend — SSE subscription unavailable; parked backend=http://127.0.0.1:52230/mcp
+[DCC MCP Blender] Server started — http://127.0.0.1:52230/mcp
+BlenderMCP addon registered
+14:58:37 | INFO: Data are loaded, start creating Blender stuff
+14:58:37 | INFO: Blender create Mesh node Цилиндр.001
+14:58:37 | INFO: Blender create Mesh node Цилиндр.002
+14:58:37 | INFO: Blender create Mesh node Куб.034
+14:58:37 | INFO: Blender create Mesh node Куб.036
+14:58:37 | INFO: Blender create Mesh node Curved solid barrel lid mesh
+14:58:37 | INFO: Blender create Mesh node Lid | fine decorative gold fillet
+14:58:37 | INFO: Blender create Mesh node Lid | fine decorative gold fillet.001
+14:58:37 | INFO: Blender create Mesh node Lid | fine decorative gold fillet.002
+14:58:37 | INFO: Blender create Mesh node Lid | forged gold cross band
+14:58:37 | INFO: Blender create Mesh node Lid | forged gold cross band.001
+14:58:37 | INFO: Blender create Mesh node Lid | gold band engraved edge
+14:58:37 | INFO: Blender create Mesh node Lid | gold band engraved edge.001
+14:58:37 | INFO: Blender create Mesh node Куб.025
+14:58:37 | INFO: Blender create Mesh node Куб.026
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.001
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.002
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.003
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.004
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.005
+14:58:37 | INFO: Blender create Mesh node Lid | raised walnut rib.006
+14:58:37 | INFO: Blender create Mesh node Сфера
+14:58:37 | INFO: Blender create Mesh node Сфера.001
+14:58:37 | INFO: Blender create Mesh node Сфера.002
+14:58:37 | INFO: Blender create Mesh node Сфера.003
+14:58:37 | INFO: Blender create Mesh node Сфера.004
+14:58:37 | INFO: Blender create Mesh node Сфера.005
+14:58:37 | INFO: Blender create Mesh node Сфера.006
+14:58:37 | INFO: Blender create Mesh node Сфера.007
+14:58:37 | INFO: Blender create Mesh node Сфера.008
+14:58:37 | INFO: Blender create Mesh node Сфера.009
+14:58:37 | INFO: Blender create Mesh node Сфера.010
+14:58:37 | INFO: Blender create Mesh node Сфера.011
+14:58:37 | INFO: Blender create Mesh node Сфера.012
+14:58:37 | INFO: Blender create Mesh node Сфера.013
+14:58:37 | INFO: Blender create Mesh node Сфера.014
+14:58:37 | INFO: Blender create Mesh node Сфера.015
+14:58:37 | INFO: Blender create Mesh node Куб.002
+14:58:37 | INFO: Blender create Mesh node Куб.003
+14:58:37 | INFO: Blender create Mesh node Куб.001
+14:58:37 | INFO: Blender create Mesh node Куб
+14:58:37 | INFO: Blender create Mesh node Куб.022
+14:58:37 | INFO: Blender create Mesh node Куб.024
+14:58:37 | INFO: Blender create Mesh node Куб.021
+14:58:37 | INFO: Blender create Mesh node Куб.023
+14:58:37 | INFO: Blender create Mesh node Front | engraved ornamental flourish
+14:58:37 | INFO: Blender create Mesh node Front | engraved ornamental flourish.001
+14:58:37 | INFO: Blender create Mesh node Front | engraved ornamental flourish.002
+14:58:37 | INFO: Blender create Mesh node Front | engraved ornamental flourish.003
+14:58:37 | INFO: Blender create Mesh node Куб.004
+14:58:37 | INFO: Blender create Mesh node Куб.005
+14:58:37 | INFO: Blender create Mesh node Куб.006
+14:58:37 | INFO: Blender create Mesh node Куб.007
+14:58:37 | INFO: Blender create Mesh node Куб.008
+14:58:37 | INFO: Blender create Mesh node Куб.009
+14:58:37 | INFO: Blender create Mesh node Куб.010
+14:58:37 | INFO: Blender create Mesh node Куб.028
+14:58:37 | INFO: Blender create Mesh node Куб.027
+14:58:37 | INFO: Blender create Mesh node Сфера.021
+14:58:37 | INFO: Blender create Mesh node Сфера.022
+14:58:37 | INFO: Blender create Mesh node Сфера.023
+14:58:37 | INFO: Blender create Mesh node Сфера.024
+14:58:37 | INFO: Blender create Mesh node Куб.033
+14:58:37 | INFO: Blender create Mesh node Куб.035
+14:58:37 | INFO: Blender create Mesh node Куб.042
+14:58:37 | INFO: Blender create Mesh node Куб.043
+14:58:37 | INFO: Blender create Mesh node Куб.041
+14:58:37 | INFO: Blender create Mesh node Сфера.016
+14:58:37 | INFO: Blender create Mesh node Куб.029
+14:58:37 | INFO: Blender create Mesh node Куб.031
+14:58:37 | INFO: Blender create Mesh node Цилиндр
+14:58:37 | INFO: Blender create Mesh node Куб.032
+14:58:37 | INFO: Blender create Mesh node Куб.030
+14:58:37 | INFO: Blender create Mesh node Сфера.017
+14:58:37 | INFO: Blender create Mesh node Сфера.018
+14:58:37 | INFO: Blender create Mesh node Сфера.019
+14:58:37 | INFO: Blender create Mesh node Сфера.020
+14:58:37 | INFO: Blender create Mesh node Куб.016
+14:58:37 | INFO: Blender create Mesh node Куб.017
+14:58:37 | INFO: Blender create Mesh node Куб.018
+14:58:37 | INFO: Blender create Mesh node Куб.019
+14:58:37 | INFO: Blender create Mesh node Куб.020
+14:58:37 | INFO: Blender create Mesh node Куб.011
+14:58:37 | INFO: Blender create Mesh node Куб.012
+14:58:37 | INFO: Blender create Mesh node Куб.013
+14:58:37 | INFO: Blender create Mesh node Куб.014
+14:58:37 | INFO: Blender create Mesh node Куб.015
+14:58:37 | INFO: Blender create Mesh node Куб.037
+14:58:37 | INFO: Blender create Mesh node Куб.038
+14:58:37 | INFO: Blender create Mesh node Куб.039
+14:58:37 | INFO: Blender create Mesh node Куб.040
+14:58:37 | INFO: Blender create Mesh node Сфера.025
+14:58:37 | INFO: Blender create Mesh node Сфера.026
+14:58:37 | INFO: Blender create Mesh node Сфера.027
+14:58:37 | INFO: Blender create Mesh node Сфера.028
+14:58:37 | INFO: Blender create Mesh node Сфера.030
+14:58:37 | INFO: Blender create Mesh node Сфера.031
+14:58:37 | INFO: Blender create Mesh node Сфера.032
+14:58:37 | INFO: Blender create Mesh node Сфера.033
+14:58:37 | INFO: Blender create Mesh node Сфера.029
+14:58:37 | INFO: Blender create Mesh node Сфера.034
+14:58:37 | INFO: Blender create Mesh node Цилиндр.004
+14:58:37 | INFO: Blender create Mesh node Цилиндр.006
+14:58:37 | INFO: Blender create Mesh node Цилиндр.003
+14:58:37 | INFO: Blender create Mesh node Цилиндр.005
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 00
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 01
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 02
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 03
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 04
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 05
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 06
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 07
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 08
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 09
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 10
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 11
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 12
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 13
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 14
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 15
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 16
+14:58:37 | INFO: Blender create Mesh node Wood grain | engraved line 17
+14:58:37 | INFO: glTF import finished in 0.17s
+INFO Draco is available, use library at C:\Program Files\Blender Foundation\Blender 5.2\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_draco_bridge.dll
+INFO MeshOptimizer is available, use library at C:\Program Files\Blender Foundation\Blender 5.2\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_meshopt_bridge.dll
+14:58:37 | INFO: Starting glTF 2.0 export
+14:58:37 | INFO: Extracting primitive: Цилиндр.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Цилиндр.002
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.034
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.036
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Curved solid barrel lid mesh
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | fine decorative gold fillet
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | fine decorative gold fillet.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | fine decorative gold fillet.002
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | forged gold cross band
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | forged gold cross band.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | gold band engraved edge
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | gold band engraved edge.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.025
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.026
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.002
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.003
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.004
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.005
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Lid | raised walnut rib.006
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.002
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.003
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.004
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.005
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.006
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.007
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.008
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.009
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.010
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.011
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.012
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.013
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.014
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Сфера.015
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.002
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.003
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.022
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.024
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.021
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Куб.023
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Front | engraved ornamental flourish
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Front | engraved ornamental flourish.001
+14:58:37 | INFO: Primitives created: 1
+14:58:37 | INFO: Extracting primitive: Front | engraved ornamental flourish.002
+14:58:37 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Front | engraved ornamental flourish.003
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.004
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.005
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.006
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.007
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.008
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.009
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.010
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.028
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.027
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.021
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.022
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.023
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.024
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.033
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.035
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.042
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.043
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.041
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.016
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.029
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.031
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Цилиндр
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.032
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.030
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.017
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.018
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.019
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.020
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.016
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.017
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.018
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.019
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.020
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.011
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.012
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.013
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.014
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.015
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.037
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.038
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.039
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Куб.040
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.025
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.026
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.027
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.028
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.030
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.031
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.032
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.033
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.029
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Сфера.034
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Цилиндр.004
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Цилиндр.006
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Цилиндр.003
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Цилиндр.005
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 00
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 01
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 02
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 03
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 04
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 05
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 06
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 07
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 08
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 09
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 10
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 11
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 12
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 13
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 14
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 15
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 16
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Extracting primitive: Wood grain | engraved line 17
+14:58:38 | INFO: Primitives created: 1
+14:58:38 | INFO: Finished glTF 2.0 export in 0.46764588356018066 s
+
+HINGE_REPAIR_OK
+FIXED_MESHES: 15
+FIXED_NAMES: ["LID | curved solid walnut shell", "Lid | fine decorative gold fillet", "Lid | fine decorative gold fillet.001", "Lid | fine decorative gold fillet.002", "Lid | forged gold cross band", "Lid | forged gold cross band.001", "Lid | gold band engraved edge", "Lid | gold band engraved edge.001", "Lid | raised walnut rib", "Lid | raised walnut rib.001", "Lid | raised walnut rib.002", "Lid | raised walnut rib.003", "Lid | raised walnut rib.004", "Lid | raised walnut rib.005", "Lid | raised walnut rib.006"]
+REPAIRED_BOUNDS: [{"name": "LID | curved solid walnut shell", "min": [-1.43, -0.64, 1.3], "max": [1.43, 0.64, 1.94]}, {"name": "Lid | fine decorative gold fillet", "min": [-0.159, -0.6413, 1.4496], "max": [-0.141, 0.6413, 1.9596]}, {"name": "Lid | fine decorative gold fillet.001", "min": [-0.009, -0.6413, 1.4496], "max": [0.009, 0.6413, 1.9596]}, {"name": "Lid | fine decorative gold fillet.002", "min": [0.141, -0.6413, 1.4496], "max": [0.159, 0.6413, 1.9596]}, {"name": "Lid | forged gold cross band", "min": [-1.072, -0.7044, 1.2981], "max": [-0.968, 0.7044, 2.0045]}, {"name": "Lid | forged gold cross band.001", "min": [0.968, -0.7044, 1.2981], "max": [1.072, 0.7044, 2.0045]}, {"name": "Lid | gold band engraved edge", "min": [-1.084, -0.6716, 1.2997], "max": [-1.066, 0.6716, 1.9716]}, {"name": "Lid | gold band engraved edge.001", "min": [0.956, -0.6716, 1.2997], "max": [0.974, 0.6716, 1.9716]}, {"name": "Lid | raised walnut rib", "min": [-1.238, -0.6621, 1.2993], "max": [-1.202, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.001", "min": [-0.838, -0.6621, 1.2993], "max": [-0.802, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.002", "min": [-0.428, -0.6621, 1.2993], "max": [-0.392, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.003", "min": [-0.018, -0.6621, 1.2993], "max": [0.018, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.004", "min": [0.392, -0.6621, 1.2993], "max": [0.428, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.005", "min": [0.802, -0.6621, 1.2993], "max": [0.838, 0.6621, 1.9621]}, {"name": "Lid | raised walnut rib.006", "min": [1.202, -0.6621, 1.2993], "max": [1.238, 0.6621, 1.9621]}]
+OUTPUT_SIZE: 756520
+2026-11-06T07:58:38.296521Z  INFO dcc-mcp-http-52230 dcc_mcp_http::server::spawn_impl: MCP HTTP server (dedicated) stopped
+2026-11-06T07:58:38.297096Z  INFO ThreadId(01) dcc_mcp_transport::discovery::file_registry: deregistered service dcc_type=blender instance_id=cc0876f0-b70b-4423-b0cb-a3367fa314f9
+2026-11-06T07:58:38.301831Z  INFO ThreadId(01) dcc_mcp_transport::discovery::file_registry: deregistered service dcc_type=__gateway__ instance_id=84f83cd7-53bc-4aa1-aaa1-d689b1b9798c
+[DCC MCP Blender] Server stopped
+BlenderMCP addon unregistered
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit

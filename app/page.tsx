@@ -6,7 +6,6 @@ import Image from "next/image";
 import { supabase } from "./supabase";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import GachaChest3D from "./components/GachaChest3D";
 
 const ADMIN_ID = "4605b485-35e3-4592-b082-781339760840";
 
@@ -406,7 +405,7 @@ export default function Home() {
       for (let i = 0; i < results.length; i++) {
         setTimeout(() => setGachaVisibleCount(i + 1), i * 100);
       }
-    }, 5000);
+    }, 4000); // 4 секунды на анимацию
 
     setTimeout(() => {
       setGachaVideoDone(true);
@@ -414,7 +413,7 @@ export default function Home() {
       setGachaResults([]);
       setGachaItemVisible(false);
       setGachaAnim("idle");
-    }, 10000);
+    }, 9000); // 9 секунд общая анимация
   };
 
   const sellItem = async (itemId: string) => {
@@ -533,408 +532,30 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes starField {
-          0% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 0.5; }
+        @keyframes magicSpin {
+          0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+          20% { opacity: 1; }
+          80% { transform: rotate(720deg) scale(1.5); opacity: 1; }
+          100% { transform: rotate(1080deg) scale(0); opacity: 0; }
         }
-        @keyframes cometFly {
-          0% { transform: translateY(-100vh) translateX(100vw) scale(0.5); opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateY(0) translateX(0) scale(1.5); opacity: 0; }
-        }
-        @keyframes epicFlash {
-          0% { opacity: 0; background-color: transparent; }
-          80% { opacity: 0; background-color: transparent; }
-          85% { opacity: 1; background-color: white; }
+        @keyframes flashWhite {
+          0%, 70% { opacity: 0; }
+          80% { opacity: 1; background-color: white; }
           100% { opacity: 0; background-color: white; }
         }
-        @keyframes splashPop {
-          0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-          60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        @keyframes splashGrow {
+          0% { transform: scale(0); opacity: 0; }
+          70% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
+        @keyframes itemFloat {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(2deg); }
         }
-        .animate-stars { animation: starField 4s ease-in-out infinite; }
-        .animate-comet { animation: cometFly 2s cubic-bezier(0.5, 0, 1, 1) forwards; }
-        .animate-epic-flash { animation: epicFlash 2.5s ease-out forwards; }
-        .animate-splash-pop { animation: splashPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-float { animation: float 4s ease-in-out infinite; }
-        /* GACHA CHEST 3D ANIMATION */
-        .gacha-scene {
-          position: relative;
-          isolation: isolate;
-          width: 100%;
-          height: 100%;
-          min-height: 520px;
-          overflow: hidden;
-          background: radial-gradient(ellipse at 50% 48%, #49351d 0%, #17100d 48%, #08090e 100%);
-        }
-
-        .gacha-theme-standard {
-          --chest-glow: 255, 190, 65;
-          --chest-metal: #e9b94f;
-          --chest-dark-metal: #80501c;
-          background: radial-gradient(ellipse at 50% 48%, #57401e 0%, #21170e 48%, #09090d 100%);
-        }
-
-        .gacha-theme-halloween {
-          --chest-glow: 190, 91, 255;
-          --chest-metal: #d69bff;
-          --chest-dark-metal: #65328b;
-          background: radial-gradient(ellipse at 50% 48%, #392044 0%, #1b1028 48%, #090710 100%);
-        }
-
-        .gacha-theme-space {
-          --chest-glow: 72, 255, 183;
-          --chest-metal: #80f5c1;
-          --chest-dark-metal: #267d65;
-          background: radial-gradient(ellipse at 50% 48%, #123d3b 0%, #0b1b27 48%, #050910 100%);
-        }
-
-        .gacha-scene::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          opacity: .45;
-          background-image:
-            radial-gradient(circle at 20% 25%, rgba(255,255,255,.7) 1px, transparent 2px),
-            radial-gradient(circle at 75% 65%, rgba(255,255,255,.5) 1px, transparent 2px);
-          background-size: 83px 91px, 127px 113px;
-          animation: gachaStarDrift 18s linear infinite;
-        }
-
-        .gacha-particle {
-          position: absolute;
-          z-index: 1;
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          pointer-events: none;
-          background: rgba(var(--chest-glow), .95);
-          box-shadow: 0 0 9px 3px rgba(var(--chest-glow), .45);
-          animation: gachaParticleRise 3.8s ease-in-out infinite;
-        }
-
-        .gacha-orbit {
-          position: absolute;
-          left: 50%;
-          top: 49%;
-          width: min(75vw, 570px);
-          height: min(75vw, 570px);
-          border: 1px solid rgba(var(--chest-glow), .22);
-          border-radius: 50%;
-          transform: translate(-50%, -50%) rotateX(68deg);
-          box-shadow: 0 0 30px rgba(var(--chest-glow), .1), inset 0 0 30px rgba(var(--chest-glow), .08);
-          animation: gachaOrbitSpin 12s linear infinite;
-          pointer-events: none;
-        }
-
-        .gacha-orbit.second {
-          width: min(58vw, 430px);
-          height: min(58vw, 430px);
-          border-style: dashed;
-          opacity: .65;
-          animation-direction: reverse;
-          animation-duration: 18s;
-        }
-
-        .gacha-ray {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 2px;
-          height: 48%;
-          transform-origin: center bottom;
-          background: linear-gradient(to top, transparent, rgba(var(--chest-glow), .18), transparent);
-          animation: gachaRayPulse 2.4s ease-in-out infinite;
-          pointer-events: none;
-        }
-
-        .gacha-chest-wrap {
-          position: relative;
-          width: 300px;
-          height: 260px;
-          max-width: 88vw;
-          perspective: 1000px;
-          transform-style: preserve-3d;
-          animation: gachaChestRumble 5s ease-in-out both;
-          filter: drop-shadow(0 22px 25px rgba(0,0,0,.55));
-        }
-
-        .gacha-chest-aura {
-          position: absolute;
-          left: 50%;
-          top: 47%;
-          width: 250px;
-          height: 190px;
-          transform: translate(-50%, -50%);
-          border-radius: 50%;
-          background: rgba(var(--chest-glow), .22);
-          filter: blur(48px);
-          animation: gachaAuraPulse 1.5s ease-in-out infinite alternate;
-        }
-
-        .gacha-chest-shadow {
-          position: absolute;
-          left: 50%;
-          bottom: 5px;
-          width: 230px;
-          height: 35px;
-          transform: translateX(-50%);
-          border-radius: 50%;
-          background: #000;
-          filter: blur(15px);
-          opacity: .8;
-        }
-
-        .gacha-chest-light {
-          position: absolute;
-          z-index: 7;
-          left: 50%;
-          top: 45px;
-          width: 190px;
-          height: 150px;
-          transform: translateX(-50%);
-          border-radius: 50%;
-          background: rgba(var(--chest-glow), .0);
-          filter: blur(25px);
-          animation: gachaChestLight 5s ease-in-out forwards;
-          pointer-events: none;
-        }
-
-        .gacha-chest-body {
-          position: absolute;
-          z-index: 3;
-          left: 40px;
-          bottom: 28px;
-          width: 220px;
-          height: 132px;
-          overflow: hidden;
-          border: 3px solid #633b1d;
-          border-radius: 8px 8px 18px 18px;
-          background: linear-gradient(90deg, #32180e 0%, #8b4b24 12%, #bd7940 28%, #713719 50%, #a85f2c 75%, #32170d 100%);
-          box-shadow:
-            inset 0 5px 12px rgba(255,220,150,.4),
-            inset 0 -15px 22px rgba(0,0,0,.55),
-            0 8px 0 #28130c,
-            0 12px 18px rgba(0,0,0,.5);
-        }
-
-        .gacha-chest-body::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          opacity: .35;
-          background: repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 17px,
-            rgba(35,14,5,.65) 18px,
-            rgba(255,203,135,.25) 20px,
-            transparent 23px
-          );
-        }
-
-        .gacha-chest-body::after {
-          content: "";
-          position: absolute;
-          inset: 8px 7px;
-          border: 1px solid rgba(255,211,140,.35);
-          border-radius: 4px 4px 12px 12px;
-          box-shadow: inset 0 0 15px rgba(0,0,0,.3);
-        }
-
-        .gacha-chest-front {
-          position: absolute;
-          z-index: 2;
-          left: 50%;
-          top: 0;
-          width: 3px;
-          height: 100%;
-          transform: translateX(-50%);
-          background: linear-gradient(90deg, #3b1d0d, #e6ad55, #4a260f);
-          box-shadow: 0 0 5px rgba(255,190,90,.35);
-        }
-
-        .gacha-chest-band {
-          position: absolute;
-          z-index: 3;
-          left: 0;
-          right: 0;
-          top: 17px;
-          height: 13px;
-          border-top: 2px solid #ffe3a0;
-          border-bottom: 3px solid #70451c;
-          background: linear-gradient(180deg, #fff0b5, #c58a32 35%, #8a571e 75%, #f0c66c);
-          box-shadow: 0 2px 5px rgba(0,0,0,.55);
-        }
-
-        .gacha-chest-lid {
-          position: absolute;
-          z-index: 5;
-          left: 32px;
-          top: 54px;
-          width: 236px;
-          height: 76px;
-          transform-origin: 50% 100%;
-          transform-style: preserve-3d;
-          border: 3px solid #70451d;
-          border-radius: 48% 48% 7px 7px / 62% 62% 7px 7px;
-          background:
-            linear-gradient(90deg, rgba(35,13,7,.7), transparent 15%, rgba(255,194,113,.22) 48%, transparent 85%, rgba(35,13,7,.7)),
-            linear-gradient(180deg, #d18a4c 0%, #8c4a23 35%, #4b2412 100%);
-          box-shadow:
-            inset 0 8px 10px rgba(255,220,160,.35),
-            inset 0 -8px 12px rgba(0,0,0,.4),
-            0 7px 10px rgba(0,0,0,.45);
-          animation: gachaChestLidOpen 5s cubic-bezier(.3,.1,.2,1) forwards;
-        }
-
-        .gacha-chest-lid::before {
-          content: "";
-          position: absolute;
-          left: 8px;
-          right: 8px;
-          top: 9px;
-          height: 10px;
-          border-radius: 50%;
-          border-top: 3px solid #ffe2a0;
-          box-shadow: 0 -2px 8px rgba(255,210,130,.35);
-        }
-
-        .gacha-chest-lid::after {
-          content: "";
-          position: absolute;
-          left: 50%;
-          bottom: -3px;
-          width: 100%;
-          height: 9px;
-          transform: translateX(-50%);
-          border-top: 2px solid #ffe4a1;
-          border-bottom: 2px solid #684016;
-          background: linear-gradient(180deg, #e5b65b, #8e5a21);
-        }
-
-        .gacha-chest-lock {
-          position: absolute;
-          z-index: 8;
-          left: 50%;
-          top: 139px;
-          width: 48px;
-          height: 58px;
-          transform: translateX(-50%);
-          filter: drop-shadow(0 3px 4px rgba(0,0,0,.65));
-        }
-
-        .gacha-lock-ring {
-          position: absolute;
-          left: 9px;
-          top: 0;
-          width: 30px;
-          height: 28px;
-          border: 5px solid var(--chest-metal);
-          border-bottom: 0;
-          border-radius: 18px 18px 0 0;
-          box-shadow: inset 0 2px 3px rgba(255,255,255,.55), 0 0 8px rgba(var(--chest-glow), .35);
-        }
-
-        .gacha-lock-plate {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 38px;
-          border: 3px solid #754b1b;
-          border-radius: 8px;
-          color: #fff0b7;
-          font-size: 21px;
-          background: linear-gradient(135deg, #ffe7a0, #c48a32 45%, #704016);
-          box-shadow: inset 0 2px 4px rgba(255,255,255,.7), inset 0 -4px 5px rgba(0,0,0,.3);
-        }
-
-        .gacha-reward-card {
-          overflow: hidden;
-          box-shadow: 0 8px 30px rgba(0,0,0,.3);
-          animation: gachaRewardAppear .65s cubic-bezier(.16,1,.3,1) both;
-        }
-
-        .gacha-reward-glow {
-          position: absolute;
-          inset: -40%;
-          z-index: 0;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(var(--chest-glow), .24), transparent 65%);
-          pointer-events: none;
-        }
-
-        @keyframes gachaChestRumble {
-          0%, 12%, 24%, 36%, 48%, 60%, 72%, 84%, 100% { transform: translateX(0) rotate(0); }
-          8%, 32%, 56%, 80% { transform: translateX(-5px) rotate(-1.5deg); }
-          16%, 40%, 64%, 88% { transform: translateX(5px) rotate(1.5deg); }
-          20%, 44%, 68%, 92% { transform: translateY(-4px) rotate(0); }
-          96% { transform: translateY(-8px) scale(1.025); }
-        }
-
-        @keyframes gachaChestLidOpen {
-          0%, 73% { transform: rotateX(0deg) translateY(0); }
-          84% { transform: rotateX(-45deg) translateY(-5px); }
-          100% { transform: rotateX(-112deg) translateY(-13px); }
-        }
-
-        @keyframes gachaChestLight {
-          0%, 45% { opacity: .05; }
-          75% { opacity: .45; }
-          100% { opacity: 1; background: rgba(var(--chest-glow), .5); }
-        }
-
-        @keyframes gachaAuraPulse {
-          from { opacity: .35; transform: translate(-50%, -50%) scale(.8); }
-          to { opacity: .9; transform: translate(-50%, -50%) scale(1.25); }
-        }
-
-        @keyframes gachaParticleRise {
-          0% { transform: translateY(30px) scale(.3); opacity: 0; }
-          25% { opacity: 1; }
-          100% { transform: translateY(-100px) scale(1.4); opacity: 0; }
-        }
-
-        @keyframes gachaOrbitSpin {
-          from { rotate: 0deg; }
-          to { rotate: 360deg; }
-        }
-
-        @keyframes gachaRayPulse {
-          0%, 100% { opacity: .12; }
-          50% { opacity: .75; }
-        }
-
-        @keyframes gachaStarDrift {
-          from { background-position: 0 0, 0 0; }
-          to { background-position: 83px 91px, -127px 113px; }
-        }
-
-        @keyframes gachaRewardAppear {
-          from { opacity: 0; transform: translateY(25px) scale(.75); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @media (max-width: 640px) {
-          .gacha-chest-wrap {
-            transform: scale(.85);
-            margin-top: -15px;
-          }
-          .gacha-scene {
-            min-height: 480px;
-          }
-        }
+        .animate-magic-spin { animation: magicSpin 2s cubic-bezier(0.5, 0, 1, 1) infinite; }
+        .animate-flash-white { animation: flashWhite 3s ease-out forwards; }
+        .animate-splash-grow { animation: splashGrow 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-item-float { animation: itemFloat 4s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -1060,129 +681,72 @@ export default function Home() {
       {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaVideoDone(true); setGachaItemVisible(false); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); setGachaVideoDone(false); setGachaItemVisible(false); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-40 flex items-center justify-center relative">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}{gachaResults.length > 0 && gachaAnim === "result" && (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><div className="absolute inset-0 bg-white blur-2xl opacity-50 rounded-full animate-pulse"></div><ItemImage src={gachaResults[0].img} emoji={gachaResults[0].emoji} alt={gachaResults[0].name} className="relative z-10 w-40 h-40 object-contain drop-shadow-[0_0_35px_rgba(255,255,255,0.8)] animate-float" /></div><div className="mt-2 font-black text-white text-lg drop-shadow-lg">{gachaResults[0].name} {gachaResults[0].count > 1 && <span className="text-purple-400 font-black text-xl ml-2">x{gachaResults[0].count}</span>}</div></div>)}</div><div className="flex flex-col sm:flex-row gap-3 justify-center mt-6"><button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button><button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button><button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button></div></div></div><div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div></div></div>)}
 
       {gachaResults.length > 0 && !gachaVideoDone && (
-        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-3 md:p-8 animate-in fade-in duration-500 overflow-hidden">
-          <div className={`relative w-full max-w-5xl min-h-[520px] md:min-h-0 md:aspect-video max-h-[90vh] rounded-[2rem] overflow-hidden border border-white/15 shadow-2xl ${activeBanner.id === "space" ? "shadow-emerald-500/20" : activeBanner.id === "halloween" ? "shadow-purple-500/20" : "shadow-yellow-500/20"}`}>
-            <div className={`gacha-scene ${activeBanner.id === "space" ? "gacha-theme-space" : activeBanner.id === "halloween" ? "gacha-theme-halloween" : "gacha-theme-standard"}`}>
-              {Array.from({ length: 32 }, (_: unknown, i: number) => i).map((i: number) => (
-                <span
-                  key={i}
-                  className="gacha-particle"
-                  style={{
-                    left: `${(i * 37) % 100}%`,
-                    top: `${(i * 19) % 100}%`,
-                    animationDelay: `${(i % 7) * 0.22}s`
-                  }}
-                />
-              ))}
-
-              <div className="gacha-orbit"></div>
-              <div className="gacha-orbit second"></div>
-
-              {Array.from({ length: 12 }, (_: unknown, i: number) => i).map((i: number) => (
-                <div
-                  key={i}
-                  className="gacha-ray"
-                  style={{
-                    transform: `translateX(-50%) rotate(${(i * 30) - 165}deg)`,
-                    animationDelay: `${i * 0.12}s`
-                  }}
-                />
-              ))}
-
-              <div className="absolute top-5 left-5 right-5 z-30 flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-white/50 text-[10px] md:text-xs font-black uppercase tracking-[.35em] mb-1">
-                    MODBUILDER • GACHA
-                  </div>
-                  <h2 className="text-xl md:text-3xl font-black text-white drop-shadow-[0_2px_12px_rgba(0,0,0,.8)]">
-                    {activeBanner.name}
-                  </h2>
-                </div>
-                <button
-                  onClick={() => {
-                    setGachaVideoDone(true);
-                    setIsPulling(false);
-                    setGachaResults([]);
-                    setGachaItemVisible(false);
-                    setGachaAnim("idle");
-                  }}
-                  className="w-10 h-10 rounded-full bg-black/40 border border-white/20 text-white/70 hover:text-white hover:bg-white/15 transition-all"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300 overflow-hidden">
+          <div className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.3)] border border-white/10 flex items-center justify-center bg-[#0c0c0e]">
+            
+            {/* Анимация полета (0-4 сек) */}
+            {gachaAnim === "spinning" && (
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-900 to-black opacity-90"></div>
+                
+                {/* Магические круги и частицы */}
+                <div className="absolute w-[300px] h-[300px] rounded-full border-2 border-dashed border-purple-500/30 animate-[spin_4s_linear_infinite]"></div>
+                <div className="absolute w-[400px] h-[400px] rounded-full border-2 border-dashed border-blue-500/20 animate-[spin_6s_linear_infinite_reverse]"></div>
+                
+                {/* Сходящиеся частицы */}
+                {Array.from({ length: 15 }).map((_, i) => {
+                  const minChance = Math.min(...gachaResults.map((r: any) => r.chance), 100);
+                  const bestItem = gachaResults.find((r: any) => r.chance === minChance);
+                  const colorClass = getItemColor(bestItem);
+                  
+                  return (
+                    <div key={i} className={`absolute w-2 h-20 rounded-full blur-sm animate-magic-spin ${colorClass}`} 
+                         style={{ 
+                           left: '50%', 
+                           top: '50%',
+                           transformOrigin: 'center center',
+                           animationDelay: `${Math.random() * 1.5}s`,
+                           marginLeft: `-${Math.random() * 100}px`,
+                           marginTop: `-${Math.random() * 100}px`
+                         }}>
+                    </div>
+                  );
+                })}
+                
+                {/* Белая вспышка */}
+                <div className="absolute inset-0 animate-flash-white pointer-events-none"></div>
               </div>
+            )}
 
-              {gachaAnim === "spinning" && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-10">
-                  <div className="gacha-chest-wrap">
-                    <div className="gacha-chest-aura"></div>
-                    <div className="gacha-chest-shadow"></div>
-                    <div className="gacha-chest-light"></div>
-                    <GachaChest3D theme={activeBanner.id} />
-                  </div>
+            {/* Кляксы и предметы (4-9 сек) */}
+            {gachaItemVisible && (
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-900 to-black opacity-95"></div>
+                  <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-                  <div className="mt-5 text-center px-4">
-                    <div className="text-white text-lg md:text-2xl font-black tracking-wide drop-shadow-lg">
-                      Сундук пробуждает магию...
-                    </div>
-                    <div className="text-white/55 text-xs md:text-sm mt-2">
-                      Что-то невероятное скрывается внутри
-                    </div>
-                    <div className="w-40 md:w-56 h-1.5 bg-white/10 rounded-full mt-5 mx-auto overflow-hidden">
-                      <div className="h-full rounded-full bg-[var(--magic)] shadow-[0_0_15px_var(--magic)] animate-[gachaCharge_5s_ease-in-out_forwards]" style={{ width: "100%", transformOrigin: "left", animation: "gachaCharge 5s linear forwards" }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {gachaAnim === "result" && gachaItemVisible && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-3 pt-20 pb-5">
-                  <div className="text-center mb-3 md:mb-5">
-                    <div className="text-white/50 text-[10px] md:text-xs font-black tracking-[.35em] uppercase">
-                      СОДЕРЖИМОЕ СУНДУКА
-                    </div>
-                    <h3 className="text-2xl md:text-4xl font-black text-white mt-1 drop-shadow-[0_0_18px_var(--magic)]">
-                      Награда найдена!
-                    </h3>
-                  </div>
-
-                  <div className={`w-full max-w-4xl grid gap-2 md:gap-5 px-2 ${gachaResults.length > 1 ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-1"}`}>
-                    {gachaResults.slice(0, gachaVisibleCount).map((res: any, idx: number) => (
-                      <div
-                        key={`${res.id}-${idx}`}
-                        className="gacha-reward-card relative rounded-2xl border border-white/15 bg-black/35 backdrop-blur-md p-2 md:p-4"
-                        style={{ animationDelay: `${idx * 0.08}s` }}
-                      >
-                        <div className="gacha-reward-glow"></div>
-                        <div className="relative w-full aspect-square flex items-center justify-center">
-                          <ItemImage
-                            src={res.img}
-                            emoji={res.emoji}
-                            alt={res.name}
-                            className={`${gachaResults.length > 1 ? "w-16 h-16 md:w-24 md:h-24" : "w-36 h-36 md:w-52 md:h-52"} object-contain drop-shadow-[0_0_22px_rgba(255,255,255,.7)]`}
-                          />
+                  {/* Сетка предметов */}
+                  <div className={`relative z-10 grid gap-4 md:gap-8 w-full p-8 ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
+                    {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => {
+                      const splashColor = getItemColor(res);
+                      return (
+                      <div key={idx} className={`flex flex-col items-center animate-in zoom-in duration-500 ${gachaResults.length === 1 ? "scale-100" : "scale-90"}`} style={{ animationDelay: `${idx * 100}ms` }}>
+                        <div className="relative flex items-center justify-center w-full aspect-square">
+                          {/* Красивая клякса (3 слоя для объема) */}
+                          <div className={`absolute inset-0 rounded-full blur-3xl opacity-60 animate-splash-grow ${splashColor}`}></div>
+                          <div className={`absolute inset-6 rounded-full blur-xl opacity-90 animate-splash-grow ${splashColor}`}></div>
+                          <div className={`absolute inset-12 rounded-full blur-md opacity-100 animate-splash-grow ${splashColor}`}></div>
+                          
+                          {/* Предмет */}
+                          <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,1)] animate-item-float ${gachaResults.length > 1 ? "w-20 h-20 md:w-28 md:h-28" : "w-56 h-56 md:w-72 md:h-72"}`} />
                         </div>
-                        <div className="relative text-center text-white font-black text-[10px] md:text-sm leading-tight mt-1">
-                          {res.name}
-                        </div>
-                        {res.count > 1 && (
-                          <div className="relative text-center text-purple-300 font-black text-xs md:text-sm mt-1">
-                            x{res.count}
-                          </div>
-                        )}
-                        <div className="relative text-center text-yellow-300 text-[9px] md:text-xs mt-1">
-                          {"★".repeat(res.rarity || 3)}
+                        <div className={`mt-2 font-black text-white drop-shadow-[0_0_15px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px] md:text-xs" : "text-2xl md:text-3xl mt-4"}`}>
+                          {res.name} {res.count > 1 && <span className="text-purple-300 font-black ml-1">x{res.count}</span>}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
-
-                  <div className="text-white/45 text-[10px] md:text-xs mt-3 tracking-widest">
-                    ПРЕДМЕТЫ ДОБАВЛЕНЫ В ТВОЙ ИНВЕНТАРЬ
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
