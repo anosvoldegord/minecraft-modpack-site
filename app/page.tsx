@@ -16,8 +16,7 @@ type Modpack = { id: string; name: string; gameVersion: string; loader: string; 
 type PublishedPack = { id: string; user_id: string; name: string; game_version: string; loader: string; artifacts: Record<string, Artifact>; downloads: number; likes: number; rating?: number; cover_url?: string; description?: string; screenshots?: string[]; video_url?: string; bumped_until?: string; created_at?: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
 type UserProfile = { id: string; username: string; avatar_url: string; title: string; frame?: string; role?: string; owned_titles?: string[]; bio?: string; owned_items?: string[]; coins?: number; last_gacha_pull?: string; };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string; };
-type GachaItem = { id: string; name: string; type: "frame" | "item" | "boost"; rarity: number; chance: number; img: string; emoji: string; style?: string; bonus: string; color?: string; };
-type MarketItem = { id: string; seller_id: string; item_id: string; price: number; created_at: string; profiles: { username: string; avatar_url: string; title: string; frame?: string } };
+type Frame = { id: string; name: string; img: string; emoji: string; style?: string; };
 
 const CATEGORIES = [{ id: "adventure", label: "Приключения" }, { id: "technology", label: "Технологии" }, { id: "magic", label: "Магия" }, { id: "mobs", label: "Животные и Мобы" }, { id: "worldgen", label: "Генерация мира" }, { id: "equipment", label: "Снаряжение" }, { id: "decoration", label: "Декор" }, { id: "optimization", label: "Оптимизация" }, { id: "storage", label: "Хранение" }, { id: "food", label: "Еда" }, { id: "library", label: "Библиотеки" }, { id: "utility", label: "Утилиты" }, { id: "quests", label: "Квесты" }, { id: "game-mechanics", label: "Механики" }];
 
@@ -29,69 +28,21 @@ const TITLES = [
   { id: "admin", name: "Администратор", type: "exclusive", bg: "bg-gradient-to-b from-red-600 via-red-900 to-black border border-red-500 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_30px_rgba(220,38,38,0.8)]" },
 ];
 
-const GACHA_BANNERS = [
-  {
-    id: "standard", name: "Стандартный", desc: "Классические предметы и рамки.", color: "from-zinc-700 to-zinc-900", bannerImg: "/gacha/banner_standard.png",
-    pool: [
-      { id: "cat_mage", name: "Мурлыка-Чародей", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/cat_mage.png", emoji: "🐱", bonus: "Приносит удачу в крутках", color: "bg-yellow-400" },
-      { id: "mushroom_house", name: "Грибной Хоббит", type: "item" as const, rarity: 4, chance: 5, img: "/gacha/mushroom_house.png", emoji: "🍄", bonus: "Уютный домик в инвентаре", color: "bg-red-500" },
-      { id: "sky_whale", name: "Облачный Странник", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/sky_whale.png", emoji: "🐳", bonus: "Плавает в облаках", color: "bg-blue-400" },
-      { id: "dragon_fruit", name: "Драконий Плод", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/dragon_fruit.png", emoji: "🐉", bonus: "Сладкий и полезный", color: "bg-orange-500" },
-      { id: "sleepy_fox", name: "Сонный Лисенок", type: "item" as const, rarity: 3, chance: 54, img: "/gacha/sleepy_fox.png", emoji: "🦊", bonus: "Спит в рюкзаке", color: "bg-orange-400" },
-    ]
-  },
-  {
-    id: "halloween", name: "Хэллоуин", desc: "Жуткие рамки и редкие предметы.", color: "from-orange-800 to-purple-900", bannerImg: "/gacha/banner_halloween.png",
-    pool: [
-      { id: "ghost_teapot", name: "Чайник Духов", type: "item" as const, rarity: 5, chance: 1, img: "/gacha/ghost_teapot.png", emoji: "🫖", bonus: "Заваривает призрачный чай", color: "bg-purple-600" },
-      { id: "winged_lantern", name: "Свет Небес", type: "frame" as const, rarity: 4, chance: 5, img: "/gacha/winged_lantern.png", emoji: "🏮", bonus: "Освещает путь", color: "bg-orange-500" },
-      { id: "pumpkin_slime", name: "Тыквенный Слайм", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/pumpkin_slime.png", emoji: "🎃", bonus: "Прыгает по комнате", color: "bg-orange-600" },
-      { id: "witch_cauldron", name: "Ведьмин Котел", type: "item" as const, rarity: 3, chance: 30, img: "/gacha/witch_cauldron.png", emoji: "🍲", bonus: "Варит зелья", color: "bg-green-700" },
-      { id: "cute_bat", name: "Летучая Мышка", type: "item" as const, rarity: 3, chance: 49, img: "/gacha/cute_bat.png", emoji: "🦇", bonus: "Летает по ночам", color: "bg-indigo-600" },
-    ]
-  },
-  {
-    id: "space", name: "Космос", desc: "Галактические редкости и астро-рамки.", color: "from-indigo-900 via-purple-900 to-black", bannerImg: "",
-    pool: [
-      { id: "space_helmet", name: "Космический Шлем", type: "frame" as const, rarity: 5, chance: 1, img: "/gacha/space_helmet.png", emoji: "👨‍🚀", bonus: "Позволяет дышать в космосе", color: "bg-cyan-400" },
-      { id: "star_crystal", name: "Звездный Кристалл", type: "item" as const, rarity: 5, chance: 4, img: "/gacha/star_crystal.png", emoji: "🌟", bonus: "Светится как звезда", color: "bg-yellow-300" },
-      { id: "magic_comet", name: "Магическая Комета", type: "item" as const, rarity: 4, chance: 10, img: "/gacha/magic_comet.png", emoji: "☄️", bonus: "Оставляет радужный след", color: "bg-purple-500" },
-      { id: "forest_amulet", name: "Лесной Амулет", type: "item" as const, rarity: 4, chance: 15, img: "/gacha/forest_amulet.png", emoji: "🌿", bonus: "Защищает от сглаза", color: "bg-emerald-500" },
-      { id: "moon_rabbit", name: "Лунный Кролик", type: "item" as const, rarity: 3, chance: 70, img: "/gacha/moon_rabbit.png", emoji: "🐰", bonus: "Живет на Луне", color: "bg-pink-400" },
-    ]
-  }
+const FRAMES: Frame[] = [
+  { id: "f_wood", name: "Деревянная", img: "", emoji: "🪵", style: "border-amber-700" },
+  { id: "space_helmet", name: "Космический Шлем", img: "/gacha/space_helmet.png", emoji: "👨‍🚀", style: "border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.8)]" },
+  { id: "winged_lantern", name: "Свет Небес", img: "/gacha/winged_lantern.png", emoji: "🏮", style: "border-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.8)]" },
 ];
 
-const ALL_ITEMS: GachaItem[] = GACHA_BANNERS.flatMap((b: any) => b.pool).filter((v: any, i: number, a: any[]) => a.findIndex((v2: any) => v2.id === v.id) === i);
 const ITEMS_PER_PAGE = 40;
 const CATALOG_PER_PAGE = 9;
 const EMOJIS = ["😀", "😂", "🤣", "😊", "😍", "🤩", "😎", "😭", "😡", "👍", "👎", "🔥", "💯", "❤️", "💔", "🎉", "💩", "👻", "💀", "🤖", "👾", "🎮", "🕹️", "💻"];
 const GIFFS = ["https://media.tenor.com/2e0gS8t6c3AAAAAC/pepe-pepe-the-frog.gif","https://media.tenor.com/8vJj2k4k5jAAAAAC/cat-cat-meme.gif","https://media.tenor.com/5Fk4J3k2k1AAAAAC/dog-dog-meme.gif"];
 
-const getItemColor = (item: any) => item?.color || "bg-purple-500";
-
-const getItemCount = (ownedItems: string[] | undefined, itemId: string) => {
-  if (!ownedItems) return 0;
-  const found = ownedItems.find((s: string) => s === itemId || s.startsWith(`${itemId}:`));
-  if (!found) return 0;
-  if (found.includes(":")) return parseInt(found.split(":")[1]) || 1;
-  return 1;
-};
-
-const isItemLocked = (ownedItems: string[] | undefined, itemId: string) => {
-  if (!ownedItems) return false;
-  return ownedItems.some((s: string) => s.startsWith(`${itemId}:locked`) || s === `${itemId}:1:locked`);
-};
-
-const getCleanItems = (ownedItems: string[] | undefined) => {
-  if (!ownedItems) return [];
-  return [...new Set(ownedItems.map((s: string) => s.split(":")[0]))];
-};
-
-const ItemImage = ({ src, emoji, alt, className, silhouette = false }: { src: string, emoji: string, alt: string, className?: string, silhouette?: boolean }) => {
+const ItemImage = ({ src, emoji, alt, className }: { src: string, emoji: string, alt: string, className?: string }) => {
   const [error, setError] = useState(false);
   if (error || !src) return <div className={`flex items-center justify-center ${className}`}><span className="text-4xl md:text-5xl drop-shadow-md">{emoji}</span></div>;
-  return <img src={src} alt={alt} className={`${className} ${silhouette ? "brightness-0 opacity-40" : ""}`} onError={() => setError(true)} />;
+  return <img src={src} alt={alt} className={className} onError={() => setError(true)} />;
 };
 
 const TitleBadge = ({ titleName, size = "sm" }: { titleName: string, size?: "sm" | "lg" }) => {
@@ -129,7 +80,7 @@ const CustomSelect = ({ value, options, onChange, widthClass = "w-40" }: { value
 };
 
 const AvatarWithFrame = ({ url, frame, size = "w-10 h-10" }: { url?: string, frame?: string, size?: string }) => {
-  const equippedFrame = ALL_ITEMS.find((i: any) => i.id === frame && i.type === "frame");
+  const equippedFrame = FRAMES.find((i: any) => i.id === frame);
   const frameStyle = equippedFrame?.style || "border-white/10";
   return (
     <div className={`relative ${size} shrink-0 rounded-full border-2 ${frameStyle} bg-zinc-900 overflow-hidden group`}>
@@ -153,7 +104,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 };
 
 export default function Home() {
-  const [view, setView] = useState<"mods" | "catalog" | "profile" | "friends" | "admin" | "market">("mods");
+  const [view, setView] = useState<"mods" | "catalog" | "profile" | "friends" | "admin">("mods");
   const [modpacks, setModpacks] = useState<Modpack[]>([]);
   const [activePackId, setActivePackId] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
@@ -167,12 +118,6 @@ export default function Home() {
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => setToast({ message, type });
 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [isGachaOpen, setIsGachaOpen] = useState(false);
-  const [activeBanner, setActiveBanner] = useState<any>(GACHA_BANNERS[0]);
-  const [isPulling, setIsPulling] = useState(false);
-  const [gachaAnim, setGachaAnim] = useState<"idle" | "spinning" | "result">("idle");
-  const [gachaResults, setGachaResults] = useState<any[]>([]);
-  const [gachaVisibleCount, setGachaVisibleCount] = useState(0);
 
   const [friends, setFriends] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -195,7 +140,7 @@ export default function Home() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminSearch, setAdminSearch] = useState("");
-  const [profileTab, setProfileTab] = useState<"frames" | "titles" | "items">("frames");
+  const [profileTab, setProfileTab] = useState<"frames" | "titles">("frames");
   const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
   const [viewingUserPacks, setViewingUserPacks] = useState<PublishedPack[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -227,9 +172,6 @@ export default function Home() {
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-
-  const [marketItems, setMarketItems] = useState<MarketItem[]>([]);
-  const [sellModalItem, setSellModalItem] = useState<{ itemId: string, price: string } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -274,15 +216,10 @@ export default function Home() {
   useEffect(() => { if (activeChat) { fetchMessages(activeChat.id); const interval = setInterval(() => fetchMessages(activeChat.id), 3000); const channel = supabase.channel(`typing-${[user.id, activeChat.id].sort().join('-')}`); channel.on('broadcast', { event: 'typing' }, (payload: any) => { if (payload.payload.user_id !== user.id) { setIsFriendTyping(true); setTimeout(() => setIsFriendTyping(false), 2000); } }).subscribe(); channelRef.current = channel; return () => { clearInterval(interval); supabase.removeChannel(channel); }; } }, [activeChat]);
   useEffect(() => { if (user) { fetchFriends(); fetchSuggestedUsers(); const interval = setInterval(fetchFriends, 5000); return () => clearInterval(interval); } }, [user]);
   useEffect(() => { if (user && user.id === ADMIN_ID && view === "admin") { supabase.from('profiles').select('*').then(({ data }) => { if (data) setAdminUsers(data); }); } }, [user, view]);
-  useEffect(() => { if (user) fetchFromDB(); else { const saved = localStorage.getItem("modbuilder_packs"); if (saved) { try { const parsed = JSON.parse(saved); if (parsed.length > 0) { setModpacks(parsed); setActivePackId(parsed[0].id); } } catch(e) {} } else { createNewPack(true, null); } setIsLoaded(true); } fetchCatalog(); fetchMarket(); }, [user]);
+  useEffect(() => { if (user) fetchFromDB(); else { const saved = localStorage.getItem("modbuilder_packs"); if (saved) { try { const parsed = JSON.parse(saved); if (parsed.length > 0) { setModpacks(parsed); setActivePackId(parsed[0].id); } } catch(e) {} } else { createNewPack(true, null); } setIsLoaded(true); } fetchCatalog(); }, [user]);
   useEffect(() => { if (isLoaded && view === "mods") fetchMods(currentPage); }, [query, selectedCategories, activePack?.gameVersion, activePack?.loader, currentPage, view, isLoaded]);
   useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); setIsLoggingIn(false); if(session?.user) { fetchProfile(session.user.id); fetchUserLikes(session.user.id); fetchUserRatings(session.user.id); } }); const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => { setUser(session?.user ?? null); if (event === 'SIGNED_IN') { setIsLoggingIn(false); fetchProfile(session!.user.id); fetchUserLikes(session!.user.id); fetchUserRatings(session!.user.id); } }); return () => authListener.subscription.unsubscribe(); }, []);
   useEffect(() => { if (!user) return; const checkUnread = async () => { const { data } = await supabase.from('messages').select('sender_id, created_at').eq('receiver_id', user.id); if (data) { let count = 0; const readState = JSON.parse(localStorage.getItem('read_state') || '{}'); data.forEach((msg: any) => { if (!readState[msg.sender_id] || new Date(msg.created_at) > new Date(readState[msg.sender_id])) count++; }); setUnreadCount(count); } }; checkUnread(); const interval = setInterval(checkUnread, 5000); return () => clearInterval(interval); }, [user]);
-
-  const fetchMarket = async () => {
-    const { data, error } = await supabase.from('market_items').select('*, profiles(username, avatar_url, title, frame)').order('created_at', { ascending: false });
-    if (data) setMarketItems(data as any);
-  };
 
   const handleOpenChat = (friend: UserProfile) => { setActiveChat(friend); const readState = JSON.parse(localStorage.getItem('read_state') || '{}'); readState[friend.id] = new Date().toISOString(); localStorage.setItem('read_state', JSON.stringify(readState)); setUnreadCount(0); };
   const translateDescription = async (markdown: string) => { try { const rawHtml = marked.parse(markdown) as string; const tempDiv = document.createElement("div"); tempDiv.innerHTML = DOMPurify.sanitize(rawHtml); const textNodes: Node[] = []; const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null); let node; while (node = walker.nextNode()) { if (node.textContent?.trim()) textNodes.push(node); } if (!textNodes.length) return; const combined = textNodes.map((n: any) => n.textContent?.trim() || "").join(" ||| "); const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(combined.substring(0, 4000))}`); const data = await res.json(); const parts = data[0].map((i: any) => i[0]).join("").split(" ||| "); textNodes.forEach((n: any, i: number) => { if (parts[i]) n.textContent = parts[i].trim(); }); setTranslatedDesc(DOMPurify.sanitize(tempDiv.innerHTML)); } catch { showToast("Ошибка перевода", "error"); } };
@@ -303,14 +240,14 @@ export default function Home() {
   const cancelEditMessage = () => { setEditingMessageId(null); setEditMessageContent(""); };
   const saveEditMessage = async (id: string) => { if (!editMessageContent.trim()) return; await supabase.from('messages').update({ content: editMessageContent.trim() }).eq('id', id); setMessages(prev => prev.map((m: any) => m.id === id ? { ...m, content: editMessageContent.trim() } : m)); setEditingMessageId(null); setEditMessageContent(""); showToast("Сообщение обновлено", "success"); };
 
-  const fetchProfile = async (userId: string) => { const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) return; if (data) setProfile(data); else { const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default", role: "user", owned_titles: ["novice"], bio: "", coins: 500, owned_items: [] }; await supabase.from('profiles').insert(newProfile); setProfile(newProfile); } };
+  const fetchProfile = async (userId: string) => { const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) return; if (data) setProfile(data); else { const newProfile = { id: userId, username: "Игрок", title: "Новичок", avatar_url: null, frame: "default", role: "user", owned_titles: ["novice"], bio: "" }; await supabase.from('profiles').insert(newProfile); setProfile(newProfile); } };
   const fetchUserLikes = async (userId: string) => { const { data } = await supabase.from('pack_likes').select('pack_id').eq('user_id', userId); if (data) setLikedPacks(data.map((d: any) => d.pack_id)); };
   const fetchUserRatings = async (userId: string) => { const { data } = await supabase.from('pack_ratings').select('pack_id, rating').eq('user_id', userId); if (data) { const ratingsMap: Record<string, number> = {}; data.forEach((r: any) => { ratingsMap[r.pack_id] = r.rating; }); setUserRatings(ratingsMap); } };
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file || !user) return; setIsUploading(true); try { const fileExt = file.name.split('.').pop(); const fileName = `${user.id}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('avatars').getPublicUrl(fileName); await supabase.from('profiles').upsert({ id: user.id, avatar_url: data.publicUrl, username: profile?.username || "Игрок", title: profile?.title || "Новичок", frame: profile?.frame || "default" }); setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl })); fetchProfile(user.id); showToast("Аватарка обновлена!", "success"); } catch (error: any) { showToast(error.message || "Ошибка", "error"); } finally { setIsUploading(false); } };
   const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `cover-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('covers').getPublicUrl(fileName); const newPacks = modpacks.map((p: any) => p.id === packId ? { ...p, cover_url: data.publicUrl } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ cover_url: data.publicUrl }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Обложка загружена!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
   const uploadScreenshot = async (e: React.ChangeEvent<HTMLInputElement>, packId: string) => { const file = e.target.files?.[0]; if (!file || !user) return; try { const fileExt = file.name.split('.').pop(); const fileName = `screen-${packId}-${Math.random()}.${fileExt}`; const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, file); if (uploadError) throw uploadError; const { data } = supabase.storage.from('covers').getPublicUrl(fileName); const pack = modpacks.find((p: any) => p.id === packId); const newScreens = [...(pack?.screenshots || []), data.publicUrl]; const newPacks = modpacks.map((p: any) => p.id === packId ? { ...p, screenshots: newScreens } : p); setModpacks(newPacks); await saveToDB(newPacks, packId); if (activePack?.id === packId && activePack.published_id) { await supabase.from('published_packs').update({ screenshots: newScreens }).eq('id', activePack.published_id); fetchCatalog(); } showToast("Скриншот добавлен!", "success"); } catch (error: any) { showToast("Ошибка: " + error.message, "error"); } };
 
-  const saveProfile = async (updates: any) => { if (!user) return; const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username || profile?.username || "Игрок", title: updates.title || profile?.title || "Новичок", avatar_url: profile?.avatar_url || null, frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default", bio: updates.bio !== undefined ? updates.bio : profile?.bio || "", owned_items: updates.owned_items !== undefined ? updates.owned_items : profile?.owned_items || [], coins: updates.coins !== undefined ? updates.coins : profile?.coins || 500 }); if (error) showToast("Ошибка: " + error.message, "error"); else { setProfile((prev: any) => ({ ...prev, ...updates })); fetchProfile(user.id); showToast("Сохранено!", "success"); } };
+  const saveProfile = async (updates: any) => { if (!user) return; const { error } = await supabase.from('profiles').upsert({ id: user.id, username: updates.username || profile?.username || "Игрок", title: updates.title || profile?.title || "Новичок", avatar_url: profile?.avatar_url || null, frame: updates.frame !== undefined ? updates.frame : profile?.frame || "default", bio: updates.bio !== undefined ? updates.bio : profile?.bio || "", owned_items: profile?.owned_items || [] }); if (error) showToast("Ошибка: " + error.message, "error"); else { setProfile((prev: any) => ({ ...prev, ...updates })); fetchProfile(user.id); showToast("Сохранено!", "success"); } };
   const toggleTitle = async (targetUserId: string, titleId: string) => { const targetUser = adminUsers.find((u: any) => u.id === targetUserId); if (!targetUser) return; const currentOwned = targetUser.owned_titles || ['novice']; const hasTitle = currentOwned.includes(titleId); const newOwned = hasTitle ? currentOwned.filter((id: string) => id !== titleId) : [...currentOwned, titleId]; await supabase.from('profiles').update({ owned_titles: newOwned }).eq('id', targetUserId); showToast(hasTitle ? "Забран!" : "Выдан!", "success"); setAdminUsers(prev => prev.map((u: any) => u.id === targetUserId ? { ...u, owned_titles: newOwned } : u)); };
   const updateRole = async (targetUserId: string, newRole: string) => { await supabase.from('profiles').update({ role: newRole }).eq('id', targetUserId); showToast("Роль обновлена!", "success"); setAdminUsers(prev => prev.map((u: any) => u.id === targetUserId ? { ...u, role: newRole } : u)); };
 
@@ -340,162 +277,6 @@ export default function Home() {
   const exportMrpack = async (pack: Modpack) => { if (!pack || Object.keys(pack.artifacts).length === 0) return; setIsDownloading(true); const zip = new JSZip(); const files = Object.values(pack.artifacts).map((mod: any) => ({ path: `mods/${mod.file_name}`, hashes: {}, env: { client: "required", server: "required" }, downloads: [mod.file_url] })); const mrpackIndex = { formatVersion: 1, game: "minecraft", versionId: "1.0.0", name: pack.name || "Modpack", files: files, dependencies: { minecraft: pack.gameVersion, [pack.loader]: "latest" } }; zip.file("modrinth.index.json", JSON.stringify(mrpackIndex, null, 2)); try { const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.mrpack`; a.click(); } catch(e) { console.error(e); } finally { setIsDownloading(false); } };
   const login = (provider: 'github' | 'google' = 'github') => { setIsLoggingIn(true); supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } }); };
   const logout = () => supabase.auth.signOut();
-
-  const useBoost = async () => {
-    if (!user || !activePack?.published_id) return showToast("Сначала опубликуйте сборку", "error");
-    if (!profile?.owned_items?.includes("vip_ticket")) return showToast("У вас нет VIP-Билета", "error");
-    const { data, error } = await supabase.rpc('use_boost_item', { p_item_id: 'vip_ticket', p_pack_id: activePack.published_id });
-    if (error) return showToast(error.message, "error");
-    const res = data as any;
-    if (res?.success) { showToast(res.message, "success"); fetchProfile(user.id); fetchCatalog(); fetchFromDB(); }
-    else showToast(res?.message || "Не удалось применить буст", "error");
-  };
-
-  const canFreePull = (() => {
-    if (!profile?.last_gacha_pull) return true;
-    return (Date.now() - new Date(profile.last_gacha_pull).getTime()) > 24 * 60 * 60 * 1000;
-  })();
-
-  const pullGacha = async (isFree = false, count = 1) => {
-    if (!user || !profile) return showToast("Войдите", "error");
-    if (isFree && !canFreePull) return showToast("Бесплатная крутка уже использована", "error");
-    const totalCost = isFree ? 0 : (count === 10 ? 900 : 100);
-    if (!isFree && (profile.coins || 0) < totalCost) return showToast("Недостаточно монет", "error");
-    
-    setGachaResults([]);
-    setGachaVisibleCount(0);
-    setIsPulling(true); 
-    setGachaAnim("spinning"); 
-    
-    const results = [];
-    for (let i = 0; i < count; i++) {
-      const roll = Math.random() * 100;
-      let currentChance = 0;
-      let selectedItem = activeBanner.pool[0];
-      for (const item of activeBanner.pool) {
-        currentChance += item.chance;
-        if (roll <= currentChance) {
-          selectedItem = item;
-          break;
-        }
-      }
-      results.push(selectedItem);
-    }
-
-    let currentOwned = profile.owned_items || [];
-    for (const selectedItem of results) {
-      const currentCount = getItemCount(currentOwned, selectedItem.id);
-      const newCount = currentCount + 1;
-      currentOwned = currentOwned.filter((s: string) => !s.startsWith(selectedItem.id) && s !== selectedItem.id);
-      currentOwned.push(newCount > 1 ? `${selectedItem.id}:${newCount}` : selectedItem.id);
-    }
-    
-    const newOwned = currentOwned;
-    const newCoins = (profile.coins || 0) - totalCost;
-    const updates: any = { owned_items: newOwned, coins: newCoins, last_gacha_pull: new Date().toISOString() };
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile((p: any) => ({ ...p, ...updates }));
-
-    setGachaResults(results.map((item: any) => ({ ...item, count: getItemCount(newOwned, item.id) })));
-
-    setTimeout(() => {
-      setGachaAnim("result");
-      for (let i = 0; i < results.length; i++) {
-        setTimeout(() => setGachaVisibleCount(i + 1), i * 150);
-      }
-    }, 3500);
-
-    setTimeout(() => {
-      setIsPulling(false);
-      setGachaAnim("idle");
-      setGachaResults([]);
-    }, 8500);
-  };
-
-  const sellItem = async (itemId: string) => {
-    if (!user || !profile) return;
-    const currentCount = getItemCount(profile.owned_items, itemId);
-    if (currentCount === 0) return;
-
-    const newCount = currentCount - 1;
-    let newOwned = (profile.owned_items || []).filter((s: string) => !s.startsWith(itemId) && s !== itemId);
-    
-    if (newCount > 0) {
-      newOwned.push(newCount > 1 ? `${itemId}:${newCount}` : itemId);
-    }
-
-    const newCoins = (profile.coins || 0) + 50;
-    const updates = { owned_items: newOwned, coins: newCoins };
-    
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile((p: any) => ({ ...p, ...updates }));
-    showToast(`Предмет продан за 50 монет!`, 'success');
-  };
-
-  const toggleLock = async (itemId: string) => {
-    if (!user || !profile) return;
-    const isLocked = isItemLocked(profile.owned_items, itemId);
-    const currentCount = getItemCount(profile.owned_items, itemId);
-    if (currentCount === 0) return;
-
-    let newOwned = (profile.owned_items || []).filter((s: string) => !s.startsWith(itemId) && s !== itemId);
-    
-    if (isLocked) {
-      newOwned.push(currentCount > 1 ? `${itemId}:${currentCount}` : itemId);
-      showToast("Предмет разблокирован", "success");
-    } else {
-      newOwned.push(currentCount > 1 ? `${itemId}:${currentCount}:locked` : `${itemId}:1:locked`);
-      showToast("Предмет заблокирован от продажи", "success");
-    }
-
-    const updates = { owned_items: newOwned };
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile((p: any) => ({ ...p, ...updates }));
-  };
-
-  const listItemOnMarket = async (itemId: string, price: number) => {
-    if (!user || !profile) return;
-    const currentCount = getItemCount(profile.owned_items, itemId);
-    if (currentCount === 0) return;
-
-    const newCount = currentCount - 1;
-    let newOwned = (profile.owned_items || []).filter((s: string) => !s.startsWith(itemId) && s !== itemId);
-    if (newCount > 0) newOwned.push(newCount > 1 ? `${itemId}:${newCount}` : itemId);
-
-    const updates = { owned_items: newOwned };
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile((p: any) => ({ ...p, ...updates }));
-    await supabase.from('market_items').insert({ seller_id: user.id, item_id: itemId, price });
-    fetchMarket();
-    showToast(`Выставлено на рынок за ${price} 🪙!`, 'success');
-  };
-
-  const buyMarketItem = async (marketId: string, itemId: string, price: number, sellerId: string) => {
-    if (!user || !profile) return showToast("Войдите", "error");
-    if (profile.coins < price) return showToast("Недостаточно монет", "error");
-    if (sellerId === user.id) return showToast("Нельзя купить свой предмет", "error");
-
-    const newCoins = (profile.coins || 0) - price;
-    const currentOwned = profile.owned_items || [];
-    const currentCount = getItemCount(currentOwned, itemId);
-    const newCount = currentCount + 1;
-    let newOwned = currentOwned.filter((s: string) => !s.startsWith(itemId) && s !== itemId);
-    newOwned.push(newCount > 1 ? `${itemId}:${newCount}` : itemId);
-
-    const updates = { owned_items: newOwned, coins: newCoins };
-    await supabase.from('profiles').update(updates).eq('id', user.id);
-    setProfile((p: any) => ({ ...p, ...updates }));
-
-    await supabase.from('market_items').delete().eq('id', marketId);
-
-    const { data: sellerProfile } = await supabase.from('profiles').select('coins').eq('id', sellerId).single();
-    if (sellerProfile) {
-      await supabase.from('profiles').update({ coins: (sellerProfile.coins || 0) + price }).eq('id', sellerId);
-    }
-
-    fetchMarket();
-    showToast("Предмет успешно куплен!", "success");
-  };
 
   if (!isLoaded) return <div className="h-dvh bg-[#09090b] text-white flex items-center justify-center">Загрузка...</div>;
 
@@ -529,52 +310,9 @@ export default function Home() {
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes orbFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.03); } }
-        @keyframes orbPulse { 0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 30px rgba(168,85,247,0.6)); } 50% { transform: scale(1.08); filter: brightness(1.3) drop-shadow(0 0 60px rgba(168,85,247,1)); } }
-        
-        /* Волшебный поток (шлейф) */
-        @keyframes windTrail1 {
-          0% { transform: translate(-150vw, 150px) rotate(-45deg) scale(0.8); opacity: 0; }
-          10% { opacity: 1; }
-          50% { transform: translate(-50vw, -50px) rotate(-20deg) scale(1.1); opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: translate(100vw, -200px) rotate(45deg) scale(0.5); opacity: 0; }
-        }
-        @keyframes windTrail2 {
-          0% { transform: translate(-150vw, 50px) rotate(45deg) scale(1); opacity: 0; }
-          15% { opacity: 1; }
-          50% { transform: translate(0vw, -100px) rotate(0deg) scale(1.2); opacity: 1; }
-          85% { opacity: 1; }
-          100% { transform: translate(150vw, -250px) rotate(-45deg) scale(0.6); opacity: 0; }
-        }
-        @keyframes windTrail3 {
-          0% { transform: translate(-100vw, 200px) rotate(-15deg) scale(1.1); opacity: 0; }
-          20% { opacity: 1; }
-          60% { transform: translate(50vw, -20px) rotate(-60deg) scale(0.9); opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translate(120vw, -150px) rotate(20deg) scale(0.4); opacity: 0; }
-        }
-        
-        @keyframes twinkle { 0%, 100% { opacity: 1; filter: brightness(1); } 50% { opacity: 0.3; filter: brightness(2); } }
-        @keyframes flash { 0%, 100% { opacity: 0; transform: scale(0.2); } 50% { opacity: 1; transform: scale(1.5); } }
-        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes rotateSlow { 100% { transform: rotate(360deg); } }
-        @keyframes rotateReverse { 100% { transform: rotate(-360deg); } }
-        
         .animate-spin-slow { animation: spin 6s linear infinite; }
-        .animate-orb-float { animation: orbFloat 2.5s ease-in-out infinite; }
-        .animate-orb-pulse { animation: orbPulse 2s ease-in-out infinite; }
-        .animate-twinkle { animation: twinkle 1.5s ease-in-out infinite; }
-        .animate-flash { animation: flash 1.2s ease-in-out infinite; }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        .animate-rotate-slow { animation: rotateSlow 12s linear infinite; }
-        .animate-rotate-reverse { animation: rotateReverse 8s linear infinite; }
-        
-        .particle-trail-1 { animation: windTrail1 6s ease-in-out infinite; }
-        .particle-trail-2 { animation: windTrail2 7s ease-in-out infinite; }
-        .particle-trail-3 { animation: windTrail3 5s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -586,25 +324,21 @@ export default function Home() {
         <div className="px-4 space-y-1 mb-4">
           <button onClick={() => { setView("mods"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "mods" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сборщик</button>
           <button onClick={() => { setView("catalog"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "catalog" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Каталог сборок</button>
-          <button onClick={() => { setView("market"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "market" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>🛒 Рынок предметов</button>
           <button onClick={() => { setView("friends"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-colors ${view === "friends" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Сообщество {unreadCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>}</button>
-          <button onClick={() => { setIsGachaOpen(true); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors text-purple-300 hover:bg-purple-500/20`}>🎰 Гача-Машина</button>
           <button onClick={() => { setView("profile"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "profile" ? "bg-green-500 text-black" : "hover:bg-white/10 text-white"}`}>Мой профиль</button>
           {user?.id === ADMIN_ID && <button onClick={() => { setView("admin"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500/10"}`}>👑 Админ-панель</button>}
         </div>
         {view === "mods" && (<><div className="px-6 pb-2 flex justify-between items-center text-sm font-bold text-zinc-400"><span>Мои сборки</span><button onClick={() => createNewPack()} className="text-white hover:text-green-400 text-lg" title="Создать">+</button></div><div className="flex-1 overflow-y-auto px-3 space-y-2">{modpacks.map((pack: any) => (<div key={pack.id} onClick={() => { setActivePackId(pack.id); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>{editingPackId === pack.id ? <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" /> : <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>}<div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div><div className="absolute top-4 right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20">✎</button><button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20">✕</button></div></div>))}</div></>)}
-        <div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div><div className="text-xs text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
+        <div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
         {view === "mods" && (<><header className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-4 w-full md:w-auto"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-xl shrink-0 transition-colors text-white">Меню</button><input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 md:flex-none md:w-96 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" /></div><div className="flex flex-wrap gap-2 shrink-0 w-full md:w-auto"><CustomSelect value={activePack?.gameVersion || "1.16.5"} onChange={(val) => updateActivePack({ gameVersion: val, artifacts: {} })} options={[{ value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} /><CustomSelect value={activePack?.loader || "forge"} onChange={(val) => updateActivePack({ loader: val, artifacts: {} })} options={[{ value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} /><button onClick={() => setIsPackOpen(true)} className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(34,197,94,0.4)] flex-1 md:flex-none">Сборка ({modsList.length})</button></div></div><div className="flex flex-wrap gap-2">{CATEGORIES.map(cat => (<button key={cat.id} onClick={() => toggleCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${selectedCategories.includes(cat.id) ? "bg-green-500/30 border-green-500/60 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.2)]" : "bg-black/30 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white"}`}>{cat.label}</button>))}</div></header><div className="flex-1 overflow-y-auto p-4 md:p-6">{isLoading ? <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div></div> : (<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">{results.map(mod => (<div key={mod.project_id} onClick={() => openModModal(mod)} className="bg-black/50 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:border-green-500/50 hover:bg-black/60 cursor-pointer flex flex-col gap-4 shadow-xl hover:shadow-[0_0_30px_rgba(34,197,94,0.2)] transition-all duration-300 hover:-translate-y-1 group"><div className="flex items-center gap-4 relative z-10"><div className="w-16 h-16 rounded-2xl bg-zinc-800 overflow-hidden relative shadow-lg group-hover:scale-105 transition-transform border border-white/10"><Image src={mod.icon_url || '/placeholder.png'} alt={mod.title} fill className="object-cover" unoptimized /></div><div className="min-w-0"><h3 className="font-bold text-lg truncate pr-2 text-white">{mod.title}</h3><div className="text-xs text-zinc-400 mt-1">⬇ {mod.downloads.toLocaleString()}</div></div></div><p className="text-sm text-zinc-300 line-clamp-3 flex-1 relative z-10">{mod.description}</p><button onClick={(e) => { e.stopPropagation(); handleAddMod(mod); }} disabled={isAdding === mod.project_id || !!activePack?.artifacts[mod.project_id]} className="bg-white/10 hover:bg-green-500 hover:text-black py-2.5 rounded-xl font-bold text-sm transition-colors relative z-10 border border-white/10 hover:border-green-500">{isAdding === mod.project_id ? "..." : activePack?.artifacts[mod.project_id] ? "Добавлено" : "+ В сборку"}</button></div>))}</div>)}{totalPages > 1 && (<div className="flex flex-wrap justify-center items-center gap-2 mt-8 mb-4"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">← Назад</button><div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-4 py-2"><span className="text-sm text-zinc-400">Стр.</span><input type="number" min="1" max={totalPages} value={pageInput} onChange={(e) => setPageInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const val = parseInt(pageInput); if (val >= 1 && val <= totalPages) { setCurrentPage(val); } } }} className="w-16 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-green-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /><span className="text-sm text-zinc-400">из {totalPages}</span></div><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button></div>)}</div></>)}
         {view === "catalog" && (<div className="flex-1 overflow-y-auto p-4 md:p-8"><h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">Каталог сборок</h2><div className="flex flex-wrap gap-4 mb-8 bg-black/40 p-4 rounded-3xl border border-white/10 backdrop-blur-md relative z-20"><div className="flex-1 min-w-[200px] flex flex-col gap-1"><span className="text-xs text-zinc-400 font-bold ml-1">Поиск</span><input type="text" placeholder="Название сборки..." value={catalogSearch} onChange={(e) => { setCatalogSearch(e.target.value); setCatalogPage(1); }} className="bg-black/30 border border-white/20 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 text-white placeholder-zinc-400" /></div><div className="flex flex-col gap-1"><span className="text-xs text-zinc-400 font-bold ml-1">Версия</span><CustomSelect value={catalogVersion} onChange={(v) => { setCatalogVersion(v); setCatalogPage(1); }} options={[{ value: "all", label: "Все версии" }, { value: "1.20.1", label: "1.20.1" }, { value: "1.19.2", label: "1.19.2" }, { value: "1.16.5", label: "1.16.5" }, { value: "1.12.2", label: "1.12.2" }]} /></div><div className="flex flex-col gap-1"><span className="text-xs text-zinc-400 font-bold ml-1">Загрузчик</span><CustomSelect value={catalogLoader} onChange={(v) => { setCatalogLoader(v); setCatalogPage(1); }} options={[{ value: "all", label: "Все" }, { value: "forge", label: "Forge" }, { value: "fabric", label: "Fabric" }, { value: "quilt", label: "Quilt" }]} /></div><div className="flex flex-col gap-1"><span className="text-xs text-zinc-400 font-bold ml-1">Сортировка</span><CustomSelect value={catalogSort} onChange={(v) => { setCatalogSort(v); setCatalogPage(1); }} options={[{ value: "newest", label: "Сначала новые" }, { value: "downloads", label: "По скачиваниям" }, { value: "popularity", label: "По популярности" }]} /></div></div>{catalogError && <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">Ошибка: {catalogError}</div>}{vipPacks.length > 0 && (<div className="mb-10"><div className="flex items-center justify-between mb-4"><h3 className="text-xl font-bold text-yellow-400">⭐ VIP-Витрина <span className="text-sm font-normal text-zinc-500 ml-2">Занято {vipPacks.length} из 30</span></h3></div><div className="flex overflow-x-auto gap-6 pb-4 snap-x scrollbar-thin scrollbar-thumb-yellow-500/50 scrollbar-track-transparent">{vipPacks.map((pack, index) => (<div key={pack.id} onClick={() => setViewingPack(pack)} className="snap-start shrink-0 w-80 bg-[#121214]/90 backdrop-blur-md border border-yellow-500/40 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-yellow-400 transition-all hover:-translate-y-1"><div className="w-full h-40 bg-zinc-800 relative border-b border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-5xl opacity-10">🖼️</div>}<div className="absolute top-3 left-3 bg-yellow-500 text-black px-3 py-1 rounded-xl font-black text-sm flex items-center gap-1">{index === 0 ? "🥇 1" : index === 1 ? "🥈 2" : index === 2 ? "🥉 3" : "VIP"}</div><div className="absolute top-3 right-3 bg-black/70 text-yellow-300 px-2 py-1 rounded-lg text-xs font-bold backdrop-blur-md">{formatTimeLeft(pack.bumped_until!)}</div></div><div className="p-5"><h3 className="text-xl font-bold">{pack.name}</h3><div className="text-sm text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="flex justify-between mt-3 text-sm"><span className="text-green-400 font-bold">⬇ {pack.downloads || 0}</span><span className="text-pink-400">❤️ {pack.likes || 0}</span></div></div></div>))}</div></div>)}<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{paginatedCatalog.map(pack => (<div key={pack.id} onClick={() => setViewingPack(pack)} className="bg-[#121214]/80 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative group overflow-hidden cursor-pointer hover:border-green-500/50 transition-all hover:-translate-y-1"><div className="w-full h-48 bg-zinc-800 relative border-b border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-6xl opacity-10">🖼️</div>}{user && user.id === pack.user_id && (<button onClick={(e) => deleteFromCatalog(pack.id, e)} className="absolute top-4 right-4 text-zinc-300 hover:text-red-500 bg-black/60 hover:bg-black/90 p-2.5 rounded-xl transition-all opacity-100 md:opacity-0 group-hover:opacity-100 z-10" title="Удалить из каталога">✕</button>)}</div><div className="p-5 flex flex-col gap-3 flex-1"><div className="flex items-center gap-3 border-b border-white/10 pb-3"><AvatarWithFrame url={pack.profiles?.avatar_url} frame={pack.profiles?.frame} size="w-10 h-10" /><div><div className="font-bold text-xs text-green-400 flex items-center gap-2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); openUserProfile(pack.user_id); }}>{pack.profiles?.username || "Игрок"}<TitleBadge titleName={pack.profiles?.title || "Новичок"} /></div><div className="text-[10px] text-zinc-400">{pack.profiles?.title || "Новичок"}</div></div></div><h3 className="text-xl font-bold pr-6 leading-tight">{pack.name}</h3><div className="text-sm text-zinc-400">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="text-sm text-zinc-300 flex justify-between items-center mt-auto pt-2 border-t border-white/5"><div className="flex gap-3 text-xs"><span className="text-zinc-400">Модов: {Object.keys(pack.artifacts).length}</span><span className="text-pink-400">❤️ {pack.likes || 0}</span><span className="text-yellow-400">★ {Number(pack.rating || 0).toFixed(1)}</span></div><span className="text-green-400 font-bold">⬇ {pack.downloads || 0}</span></div></div></div>))}{filteredCatalog.length === 0 && !catalogError && <div className="text-zinc-500 col-span-full">По вашему запросу ничего не найдено.</div>}</div>{totalCatalogPages > 1 && (<div className="flex justify-center items-center gap-2 mt-8"><button onClick={() => setCatalogPage(p => Math.max(1, p - 1))} disabled={catalogPage === 1} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">← Назад</button><span className="text-sm text-zinc-400 mx-4 font-bold">Стр. {catalogPage} из {totalCatalogPages}</span><button onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))} disabled={catalogPage === totalCatalogPages} className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-30">Вперед →</button></div>)}</div>)}
 
-        {view === "market" && user && (<div className="flex-1 overflow-y-auto p-4 md:p-8"><h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-lg">🛒 Рынок предметов</h2><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{marketItems.map(mItem => { const baseItem = ALL_ITEMS.find((i: any) => i.id === mItem.item_id); if (!baseItem) return null; return (<div key={mItem.id} className="bg-[#121214] border border-white/10 rounded-3xl p-5 flex flex-col shadow-xl relative"><div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2"><div className="flex items-center gap-2 cursor-pointer" onClick={() => openUserProfile(mItem.seller_id)}><AvatarWithFrame url={mItem.profiles?.avatar_url} frame={mItem.profiles?.frame} size="w-8 h-8" /><span className="text-xs font-bold text-green-400 hover:underline">{mItem.profiles?.username || "Игрок"}</span></div><span className="text-sm font-black text-yellow-400">{mItem.price} 🪙</span></div><div className="flex-1 flex flex-col items-center justify-center py-4"><ItemImage src={baseItem.img} emoji={baseItem.emoji} alt={baseItem.name} className="w-24 h-24 object-contain" /><div className="font-bold text-lg text-white mt-3">{baseItem.name}</div><div className="text-xs text-zinc-400 text-center mt-1">{baseItem.bonus}</div></div><button onClick={() => buyMarketItem(mItem.id, mItem.item_id, mItem.price, mItem.seller_id)} disabled={profile.coins < mItem.price || mItem.seller_id === user.id} className="w-full mt-2 bg-green-500 hover:bg-green-400 text-black py-2 rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{mItem.seller_id === user.id ? "Ваш лот" : `Купить (${mItem.price} 🪙)`}</button></div>); })}{marketItems.length === 0 && <div className="text-zinc-500 col-span-full text-center py-20">Рынок пока пуст. Никто не выставил предметы на продажу.</div>}</div></div>)}
-
         {view === "friends" && user && (<div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent"><div className={`w-full md:w-80 border-r border-white/10 flex flex-col bg-black/20 backdrop-blur-md shrink-0 ${activeChat ? 'hidden md:flex' : 'flex'}`}><div className="p-4 border-b border-white/10"><h2 className="text-xl font-bold mb-4">Сообщество</h2><input type="text" placeholder="Поиск игроков..." value={searchQuery} onChange={(e) => searchUsers(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500 text-white" />{searchResults.length > 0 && (<div className="mt-2 bg-[#121214] border border-white/10 rounded-xl overflow-hidden">{searchResults.map(u => (<div key={u.id} className="flex items-center justify-between p-2 hover:bg-white/5 border-b border-white/5 last:border-0"><div className="flex items-center gap-2 cursor-pointer" onClick={() => openUserProfile(u.id)}><AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-6 h-6" /><span className="text-sm truncate hover:underline">{u.username}</span></div><button onClick={() => sendFriendRequest(u.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">+</button></div>))}</div>)}</div>{requests.length > 0 && (<div className="p-4 border-b border-white/10"><h3 className="text-sm font-bold text-zinc-400 mb-2">Заявки</h3>{requests.map(req => (<div key={req.id} className="flex items-center justify-between mb-2 bg-white/5 p-2 rounded-lg"><div className="flex items-center gap-2"><AvatarWithFrame url={req.profile?.avatar_url} frame={req.profile?.frame} size="w-8 h-8" /><span className="text-sm truncate">{req.profile?.username}</span></div><button onClick={() => acceptRequest(req.id)} className="text-xs bg-green-500 text-black px-2 py-1 rounded hover:bg-green-400">Принять</button></div>))}</div>)}<div className="flex-1 overflow-y-auto p-4"><div className="flex justify-between items-center mb-2"><h3 className="text-sm font-bold text-zinc-400">Мои друзья</h3><button onClick={fetchFriends} className="text-xs text-green-500 hover:text-green-400">Обновить</button></div>{friends.length === 0 && <div className="text-zinc-500 text-sm">Пока нет друзей</div>}{friends.map(f => (<div key={f.id} onClick={() => handleOpenChat(f)} className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${activeChat?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}><div className="flex items-center gap-3 truncate"><AvatarWithFrame url={f.avatar_url} frame={f.frame} size="w-10 h-10" /><div className="truncate font-bold text-sm">{f.username}</div></div><button onClick={(e) => removeFriend(f.id, e)} className="text-zinc-500 hover:text-red-500 p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity" title="Удалить">✕</button></div>))}</div></div><div className={`flex-1 flex flex-col bg-black/10 backdrop-blur-sm relative ${!activeChat ? 'hidden md:flex' : 'flex'}`}>{activeChat ? (<><div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40"><div className="flex items-center gap-3"><button onClick={() => setActiveChat(null)} className="md:hidden text-zinc-400 hover:text-white mr-2 text-xl">←</button><AvatarWithFrame url={activeChat.avatar_url} frame={activeChat.frame} size="w-10 h-10" /><div><h3 className="font-bold text-lg leading-tight flex items-center gap-2">{activeChat.username}<TitleBadge titleName={activeChat.title || "Новичок"} /></h3>{isFriendTyping && <span className="text-xs text-green-400 animate-pulse">Печатает...</span>}</div></div><button onClick={clearChat} className="text-zinc-400 hover:text-red-400 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Очистить</button></div><div className={`flex-1 overflow-y-auto p-6 space-y-4 relative transition-colors ${isDraggingOver ? "bg-green-500/10 border-2 border-dashed border-green-500" : ""}`} onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }} onDragLeave={() => setIsDraggingOver(false)} onDrop={handleDrop}>{messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение!</div>}{messages.map(m => (<div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"} group`}>{editingMessageId === m.id ? (<div className="flex flex-col gap-2 max-w-[70%] w-full items-end"><input autoFocus value={editMessageContent} onChange={e => setEditMessageContent(e.target.value)} className="w-full bg-black/50 border border-green-500 rounded-xl px-4 py-2 text-white outline-none" onKeyDown={(e) => e.key === 'Enter' && saveEditMessage(m.id)} /><div className="flex gap-2"><button onClick={() => cancelEditMessage()} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg">Отмена</button><button onClick={() => saveEditMessage(m.id)} className="text-xs bg-green-500 hover:bg-green-400 text-black px-3 py-1 rounded-lg">Сохранить</button></div></div>) : (<div className={`relative max-w-[85%] md:max-w-[70%] p-3 rounded-2xl ${m.sender_id === user.id ? "bg-green-500 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none"}`}>{isImageUrl(m.content) ? (<div className="rounded-lg overflow-hidden max-w-sm cursor-pointer" onClick={() => window.open(m.content, '_blank')}><img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain" /></div>) : (<p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>)}<div className={`text-[10px] mt-1 text-right ${m.sender_id === user.id ? "text-green-800" : "text-zinc-400"}`}>{formatTime(m.created_at)}</div>{m.sender_id === user.id && !isImageUrl(m.content) && (<div className="absolute top-1/2 -translate-y-1/2 -left-16 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => startEditMessage(m.id, m.content)} className="text-zinc-400 hover:text-white p-1" title="Редактировать">✎</button><button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1" title="Удалить">✕</button></div>)}{m.sender_id === user.id && isImageUrl(m.content) && (<div className="absolute top-1/2 -translate-y-1/2 -left-10 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => deleteMessage(m.id)} className="text-zinc-400 hover:text-red-500 p-1 bg-black/50 rounded-full" title="Удалить">✕</button></div>)}</div>)}</div>))}{isFriendTyping && (<div className="flex justify-start"><div className="bg-white/10 text-white rounded-2xl rounded-bl-none p-3 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span><span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span><span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span></div></div>)}<div ref={chatEndRef} /></div><div className="p-4 border-t border-white/10 bg-black/40 flex flex-col gap-2">{previewUrl && (<div className="relative w-32 h-32 rounded-xl overflow-hidden border border-green-500 mb-2 group"><img src={previewUrl} alt="preview" className="w-full h-full object-contain bg-black/50" /><button onClick={() => { setAttachedFile(null); setPreviewUrl(null); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">✕</button></div>)}<div className="flex gap-2 items-center relative">{showEmojiPicker && (<div className="absolute bottom-full mb-2 left-0 bg-[#121214] border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-72 animate-in slide-in-from-bottom-2"><div className="flex gap-2 mb-3 border-b border-white/10 pb-2"><button onClick={() => setEmojiTab("emojis")} className={`text-sm font-bold ${emojiTab === "emojis" ? "text-green-400" : "text-zinc-400"}`}>Эмодзи</button><button onClick={() => setEmojiTab("gifs")} className={`text-sm font-bold ${emojiTab === "gifs" ? "text-green-400" : "text-zinc-400"}`}>Гифки</button></div>{emojiTab === "emojis" ? (<div className="grid grid-cols-6 gap-2">{EMOJIS.map(e => (<button key={e} onClick={() => setNewMessage(prev => prev + e)} className="text-2xl hover:bg-white/10 rounded-lg p-1 transition-colors">{e}</button>))}</div>) : (<div className="grid grid-cols-3 gap-2">{GIFFS.map((gif, i) => (<div key={i} onClick={() => sendMessage(gif)} className="cursor-pointer hover:opacity-80 rounded-lg overflow-hidden border border-white/10 h-20"><img src={gif} alt="gif" className="w-full h-full object-cover" /></div>))}<button onClick={() => { setShowEmojiPicker(false); fileInputRef.current?.click(); }} className="h-20 border border-dashed border-white/30 rounded-lg flex flex-col items-center justify-center text-xs text-zinc-400 hover:bg-white/5"><span>+</span> Загрузить</button></div>)}</div>)}<button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors hidden md:block">😊</button><button onClick={() => fileInputRef.current?.click()} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors hidden md:block">📎</button><input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" /><input type="text" value={newMessage} onChange={(e) => { setNewMessage(e.target.value); }} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" /><button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-green-500 hover:bg-green-400 text-black px-4 md:px-6 py-3 rounded-xl font-bold disabled:opacity-50">{isSendingFile ? "..." : "Отправить"}</button></div></div></>) : (<div className="flex-1 flex items-center justify-center text-zinc-500">Выберите друга, чтобы начать переписку</div>)}</div></div>)}
 
-        {view === "profile" && user && (<div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center"><div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl"><div className="w-full lg:w-1/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center h-fit"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-40 h-40" /><div className="text-center mt-4 mb-6"><h2 className="text-2xl font-black text-white">{profile?.username || "Игрок"}</h2><div className="mt-3 mb-2 flex justify-center"><TitleBadge titleName={profile?.title || "Новичок"} size="lg" /></div><div className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">{profile?.role === 'admin' ? 'Администратор' : profile?.role === 'moderator' ? 'Модератор' : 'Пользователь'}</div><div className="mt-3 text-yellow-400 font-bold text-lg">🪙 {profile?.coins ?? 500}</div></div><div className="w-full space-y-4"><div><label className="text-sm text-zinc-400 mb-1 block">Аватарка</label><input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" /><label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block">{isUploading ? "Загрузка..." : "Выбрать фото"}</label></div><div><label className="text-sm text-zinc-400 mb-1 block">Никнейм</label><input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" /></div><div><label className="text-sm text-zinc-400 mb-1 block">О себе</label><textarea value={profile?.bio || ""} onChange={(e) => setProfile({...profile, bio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-24 resize-none" placeholder="Расскажите о себе..."></textarea></div><button onClick={() => saveProfile({ username: profile.username, bio: profile.bio })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl transition-colors mt-4">Сохранить изменения</button></div></div><div className="w-full lg:w-2/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col min-h-[500px]"><h3 className="text-2xl font-black text-white mb-6">Инвентарь</h3><div className="flex gap-2 border-b border-white/10 mb-6 pb-2"><button onClick={() => setProfileTab("frames")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "frames" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Рамки</button><button onClick={() => setProfileTab("titles")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "titles" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Титулы</button><button onClick={() => setProfileTab("items")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "items" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Предметы</button></div><div className="flex-1 overflow-y-auto">{profileTab === "frames" && (<div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"><button onClick={() => { setProfile({...profile, frame: "default"}); saveProfile({ username: profile.username, frame: "default" }); }} className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${profile?.frame === "default" || !profile?.frame ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`} title="Без рамки"><div className="w-16 h-16 rounded-full border-2 border-white/10 bg-zinc-800 flex items-center justify-center text-3xl mb-3">🚫</div><span className="text-xs text-zinc-400 text-center leading-tight font-bold">Без рамки</span></button>{ALL_ITEMS.filter((i: any) => i.type === "frame" && (getCleanItems(profile?.owned_items).includes(i.id) || i.id === "f_wood")).map((f: any) => (<button key={f.id} onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }} className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${profile?.frame === f.id ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`} title={f.name}><ItemImage src={f.img} emoji={f.emoji} alt={f.name} className="w-16 h-16 object-contain" /><span className="text-xs text-zinc-400 mt-3 text-center leading-tight font-bold">{f.name}</span></button>))}</div>)}{profileTab === "titles" && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{TITLES.map((t: any) => { const isOwned = profile?.owned_titles?.includes(t.id) || (t.id === 'admin' && user.id === ADMIN_ID); if (!isOwned) return null; return (<button key={t.id} onClick={() => saveProfile({ username: profile.username, title: t.name })} className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}><TitleBadge titleName={t.name} /><div className="text-[10px] text-zinc-500 uppercase tracking-widest">{(t as any).type}</div></button>); })}{(!profile?.owned_titles || profile?.owned_titles.length === 0) && user.id !== ADMIN_ID && (<div className="text-zinc-500 col-span-full">У вас пока нет титулов</div>)}</div>)}{profileTab === "items" && (<div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">{ALL_ITEMS.filter((i: any) => i.type !== "frame" && getCleanItems(profile?.owned_items).includes(i.id)).map((item: any) => { const count = getItemCount(profile?.owned_items, item.id); const locked = isItemLocked(profile?.owned_items, item.id); return (<div key={item.id} className={`relative border rounded-2xl p-4 flex flex-col items-center gap-2 transition-all ${locked ? 'border-red-500/50 bg-black/60 opacity-60 grayscale-[0.5]' : 'border-white/10 bg-black/40 hover:border-white/30'}`}><div className="absolute top-2 right-2 bg-purple-500 text-white font-black text-xs px-2 py-0.5 rounded-full shadow-lg">x{count}</div><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain" /><div className="font-bold text-sm text-center">{item.name}</div><div className="text-[10px] text-zinc-400 text-center">{item.bonus}</div>{item.type === "boost" && <div className="text-[10px] text-yellow-400 text-center mb-1">Используется в «Моей сборке»</div>}<div className="w-full flex gap-1.5 mt-2"><button onClick={() => !locked && sellItem(item.id)} disabled={locked} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all flex flex-col items-center justify-center gap-0.5 ${locked ? 'bg-white/5 border-white/5 text-zinc-600 cursor-not-allowed' : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 hover:shadow-[0_0_10px_rgba(239,68,68,0.4)]'}`}><span>Продать</span><span className="text-[9px] opacity-70">50 🪙</span></button><button onClick={() => { if (!locked) setSellModalItem({ itemId: item.id, price: "100" }); }} disabled={locked} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all flex flex-col items-center justify-center gap-0.5 ${locked ? 'bg-white/5 border-white/5 text-zinc-600 cursor-not-allowed' : 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:shadow-[0_0_10px_rgba(59,130,246,0.4)]'}`}><span>На рынок</span><span className="text-[9px] opacity-70">Торг</span></button></div><button onClick={() => toggleLock(item.id)} className={`w-full mt-1.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-1 ${locked ? 'bg-red-500 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white'}`}>{locked ? "🔓 Разблокировать" : "🔒 Заблокировать"}</button></div>); })}{ALL_ITEMS.filter((i: any) => i.type !== "frame" && getCleanItems(profile?.owned_items).includes(i.id)).length === 0 && <div className="text-zinc-500 col-span-full text-center py-10">Пока нет предметов. Крутите Гачу!</div>}</div>)}</div></div></div></div>)}
+        {view === "profile" && user && (<div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center"><div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl"><div className="w-full lg:w-1/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center h-fit"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-40 h-40" /><div className="text-center mt-4 mb-6"><h2 className="text-2xl font-black text-white">{profile?.username || "Игрок"}</h2><div className="mt-3 mb-2 flex justify-center"><TitleBadge titleName={profile?.title || "Новичок"} size="lg" /></div><div className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">{profile?.role === 'admin' ? 'Администратор' : profile?.role === 'moderator' ? 'Модератор' : 'Пользователь'}</div></div><div className="w-full space-y-4"><div><label className="text-sm text-zinc-400 mb-1 block">Аватарка</label><input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" /><label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block">{isUploading ? "Загрузка..." : "Выбрать фото"}</label></div><div><label className="text-sm text-zinc-400 mb-1 block">Никнейм</label><input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" /></div><div><label className="text-sm text-zinc-400 mb-1 block">О себе</label><textarea value={profile?.bio || ""} onChange={(e) => setProfile({...profile, bio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-24 resize-none" placeholder="Расскажите о себе..."></textarea></div><button onClick={() => saveProfile({ username: profile.username, bio: profile.bio })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl transition-colors mt-4">Сохранить изменения</button></div></div><div className="w-full lg:w-2/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col min-h-[500px]"><h3 className="text-2xl font-black text-white mb-6">Инвентарь</h3><div className="flex gap-2 border-b border-white/10 mb-6 pb-2"><button onClick={() => setProfileTab("frames")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "frames" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Рамки</button><button onClick={() => setProfileTab("titles")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "titles" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Титулы</button></div><div className="flex-1 overflow-y-auto">{profileTab === "frames" && (<div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"><button onClick={() => { setProfile({...profile, frame: "default"}); saveProfile({ username: profile.username, frame: "default" }); }} className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${profile?.frame === "default" || !profile?.frame ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`} title="Без рамки"><div className="w-16 h-16 rounded-full border-2 border-white/10 bg-zinc-800 flex items-center justify-center text-3xl mb-3">🚫</div><span className="text-xs text-zinc-400 text-center leading-tight font-bold">Без рамки</span></button>{FRAMES.map((f: any) => (<button key={f.id} onClick={() => { setProfile({...profile, frame: f.id}); saveProfile({ username: profile.username, frame: f.id }); }} className={`relative aspect-square rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${profile?.frame === f.id ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`} title={f.name}><ItemImage src={f.img} emoji={f.emoji} alt={f.name} className="w-16 h-16 object-contain" /><span className="text-xs text-zinc-400 mt-3 text-center leading-tight font-bold">{f.name}</span></button>))}</div>)}{profileTab === "titles" && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{TITLES.map((t: any) => { const isOwned = profile?.owned_titles?.includes(t.id) || (t.id === 'admin' && user.id === ADMIN_ID); if (!isOwned) return null; return (<button key={t.id} onClick={() => saveProfile({ username: profile.username, title: t.name })} className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${profile?.title === t.name ? "border-green-500 bg-green-500/10" : "border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/30"}`}><TitleBadge titleName={t.name} /><div className="text-[10px] text-zinc-500 uppercase tracking-widest">{(t as any).type}</div></button>); })}{(!profile?.owned_titles || profile?.owned_titles.length === 0) && user.id !== ADMIN_ID && (<div className="text-zinc-500 col-span-full">У вас пока нет титулов</div>)}</div>)}</div></div></div></div>)}
 
         {view === "admin" && user?.id === ADMIN_ID && (<div className="flex-1 overflow-y-auto p-4 md:p-8"><div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"><h2 className="text-3xl font-black text-red-500 drop-shadow-lg">Админ-панель</h2><input type="text" placeholder="Поиск игрока..." value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)} className="bg-black/50 border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:border-red-500 text-white w-full md:w-auto" /></div><div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">{adminUsers.filter((u: any) => u.username?.toLowerCase().includes(adminSearch.toLowerCase())).map((u: any) => (<div key={u.id} className="bg-[#121214] p-6 rounded-3xl border border-white/10 flex flex-col gap-4"><div className="flex items-center gap-3"><AvatarWithFrame url={u.avatar_url} frame={u.frame} size="w-12 h-12" /><div><div className="font-bold text-lg text-white">{u.username || 'Без имени'}</div><div className="text-xs text-zinc-400">ID: {u.id.slice(0, 8)}...</div><div className="text-xs text-zinc-400">Роль: <span className="text-green-400 font-bold">{u.role || 'user'}</span></div></div></div><div className="border-t border-white/10 pt-3"><label className="text-sm text-zinc-400 mb-2 block">Назначить роль</label><select value={u.role || 'user'} onChange={(e) => updateRole(u.id, e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500 text-white"><option value="user">Пользователь</option><option value="moderator">Модератор</option><option value="admin">Администратор</option></select></div><div className="border-t border-white/10 pt-3 flex-1"><label className="text-sm text-zinc-400 mb-2 block">Титулы</label><div className="flex flex-wrap gap-2">{TITLES.map((t: any) => { const hasTitle = u.owned_titles?.includes(t.id); return (<button key={t.id} onClick={() => toggleTitle(u.id, t.id)} className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${hasTitle ? "bg-green-500/20 border-green-500/30 text-green-300 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-300" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:border-white/30"}`} title={hasTitle ? "Забрать" : "Выдать"}>{t.name}</button>); })}</div></div></div>))}</div></div>)}
       </main>
@@ -617,7 +351,6 @@ export default function Home() {
           <button onClick={() => downloadModpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-green-500 hover:bg-green-400 text-black py-4 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(34,197,94,0.4)]">{isDownloading ? "Скачивание..." : "Скачать .zip"}</button>
           <button onClick={() => exportMrpack(activePack)} disabled={isDownloading || modsList.length === 0} className="w-full bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">{isDownloading ? "..." : "Экспорт в .mrpack"}</button>
           <button onClick={() => setIsPublishModalOpen(true)} disabled={modsList.length === 0 || !user} className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">{activePack?.published_id ? "Обновить в каталоге" : "Опубликовать в каталоге"}</button>
-          {activePack?.published_id && <button onClick={useBoost} className="w-full bg-yellow-500 hover:bg-yellow-400 text-black py-3 rounded-xl font-bold transition-colors">🚀 Бустануть в VIP (VIP-Билет)</button>}
         </div>
       </div>
 
@@ -697,114 +430,7 @@ export default function Home() {
 
       {viewingUser && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[80] flex items-center justify-center p-2 md:p-4" onClick={() => setViewingUser(null)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl p-6 md:p-10 relative" onClick={e => e.stopPropagation()}><button onClick={() => setViewingUser(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors">✕</button><div className="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4"><AvatarWithFrame url={viewingUser.avatar_url} frame={viewingUser.frame} size="w-32 h-32" /><div className="text-center md:text-left"><h2 className="text-3xl font-black text-white mb-2">{viewingUser.username}</h2><div className="flex items-center justify-center md:justify-start gap-3 mb-3"><TitleBadge titleName={viewingUser.title || "Новичок"} size="lg" /><span className="text-xs text-zinc-400 uppercase tracking-widest">{viewingUser.role === 'admin' ? 'Админ' : viewingUser.role === 'moderator' ? 'Модер' : 'Игрок'}</span></div><p className="text-zinc-300 text-sm max-w-lg whitespace-pre-wrap">{viewingUser.bio || "Этот пользователь еще не рассказал о себе."}</p></div></div><div className="border-t border-white/10 pt-6"><h3 className="text-xl font-bold text-white mb-4">Сборки пользователя ({viewingUserPacks.length})</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{viewingUserPacks.length === 0 && <div className="text-zinc-500 col-span-full">У пользователя пока нет опубликованных сборок.</div>}{viewingUserPacks.map(pack => (<div key={pack.id} onClick={() => { setViewingUser(null); setViewingPack(pack); }} className="bg-[#121214] border border-white/10 p-4 rounded-2xl hover:border-green-500/50 cursor-pointer transition-all flex items-center gap-4"><div className="w-16 h-16 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 border border-white/10">{pack.cover_url ? <Image src={pack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🖼️</div>}</div><div className="min-w-0 flex-1"><div className="font-bold text-white truncate">{pack.name}</div><div className="text-xs text-zinc-400 mt-1">{pack.game_version} • {pack.loader.toUpperCase()}</div><div className="text-xs text-green-400 mt-1">⬇ {pack.downloads || 0}</div></div></div>))}</div></div></div></div>)}
 
-      {isGachaOpen && user && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-2 md:p-4" onClick={() => setIsGachaOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative" onClick={e => e.stopPropagation()}><button onClick={() => { setIsGachaOpen(false); setGachaResults([]); setGachaAnim("idle"); }} className="absolute top-4 right-4 text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10">✕</button><h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-2">Гача-Машина</h2><p className="text-zinc-400 mb-6">Монеты: <span className="text-yellow-400 font-bold">🪙 {profile?.coins ?? 500}</span></p><div className="flex flex-wrap gap-2 mb-6">{(GACHA_BANNERS as any[]).map(b => (<button key={b.id} onClick={() => { setActiveBanner(b); setGachaAnim("idle"); setGachaResults([]); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeBanner.id === b.id ? `bg-gradient-to-r ${b.color} text-white border border-white/30` : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}>{b.name}</button>))}</div><div className={`rounded-3xl p-6 md:p-8 mb-6 text-center bg-gradient-to-br ${activeBanner.color} border border-white/10 relative overflow-hidden`}>{activeBanner.bannerImg && <div className="absolute inset-0 opacity-60" style={{ backgroundImage: `url(${activeBanner.bannerImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>}<div className="absolute inset-0 bg-black/40"></div><div className="relative z-10"><h3 className="text-2xl font-black text-white mb-2 drop-shadow-md">{activeBanner.name}</h3><p className="text-zinc-200 text-sm mb-6 drop-shadow-md">{activeBanner.desc}</p><div className="h-72 flex items-center justify-center relative overflow-hidden">{gachaAnim === "idle" && (<div className="text-white/60 text-sm font-bold drop-shadow-md">Нажми «Крутить», чтобы испытать удачу</div>)}
-          
-          {gachaAnim === "spinning" && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* Вращающиеся магические круги (для фона) */}
-              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-white/10 animate-rotate-slow"></div>
-              <div className="absolute w-80 h-80 rounded-full border border-white/5 animate-rotate-reverse"></div>
-
-              {/* Вспышки света (Блики) */}
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="absolute w-3 h-3 rounded-full bg-white animate-flash" 
-                     style={{ 
-                       left: `${Math.random() * 100}%`, 
-                       top: `${Math.random() * 100}%`,
-                       animationDelay: `${i * 0.4}s`,
-                       animationDuration: `${1 + Math.random()}s`,
-                       boxShadow: '0 0 20px 10px rgba(255,255,255,0.9), 0 0 40px 20px rgba(168,85,247,0.5)'
-                     }}></div>
-              ))}
-
-              {/* Волшебный поток (Шлейф из частиц) */}
-              {(() => {
-                const minChance = gachaResults.length > 0 ? Math.min(...gachaResults.map((r: any) => r.chance)) : 100;
-                const bestItem = gachaResults.find((r: any) => r.chance === minChance) || { color: 'bg-purple-500' };
-                const colorClass = getItemColor(bestItem);
-                
-                const getParticleContent = (i: number) => {
-                  if (activeBanner.id === "standard") {
-                    const runes = ["ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚷ", "ᚹ", "ᛁ", "ᛃ", "ᛈ", "ᛇ", "ᛉ", "ᛊ", "ᛏ", "ᛒ"];
-                    return <span className="text-yellow-400 font-bold text-xl drop-shadow-[0_0_12px_rgba(250,204,21,1)]">{runes[i % runes.length]}</span>;
-                  } else if (activeBanner.id === "halloween") {
-                    return <span className="text-purple-400 text-2xl drop-shadow-[0_0_12px_rgba(168,85,247,1)]">{i % 3 === 0 ? "💀" : i % 3 === 1 ? "👻" : "🦇"}</span>;
-                  } else {
-                    return <span className={`text-2xl drop-shadow-[0_0_12px_currentColor] ${colorClass.replace('bg-', 'text-')}`}>{i % 3 === 0 ? "💎" : i % 3 === 1 ? "✨" : "🌟"}</span>;
-                  }
-                };
-
-                return Array.from({ length: 40 }).map((_, i) => {
-                  // Выбираем одну из 3 траекторий потока
-                  const trailType = (i % 3) + 1;
-                  return (
-                    <div key={i} className={`absolute particle-trail-${trailType}`} 
-                         style={{ 
-                           left: `${-10 + Math.random() * 20}%`, // Смещение старта
-                           top: `${30 + Math.random() * 40}%`, // Смещение по высоте
-                           animationDelay: `${-Math.random() * 8}s`, // Сразу распределены
-                           animationDuration: `${5 + Math.random() * 4}s` // Разная скорость
-                         }}>
-                      <div className="animate-twinkle" style={{ animationDelay: `${Math.random() * 2}s` }}>
-                        {getParticleContent(i)}
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-
-              {/* Сама сфера */}
-              <div className="relative w-48 h-48 animate-orb-pulse flex items-center justify-center z-10">
-                <div className="absolute inset-0 bg-purple-600 blur-[50px] opacity-30 rounded-full animate-pulse"></div>
-                <Image src="/gacha/gacha_sphere.png" alt="Magic Sphere" fill className="object-contain drop-shadow-[0_0_60px_rgba(168,85,247,1)]" unoptimized />
-              </div>
-            </div>
-          )}
-
-          {gachaAnim === "result" && gachaResults.length > 0 && (
-            <div className="flex flex-col items-center w-full z-10">
-              <div className={`grid gap-2 w-full ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
-                {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => { const splashColor = getItemColor(res); return (
-                  <div key={idx} className="flex flex-col items-center relative animate-pop" style={{ animationDelay: `${idx * 100}ms` }}>
-                    <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] animate-float ${gachaResults.length > 1 ? "w-16 h-16 md:w-20 md:h-20" : "w-32 h-32"}`} />
-                    <div className={`mt-1 font-black text-white drop-shadow-[0_0_8px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px]" : "text-lg"}`}>{res.name} {res.count > 1 && <span className="text-purple-300">x{res.count}</span>}</div>
-                  </div>
-                ); })}
-              </div>
-            </div>
-          )}
-          
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-            <button onClick={() => pullGacha(true)} disabled={isPulling || !canFreePull} className="bg-white/20 hover:bg-white/30 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors drop-shadow-md text-sm">{canFreePull ? "🎁 Бесплатно" : "Бесплатно исп."}</button>
-            <button onClick={() => pullGacha(false)} disabled={isPulling || (profile?.coins || 0) < 100} className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-black px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(250,204,21,0.4)] text-sm">Крутить x1<br/>(100 🪙)</button>
-            <button onClick={() => pullGacha(false, 10)} disabled={isPulling || (profile?.coins || 0) < 900} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-40 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(168,85,247,0.4)] text-sm">Крутить x10<br/>(900 🪙)</button>
-          </div>
-          </div>
-          </div>
-          <div><h3 className="text-lg font-bold text-white mb-3">Возможные предметы</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(activeBanner.pool as GachaItem[]).map(item => { const isOwned = getItemCount(profile?.owned_items, item.id) > 0; return (<div key={item.id} className="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col items-center relative"><ItemImage src={item.img} emoji={item.emoji} alt={item.name} className="w-20 h-20 object-contain drop-shadow-md" silhouette={!isOwned && item.chance <= 5} /><div className="text-xs font-bold text-white mt-2 text-center">{!isOwned && item.chance <= 5 ? "???" : item.name}</div><div className="text-[10px] text-zinc-400 text-center mt-1">{item.chance}%</div></div>); })}</div></div>
-          </div>
-          </div>)}
-
       {isPublishModalOpen && (<div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4" onClick={() => setIsPublishModalOpen(false)}><div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8" onClick={e => e.stopPropagation()}><h2 className="text-2xl font-black text-white mb-6">Публикация сборки</h2><div className="space-y-6"><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Обложка</label><div className="flex items-center gap-4"><div className="w-32 h-20 rounded-xl bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">{activePack?.cover_url ? <Image src={activePack.cover_url} alt="cover" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl opacity-30">🖼️</div>}</div><div className="flex-1"><input type="file" id="publish-cover-upload" accept="image/*" onChange={(e) => uploadCover(e, activePackId)} className="hidden" /><label htmlFor="publish-cover-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">Загрузить обложку</label></div></div></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Ссылка на YouTube-видео</label><input type="text" placeholder="https://youtube.com/watch?v=..." value={activePack?.video_url || ""} onChange={(e) => updateActivePack({ video_url: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" /></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Описание</label><textarea placeholder="Расскажите о своей сборке..." value={activePack?.description || ""} onChange={(e) => updateActivePack({ description: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-32 resize-none" /></div><div><label className="text-sm text-zinc-400 mb-2 block font-bold">Скриншоты</label><div className="flex flex-wrap gap-2 mb-3">{activePack?.screenshots?.map((url, i) => (<div key={i} className="w-20 h-20 rounded-lg bg-black/50 relative overflow-hidden border border-white/10 group"><Image src={url} alt="screenshot" fill className="object-contain" unoptimized /><button onClick={() => { const newScreens = activePack.screenshots?.filter((_, idx) => idx !== i); updateActivePack({ screenshots: newScreens }); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">✕</button></div>))}</div><input type="file" id="publish-screenshot-upload" accept="image/*" onChange={(e) => uploadScreenshot(e, activePackId)} className="hidden" /><label htmlFor="publish-screenshot-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block text-sm">+ Добавить скриншот</label></div><div className="flex gap-3 pt-4"><button onClick={() => setIsPublishModalOpen(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">Отмена</button><button onClick={publishPack} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-bold transition-colors">Опубликовать</button></div></div></div></div>)}
-
-      {sellModalItem && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setSellModalItem(null)}>
-          <div className="bg-[#121214] border border-white/10 rounded-2xl w-full max-w-xs p-5 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-600"></div>
-            <h2 className="text-lg font-black text-white mb-2">Выставить на рынок</h2>
-            <p className="text-xs text-zinc-400 mb-3">Укажите цену в монетах:</p>
-            <div className="relative mb-4">
-              <input autoFocus type="number" value={sellModalItem.price} onChange={(e) => setSellModalItem({ ...sellModalItem, price: e.target.value })} className="w-full bg-black/50 border border-white/20 rounded-xl pl-4 pr-10 py-2.5 text-white focus:outline-none focus:border-green-500 font-bold text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-yellow-400 text-lg">🪙</span>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setSellModalItem(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-zinc-300 py-2.5 rounded-xl font-bold text-sm transition-colors">Отмена</button>
-              <button onClick={() => { listItemOnMarket(sellModalItem.itemId, Number(sellModalItem.price)); setSellModalItem(null); }} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-sm transition-colors shadow-[0_0_15px_rgba(34,197,94,0.3)]">Выставить</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
