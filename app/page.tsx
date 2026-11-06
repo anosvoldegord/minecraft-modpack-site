@@ -337,7 +337,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen text-white font-sans relative selection:bg-green-500/30">
+    <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .animate-spin-slow { animation: spin 6s linear infinite; }
