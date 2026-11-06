@@ -532,30 +532,36 @@ export default function Home() {
   return (
     <div className="flex h-dvh text-white font-sans overflow-hidden relative selection:bg-green-500/30">
       <style jsx global>{`
-        @keyframes saoLine {
-          0% { transform: scaleY(0); opacity: 0; }
-          20% { transform: scaleY(1); opacity: 1; }
-          80% { transform: scaleY(1); opacity: 1; }
-          100% { transform: scaleY(0); opacity: 0; }
+        @keyframes starField {
+          0% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.5; }
         }
-        @keyframes screenFlash {
-          0%, 70% { opacity: 0; }
-          75% { opacity: 1; }
-          100% { opacity: 0; }
+        @keyframes cometFly {
+          0% { transform: translateY(-100vh) translateX(100vw) scale(0.5); opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateY(0) translateX(0) scale(1.5); opacity: 0; }
+        }
+        @keyframes epicFlash {
+          0% { opacity: 0; background-color: transparent; }
+          80% { opacity: 0; background-color: transparent; }
+          85% { opacity: 1; background-color: white; }
+          100% { opacity: 0; background-color: white; }
         }
         @keyframes splashPop {
-          0% { transform: scale(0); opacity: 0; }
-          60% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+          0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+          60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-15px); }
         }
-        .animate-sao-line { animation: saoLine 1.5s ease-out forwards; }
-        .animate-screen-flash { animation: screenFlash 2s ease-out forwards; }
-        .animate-splash-pop { animation: splashPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-stars { animation: starField 4s ease-in-out infinite; }
+        .animate-comet { animation: cometFly 2s cubic-bezier(0.5, 0, 1, 1) forwards; }
+        .animate-epic-flash { animation: epicFlash 2.5s ease-out forwards; }
+        .animate-splash-pop { animation: splashPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-float { animation: float 4s ease-in-out infinite; }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
@@ -684,39 +690,56 @@ export default function Home() {
         <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300 overflow-hidden">
           <div className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(34,197,94,0.3)] border border-white/10 flex items-center justify-center bg-[#0c0c0e]">
             
-            {/* САО Линии (0-1.5 сек) */}
+            {/* Эпичный космос и кометы (0-2.5 сек) */}
             {gachaAnim === "spinning" && (
-              <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
-                {Array.from({ length: 15 }).map((_, i) => {
+              <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none bg-[#050508]">
+                {/* Звезды на фоне */}
+                <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] animate-stars"></div>
+                
+                {/* Летящие кометы (цвета лучшего предмета) */}
+                {Array.from({ length: gachaResults.length > 1 ? 10 : 1 }).map((_, i) => {
                   const minChance = Math.min(...gachaResults.map((r: any) => r.chance), 100);
                   const bestItem = gachaResults.find((r: any) => r.chance === minChance);
                   const colorClass = getItemColor(bestItem);
+                  
                   return (
-                    <div key={i} className={`absolute h-1 w-full opacity-80 blur-[1px] animate-sao-line ${colorClass}`} style={{ top: `${(i * 7) + 2}%`, animationDelay: `${Math.random() * 0.3}s` }}></div>
+                    <div key={i} className={`absolute w-4 h-32 rounded-full blur-[2px] animate-comet ${colorClass}`} 
+                         style={{ 
+                           left: `${20 + Math.random() * 60}%`, 
+                           top: `${Math.random() * 20}%`,
+                           animationDelay: `${Math.random() * 0.5}s`,
+                           boxShadow: '0 0 20px currentColor'
+                         }}>
+                    </div>
                   );
                 })}
-                <div className="absolute inset-0 bg-white animate-screen-flash pointer-events-none"></div>
+                
+                {/* Белая вспышка взрыва */}
+                <div className="absolute inset-0 animate-epic-flash pointer-events-none"></div>
               </div>
             )}
 
-            {/* Кляксы и предметы (1.5-5 сек) */}
+            {/* Кляксы и предметы (2.5-5 сек) */}
             {gachaItemVisible && (
-              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-[#050508]">
+                  {/* Красивые звезды на фоне после взрыва */}
+                  <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+
                   {/* Сетка предметов и их кляксы */}
                   <div className={`relative z-10 grid gap-4 md:gap-8 w-full p-8 ${gachaResults.length > 1 ? "grid-cols-5" : "grid-cols-1"}`}>
                     {gachaResults.slice(0, gachaVisibleCount).map((res, idx) => {
                       const splashColor = getItemColor(res);
                       return (
-                      <div key={idx} className={`flex flex-col items-center animate-in zoom-in duration-500 ${gachaResults.length === 1 ? "scale-100" : "scale-90"}`}>
+                      <div key={idx} className={`flex flex-col items-center animate-in zoom-in duration-500 ${gachaResults.length === 1 ? "scale-100" : "scale-90"}`} style={{ animationDelay: `${idx * 100}ms` }}>
                         <div className="relative flex items-center justify-center w-full aspect-square">
-                          {/* Клякса цвета предмета */}
-                          <div className={`absolute inset-0 rounded-full blur-2xl opacity-70 animate-splash-pop ${splashColor}`}></div>
-                          <div className={`absolute inset-4 rounded-full blur-xl opacity-90 animate-splash-pop ${splashColor}`}></div>
+                          {/* Красивая клякса цвета предмета (2 слоя для объема) */}
+                          <div className={`absolute inset-0 rounded-full blur-2xl opacity-80 animate-splash-pop ${splashColor}`}></div>
+                          <div className={`absolute inset-6 rounded-full blur-xl opacity-100 animate-splash-pop ${splashColor}`}></div>
                           
                           {/* Предмет */}
-                          <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.9)] animate-float ${gachaResults.length > 1 ? "w-20 h-20 md:w-28 md:h-28" : "w-56 h-56 md:w-72 md:h-72"}`} />
+                          <ItemImage src={res.img} emoji={res.emoji} alt={res.name} className={`relative z-10 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,1)] animate-float ${gachaResults.length > 1 ? "w-20 h-20 md:w-28 md:h-28" : "w-56 h-56 md:w-72 md:h-72"}`} />
                         </div>
-                        <div className={`mt-1 font-black text-white drop-shadow-[0_0_10px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px] md:text-xs" : "text-2xl md:text-3xl mt-4"}`}>
+                        <div className={`mt-2 font-black text-white drop-shadow-[0_0_10px_rgba(0,0,0,1)] text-center ${gachaResults.length > 1 ? "text-[10px] md:text-xs" : "text-2xl md:text-3xl mt-4"}`}>
                           {res.name} {res.count > 1 && <span className="text-purple-300 font-black ml-1">x{res.count}</span>}
                         </div>
                       </div>
