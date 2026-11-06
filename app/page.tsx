@@ -172,6 +172,36 @@ export default function Home() {
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentPackId, setPaymentPackId] = useState<string | null>(null);
+
+  const handleBoostPayment = (packId: string) => {
+    setPaymentPackId(packId);
+    setIsPaymentModalOpen(true);
+  };
+
+  const processPayment = async (amount: number) => {
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amount,
+          description: 'VIP-буст сборки на 24 часа',
+          packId: paymentPackId,
+          userId: user?.id
+        })
+      });
+      const data = await res.json();
+      if (data.confirmation_url) {
+        window.location.href = data.confirmation_url;
+      } else {
+        showToast(data.error || 'Ошибка оплаты', 'error');
+      }
+    } catch (e) {
+      showToast('Ошибка сети', 'error');
+    }
+  };
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -329,6 +359,14 @@ export default function Home() {
           {user?.id === ADMIN_ID && <button onClick={() => { setView("admin"); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${view === "admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500/10"}`}>👑 Админ-панель</button>}
         </div>
         {view === "mods" && (<><div className="px-6 pb-2 flex justify-between items-center text-sm font-bold text-zinc-400"><span>Мои сборки</span><button onClick={() => createNewPack()} className="text-white hover:text-green-400 text-lg" title="Создать">+</button></div><div className="flex-1 overflow-y-auto px-3 space-y-2">{modpacks.map((pack: any) => (<div key={pack.id} onClick={() => { setActivePackId(pack.id); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>{editingPackId === pack.id ? <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" /> : <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>}<div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div><div className="absolute top-4 right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20">✎</button><button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20">✕</button></div></div>))}</div></>)}
+        
+        {user && activePack && (
+          <div className="px-5 pb-2">
+            <button onClick={() => handleBoostPayment(activePack.id)} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold py-2.5 rounded-xl transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2">
+              ⭐ Продвинуть сборку
+            </button>
+          </div>
+        )}
         <div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
       </aside>
 
