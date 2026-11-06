@@ -405,7 +405,7 @@ export default function Home() {
       for (let i = 0; i < results.length; i++) {
         setTimeout(() => setGachaVisibleCount(i + 1), i * 100);
       }
-    }, 4500);
+    }, 5000);
 
     setTimeout(() => {
       setGachaVideoDone(true);
@@ -413,7 +413,7 @@ export default function Home() {
       setGachaResults([]);
       setGachaItemVisible(false);
       setGachaAnim("idle");
-    }, 9000);
+    }, 10000);
   };
 
   const sellItem = async (itemId: string) => {
