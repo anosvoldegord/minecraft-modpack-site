@@ -633,7 +633,7 @@ export default function Home() {
       {lightboxUrl && (
         <div className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center p-4 md:p-10 cursor-zoom-out backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setLightboxUrl(null)}>
           <button onClick={() => setLightboxUrl(null)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-colors z-[1000]">✕</button>
-          <img src={lightboxUrl} alt="Fullscreen" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          <img src={lightboxUrl} alt="Fullscreen" className="w-full h-full object-contain drop-shadow-2xl" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </div>
