@@ -59,28 +59,14 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [newMsg, setNewMsg] = useState("");
-    const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-
-  const handleChatScroll = () => {
-    if (!chatContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    const isBottom = scrollHeight - scrollTop - clientHeight < 50;
-    setShouldAutoScroll(isBottom);
-  };
-
-  useEffect(() => {
-    if (shouldAutoScroll) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, shouldAutoScroll]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const [requests, setRequests] = useState<any[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [isMember, setIsMember] = useState(false);
 
-  // Состояния для чата (смайлы, файлы, гифки)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiTab, setEmojiTab] = useState<"emojis" | "gifs">("emojis");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -106,7 +92,18 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     }
   }, [selectedGroup, groupTab, user]);
 
-  
+  const handleChatScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    const isBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setShouldAutoScroll(isBottom);
+  };
+
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, shouldAutoScroll]);
 
   const fetchMyGifs = async () => {
     if (!user) return;
@@ -139,8 +136,12 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   };
 
   const fetchMessages = async (gId: string) => {
-    const { data } = await supabase.from("group_messages").select("*, profiles(username, avatar_url, title)").eq("group_id", gId).order("created_at", { ascending: true });
-    if (data) setMessages(data);
+    const { data, error } = await supabase.from("group_messages").select("*, profiles(username, avatar_url, title)").eq("group_id", gId).order("created_at", { ascending: true });
+    if (error) {
+      console.error("Ошибка загрузки сообщений:", error);
+    } else if (data) {
+      setMessages(data);
+    }
   };
 
   const fetchRequests = async (gId: string) => {
@@ -158,7 +159,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
         const fileName = `group-${Date.now()}.${file.name.split('.').pop()}`;
         const { error } = await supabase.storage.from('avatars').upload(fileName, file);
         if (!error) {
-          const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+          const { data } = await supabase.storage.from('avatars').getPublicUrl(fileName);
           avatarUrl = data.publicUrl;
         }
       }
@@ -242,6 +243,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     }
     fetchMessages(selectedGroup.id);
     setIsSendingFile(false);
+    setShouldAutoScroll(true);
   };
 
   const handleCreateAnnouncement = async () => {
@@ -253,7 +255,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       const fileName = `ann-${Date.now()}.${file.name.split('.').pop()}`;
       const { error } = await supabase.storage.from('announcement_videos').upload(fileName, file);
       if (!error) {
-        const { data } = supabase.storage.from('announcement_videos').getPublicUrl(fileName);
+        const { data } = await supabase.storage.from('announcement_videos').getPublicUrl(fileName);
         videoUrl = data.publicUrl;
       }
     }
@@ -395,21 +397,24 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
           {(groupTab === "chat" || groupTab === "staff") && (
             <div className="bg-black/20 border border-white/10 rounded-3xl h-[65vh] flex flex-col overflow-hidden relative">
               <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map(m => (
-                  <div key={m.id} className="flex gap-2 items-start">
-                    <div className="w-8 h-8 rounded-full bg-zinc-700 relative overflow-hidden shrink-0 mt-1">
-                      {m.profiles?.avatar_url && <Image src={m.profiles.avatar_url} alt="av" fill className="object-cover" unoptimized />}
+                {messages.map(m => {
+                  const isOwn = m.user_id === user?.id;
+                  return (
+                    <div key={m.id} className={`flex gap-2 items-start ${isOwn ? "flex-row-reverse" : ""}`}>
+                      <div className="w-8 h-8 rounded-full bg-zinc-700 relative overflow-hidden shrink-0 mt-1">
+                        {m.profiles?.avatar_url && <Image src={m.profiles.avatar_url} alt="av" fill className="object-cover" unoptimized />}
+                      </div>
+                      <div className={`p-3 rounded-2xl max-w-[80%] ${isOwn ? "bg-purple-600 rounded-tr-none" : "bg-white/5 rounded-tl-none"}`}>
+                        <div className={`text-xs font-bold mb-1 ${isOwn ? "text-purple-200 text-right" : "text-purple-400"}`}>{isOwn ? "Вы" : (m.profiles?.username || "Игрок")}</div>
+                        {isImageUrl(m.content) ? (
+                          <img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain rounded-lg mt-1 cursor-pointer" />
+                        ) : (
+                          <div className="text-white text-sm whitespace-pre-wrap break-words">{m.content}</div>
+                        )}
+                      </div>
                     </div>
-                    <div className="bg-white/5 p-3 rounded-2xl rounded-tl-none max-w-[80%]">
-                      <div className="text-xs text-purple-400 font-bold mb-1">{m.profiles?.username || "Игрок"}</div>
-                      {isImageUrl(m.content) ? (
-                        <img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain rounded-lg mt-1 cursor-pointer" />
-                      ) : (
-                        <div className="text-white text-sm whitespace-pre-wrap break-words">{m.content}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={chatEndRef} />
               </div>
               
@@ -448,7 +453,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
                 
                 <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 border border-white/20 p-3 rounded-xl text-white outline-none" />
-                <button onClick={() => sendMessage()} disabled={isSendingFile || (!newMsg.trim() && !attachedFile)} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 shrink-0">{isSendingFile ? "..." : "Отправить"}</button>
+                <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 shrink-0">{isSendingFile ? "..." : "Отправить"}</button>
               </div>
             </div>
           )}
