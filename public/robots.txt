@@ -1,4 +1,4 @@
-﻿User-agent: *
+User-agent: *
 Allow: /
 
-Sitemap: https://minecraft-modpack-site-ser-gorlachev7-p7b9.onreza.app/sitemap.xml
+Sitemap: https://minecraft-modpack-site.layero.app/sitemap.xml
