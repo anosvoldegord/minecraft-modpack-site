@@ -218,7 +218,13 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     const content = gifUrl || fileUrl || newMsg.trim();
     setNewMsg(""); setAttachedFile(null); setPreviewUrl(null); setShowEmojiPicker(false);
 
-    await supabase.from("group_messages").insert({ group_id: selectedGroup.id, user_id: user.id, content });
+    const { error } = await supabase.from("group_messages").insert({ group_id: selectedGroup.id, user_id: user.id, content });
+    if (error) {
+      console.error("Ошибка отправки:", error);
+      alert("Не удалось отправить: " + error.message);
+      setIsSendingFile(false);
+      return;
+    }
     fetchMessages(selectedGroup.id);
     setIsSendingFile(false);
   };
@@ -427,7 +433,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
                 
                 <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 border border-white/20 p-3 rounded-xl text-white outline-none" />
-                <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 shrink-0">{isSendingFile ? "..." : "Отправить"}</button>
+                <button onClick={() => sendMessage()} disabled={isSendingFile || (!newMsg.trim() && !attachedFile)} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 shrink-0">{isSendingFile ? "..." : "Отправить"}</button>
               </div>
             </div>
           )}
