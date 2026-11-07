@@ -46,8 +46,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchGroups();
-  }, [user]);
+    fetchGroups(); }, [user]);
 
   const fetchGroups = async () => {
     const { data: allGroups } = await supabase.from("groups").select("*, profiles(username, avatar_url)").order("created_at", { ascending: false });
@@ -101,7 +100,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     setNewGroupAvatar(null);
     setIsCreating(false);
     setIsUploading(false);
-    fetchGroups();
+    await fetchGroups();
   };
 
   const toggleSubscription = async (groupId: string, isSubbed: boolean) => {
@@ -111,7 +110,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     } else {
       await supabase.from("group_subscriptions").insert({ group_id: groupId, user_id: user.id });
     }
-    fetchGroups();
+    await fetchGroups();
   };
 
   const openGroup = async (group: Group) => {
