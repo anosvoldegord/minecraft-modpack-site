@@ -240,6 +240,14 @@ export default function Home() {
     return url;
   };
 
+  const getHighResUrl = (url: string) => {
+    if (url.includes('cdn.modrinth.com')) {
+        const base = url.split('?')[0];
+        return `https://wsrv.nl/?url=${encodeURIComponent(base)}`;
+    }
+    return url;
+  };
+
   const isOwnPack = !!(viewingPack && user && viewingPack.user_id === user.id);
 
   const calculateTopScore = (a: PublishedPack, b: PublishedPack) => {
@@ -597,7 +605,7 @@ export default function Home() {
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                     {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
                         selectedMod.gallery.map((img, i) => (
-                            <div key={i} className="w-full aspect-video rounded-3xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-all cursor-pointer shadow-xl" onClick={() => setLightboxUrl(getOriginalUrl(img.url))}>
+                            <div key={i} className="w-full aspect-video rounded-3xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-all cursor-pointer shadow-xl" onClick={() => setLightboxUrl(getHighResUrl(img.url))}>
                                 <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized />
                             </div>
                         ))
