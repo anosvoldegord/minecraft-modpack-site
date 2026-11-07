@@ -29,6 +29,7 @@ type GroupMessage = {
   id: string;
   user_id: string;
   content: string;
+  chat_type?: string;
   created_at: string;
   profiles?: { username: string; avatar_url: string; title: string };
 };
@@ -136,7 +137,16 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   };
 
   const fetchMessages = async (gId: string) => {
-    const { data, error } = await supabase.from("group_messages").select("*, profiles(username, avatar_url, title)").eq("group_id", gId).order("created_at", { ascending: true });
+    // Определяем, какой чат грузить: общий или штаб
+    const currentChatType = groupTab === "staff" ? "staff" : "general";
+    
+    const { data, error } = await supabase
+      .from("group_messages")
+      .select("*, profiles(username, avatar_url, title)")
+      .eq("group_id", gId)
+      .eq("chat_type", currentChatType) // <-- Фильтруем по типу чата
+      .order("created_at", { ascending: true });
+
     if (error) {
       console.error("Ошибка загрузки сообщений:", error);
     } else if (data) {
@@ -224,7 +234,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       const fileName = `chat-${user.id}-${Date.now()}.${fileExt}`;
       const { error } = await supabase.storage.from('chat_files').upload(fileName, attachedFile);
       if (!error) {
-        const { data } = supabase.storage.from('chat_files').getPublicUrl(fileName);
+        const { data } = await supabase.storage.from('chat_files').getPublicUrl(fileName);
         fileUrl = data.publicUrl;
       } else {
         alert("Ошибка загрузки файла"); setIsSendingFile(false); return;
@@ -232,9 +242,17 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     }
 
     const content = gifUrl || fileUrl || newMsg.trim();
+    const currentChatType = groupTab === "staff" ? "staff" : "general";
     setNewMsg(""); setAttachedFile(null); setPreviewUrl(null); setShowEmojiPicker(false);
 
-    const { error } = await supabase.from("group_messages").insert({ group_id: selectedGroup.id, user_id: user.id, content });
+    // Отправляем с указанием типа чата
+    const { error } = await supabase.from("group_messages").insert({ 
+      group_id: selectedGroup.id, 
+      user_id: user.id, 
+      content,
+      chat_type: currentChatType 
+    });
+    
     if (error) {
       console.error("Ошибка отправки:", error);
       alert("Не удалось отправить: " + error.message);
