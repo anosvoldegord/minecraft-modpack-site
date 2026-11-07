@@ -239,7 +239,19 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
           <div className="bg-[#0c0c0e] p-8 rounded-3xl w-full max-w-md border border-white/10">
             <h2 className="text-2xl font-bold text-white mb-6">Создать Группу</h2>
-            <input type="text" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4" placeholder="Название" />
+            
+            <div className="flex justify-center mb-6">
+              <label className="w-24 h-24 rounded-full border-2 border-dashed border-white/20 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden group transition-colors">
+                {newGroupAvatar ? (
+                  <Image src={newGroupAvatar} alt="preview" fill className="object-cover" unoptimized />
+                ) : (
+                  <span className="text-3xl text-zinc-500 group-hover:text-purple-500">+</span>
+                )}
+                <input type="file" accept="image/*" className="hidden" ref={avatarInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(file) setNewGroupAvatar(URL.createObjectURL(file)); }} />
+              </label>
+            </div>
+
+            <input type="text" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-purple-500" placeholder="Название" />
             <textarea value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 h-24" placeholder="Описание" />
             <div className="flex gap-2">
               <button onClick={() => setIsCreating(false)} className="flex-1 bg-white/10 text-white py-3 rounded-xl font-bold">Отмена</button>
