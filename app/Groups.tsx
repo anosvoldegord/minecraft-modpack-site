@@ -46,7 +46,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchGroups(); }, [user]);
+    fetchGroups();
+  }, [user]);
 
   const fetchGroups = async () => {
     const { data: allGroups } = await supabase.from("groups").select("*, profiles(username, avatar_url)").order("created_at", { ascending: false });
@@ -88,19 +89,27 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       }
     }
 
-    await supabase.from("groups").insert({
+    const { error } = await supabase.from("groups").insert({
       owner_id: user.id,
       name: newGroupName.trim(),
       description: newGroupDesc.trim(),
       avatar_url: avatarUrl
     });
 
+    if (error) {
+      alert("Ошибка при создании: " + error.message);
+      setIsUploading(false);
+      return;
+    }
+
     setNewGroupName("");
     setNewGroupDesc("");
     setNewGroupAvatar(null);
     setIsCreating(false);
     setIsUploading(false);
-    await fetchGroups();
+    
+    // Принудительно перезагружаем страницу, чтобы группа точно появилась
+    window.location.reload();
   };
 
   const toggleSubscription = async (groupId: string, isSubbed: boolean) => {
@@ -110,7 +119,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     } else {
       await supabase.from("group_subscriptions").insert({ group_id: groupId, user_id: user.id });
     }
-    await fetchGroups();
+    fetchGroups();
   };
 
   const openGroup = async (group: Group) => {
