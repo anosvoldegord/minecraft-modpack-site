@@ -240,14 +240,6 @@ export default function Home() {
     return url;
   };
 
-  const getHighResUrl = (url: string) => {
-    if (url.includes('cdn.modrinth.com')) {
-        const base = url.split('?')[0];
-        return `https://wsrv.nl/?url=${encodeURIComponent(base)}`;
-    }
-    return url;
-  };
-
   const isOwnPack = !!(viewingPack && user && viewingPack.user_id === user.id);
 
   const calculateTopScore = (a: PublishedPack, b: PublishedPack) => {
@@ -450,7 +442,24 @@ export default function Home() {
   const updateActivePack = (updates: Partial<Modpack>) => { const newPacks = modpacks.map((p: any) => p.id === activePackId ? { ...p, ...updates } : p); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   const toggleCategory = (catId: string) => { setSelectedCategories(prev => prev.includes(catId) ? prev.filter((c: string) => c !== catId) : [...prev, catId]); setCurrentPage(1); };
   const fetchMods = async (page: number) => { setIsLoading(true); try { const facets = [[`versions:${activePack?.gameVersion || "1.16.5"}`], [`categories:${activePack?.loader || "forge"}`], ["project_type:mod"]]; if (selectedCategories.length > 0) facets.push(selectedCategories.map((c: string) => `categories:${c}`)); let url = `https://api.modrinth.com/v2/search?offset=${(page - 1) * ITEMS_PER_PAGE}&limit=${ITEMS_PER_PAGE}`; if (!query.trim() && selectedCategories.length === 0) url += `&query=&index=downloads`; else if (query.trim()) url += `&query=${encodeURIComponent(query)}`; url += `&facets=${encodeURIComponent(JSON.stringify(facets))}`; const res = await fetch(url); const data = await res.json(); setResults(data.hits || []); setTotalHits(data.total_hits || 0); } catch(e) {} setIsLoading(false); };
-  const openModModal = async (mod: ModInfo) => { setIsModalLoading(true); setSelectedMod({ ...mod, body: "", gallery: [] }); setTranslatedDesc(null); try { const [projRes, verRes] = await Promise.all([ fetch(`https://api.modrinth.com/v2/project/${mod.project_id}`), fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`) ]); const projData = await projRes.json(); const verData = await verRes.json(); setSelectedMod({ ...mod, body: projData.body || "", gallery: projData.gallery || [] }); setModVersions(verData || []); if (projData.body) translateDescription(projData.body); } catch(e) {} finally { setIsModalLoading(false); } };
+  
+  const openModModal = async (mod: ModInfo) => { 
+    setIsModalLoading(true); 
+    setSelectedMod({ ...mod, body: "", gallery: [] }); 
+    setTranslatedDesc(null); 
+    try { 
+      const [projRes, verRes] = await Promise.all([ 
+        fetch(`https://api.modrinth.com/v2/project/${mod.project_id}`), 
+        fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`) 
+      ]); 
+      const projData = await projRes.json(); 
+      const verData = await verRes.json(); 
+      setSelectedMod({ ...mod, body: projData.body || "", gallery: projData.gallery || [] }); 
+      setModVersions(verData || []); 
+      if (projData.body) translateDescription(projData.body); 
+    } catch(e) {} finally { setIsModalLoading(false); } 
+  };
+
   const handleAddMod = async (mod: ModInfo, specificVersion?: any) => { setIsAdding(mod.project_id); try { let verRes: any = specificVersion; if (!verRes) { const versionsData = await (await fetch(`https://api.modrinth.com/v2/project/${mod.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json(); verRes = versionsData[0]; } if (!verRes) return showToast("Версия не найдена", "error"); const newArtifacts: Record<string, Artifact> = { [mod.project_id]: { project_id: mod.project_id, version_id: verRes.id, title: mod.title, isLibrary: false, icon_url: mod.icon_url || "", file_url: verRes.files[0]?.url || "", file_name: verRes.files[0]?.filename || "", version_number: verRes.version_number || "" } }; if (verRes.dependencies) { for (const dep of verRes.dependencies) { if (dep.dependency_type === "required" && dep.project_id) { const libProj = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}`)).json(); const libVersions = await (await fetch(`https://api.modrinth.com/v2/project/${dep.project_id}/version?game_versions=["${activePack.gameVersion}"]&loaders=["${activePack.loader}"]`)).json(); const libVer = libVersions[0]; if (libVer) newArtifacts[dep.project_id] = { project_id: dep.project_id, version_id: libVer.id, title: libProj.title, isLibrary: true, icon_url: libProj.icon_url || "", file_url: libVer.files[0]?.url || "", file_name: libVer.files[0]?.filename || "", version_number: libVer.version_number || "" }; } } } const newPacks = modpacks.map((p: any) => { if (p.id !== activePackId) return p; return { ...p, artifacts: { ...p.artifacts, ...newArtifacts } }; }); setModpacks(newPacks); const success = await saveToDB(newPacks, activePackId); if (success) { setSelectedMod(null); showToast("Мод добавлен", "success"); } } catch(e) {} finally { setIsAdding(null); } };
   const removeArtifact = (id: string) => { const newPacks = modpacks.map((p: any) => { if (p.id !== activePackId) return p; const copy = { ...p.artifacts }; delete copy[id]; return { ...p, artifacts: copy }; }); setModpacks(newPacks); saveToDB(newPacks, activePackId); };
   const downloadModpack = async (pack: any) => { const list = Object.values(pack.artifacts) as any[]; if (list.length === 0) return; setIsDownloading(true); const zip = new JSZip(); const modsFolder = zip.folder("mods"); try { for (const item of list) { if (item.file_url && item.file_name) { const res = await fetch(item.file_url); modsFolder?.file(item.file_name, await res.blob()); } } const content = await zip.generateAsync({ type: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(content); a.download = `${pack.name}.zip`; a.click(); if (pack.id && pack.downloads !== undefined) { const userId = getUserId(); if (pack.user_id !== userId) { const { data: isNew } = await supabase.rpc('register_pack_download', { p_pack_id: pack.id, p_user_id: userId }); if (isNew) { if (viewingPack && viewingPack.id === pack.id) setViewingPack({ ...viewingPack, downloads: (viewingPack.downloads || 0) + 1 }); fetchCatalog(); } } } } catch(e) { console.error(e); } finally { setIsDownloading(false); } };
@@ -605,7 +614,7 @@ export default function Home() {
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                     {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
                         selectedMod.gallery.map((img, i) => (
-                            <div key={i} className="w-full aspect-video rounded-3xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-all cursor-pointer shadow-xl" onClick={() => setLightboxUrl(getHighResUrl(img.url))}>
+                            <div key={i} className="w-full aspect-video rounded-3xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-all cursor-pointer shadow-xl" onClick={() => setLightboxUrl(getOriginalUrl(img.url))}>
                                 <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized />
                             </div>
                         ))
