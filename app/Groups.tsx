@@ -33,6 +33,8 @@ type GroupMessage = {
   profiles?: { username: string; avatar_url: string; title: string };
 };
 
+const EMOJIS = ["😀", "😂", "🤣", "😊", "😍", "🤩", "😎", "😭", "😡", "👍", "👎", "🔥", "💯", "❤️", "💔", "🎉", "💩", "👻", "💀", "🤖", "👾", "🎮", "🕹️", "💻"];
+
 export default function Groups({ user, profile }: { user: any, profile: any }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
@@ -63,7 +65,16 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const [isOwner, setIsOwner] = useState(false);
   const [isMember, setIsMember] = useState(false);
 
-  useEffect(() => { fetchGroups(); }, [user]);
+  // Состояния для чата (смайлы, файлы, гифки)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiTab, setEmojiTab] = useState<"emojis" | "gifs">("emojis");
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [myGifs, setMyGifs] = useState<any[]>([]);
+
+  useEffect(() => { fetchGroups(); fetchMyGifs(); }, [user]);
 
   useEffect(() => {
     if (selectedGroup) {
@@ -81,6 +92,12 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   }, [selectedGroup, groupTab, user]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const fetchMyGifs = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('user_gifs').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    if (data) setMyGifs(data);
+  };
 
   const fetchGroups = async () => {
     const { data: allGroups } = await supabase.from("groups").select("*").order("created_at", { ascending: false });
@@ -140,12 +157,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const deleteGroup = async (gId: string) => {
     if (!confirm("Вы уверены, что хотите УДАЛИТЬ группу? Это действие необратимо.")) return;
     const { error } = await supabase.from("groups").delete().eq("id", gId);
-    if (error) {
-      alert("Ошибка удаления: " + error.message);
-    } else {
-      alert("Группа удалена!");
-      window.location.reload();
-    }
+    if (error) alert("Ошибка удаления: " + error.message);
+    else { alert("Группа удалена!"); window.location.reload(); }
   };
 
   const handleSubscribe = async (g: Group) => {
@@ -163,9 +176,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const requestMembership = async () => {
     if (!user || !selectedGroup) return;
     const { error } = await supabase.from("group_subscriptions").upsert({ group_id: selectedGroup.id, user_id: user.id, status: "pending", role: "subscriber" }, { onConflict: 'group_id,user_id' });
-    if (error) {
-      alert("Ошибка заявки: " + error.message);
-    } else {
+    if (error) alert("Ошибка заявки: " + error.message);
+    else {
       alert("Заявка в участники отправлена!");
       fetchGroups();
       setSelectedGroup({ ...selectedGroup, subscription_status: "pending" });
@@ -173,22 +185,42 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   };
 
   const handleRequest = async (reqId: string, userId: string, approve: boolean) => {
-    if (approve) {
-      await supabase.from("group_subscriptions").update({ status: "approved", role: "member" }).eq("id", reqId);
-      alert("Участник принят!");
-    } else {
-      await supabase.from("group_subscriptions").delete().eq("id", reqId);
-    }
+    if (approve) await supabase.from("group_subscriptions").update({ status: "approved", role: "member" }).eq("id", reqId);
+    else await supabase.from("group_subscriptions").delete().eq("id", reqId);
     if (selectedGroup) fetchRequests(selectedGroup.id);
     fetchGroups();
   };
 
-  const sendMessage = async () => {
-    if (!newMsg.trim() || !user || !selectedGroup) return;
-    const content = newMsg.trim();
-    setNewMsg("");
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) { setAttachedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
+  };
+
+  const sendMessage = async (gifUrl?: string) => {
+    if (!newMsg.trim() && !attachedFile && !gifUrl) return;
+    if (!user || !selectedGroup) return;
+    
+    setIsSendingFile(true);
+    let fileUrl = null;
+
+    if (attachedFile) {
+      const fileExt = attachedFile.name.split('.').pop();
+      const fileName = `chat-${user.id}-${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('chat_files').upload(fileName, attachedFile);
+      if (!error) {
+        const { data } = supabase.storage.from('chat_files').getPublicUrl(fileName);
+        fileUrl = data.publicUrl;
+      } else {
+        alert("Ошибка загрузки файла"); setIsSendingFile(false); return;
+      }
+    }
+
+    const content = gifUrl || fileUrl || newMsg.trim();
+    setNewMsg(""); setAttachedFile(null); setPreviewUrl(null); setShowEmojiPicker(false);
+
     await supabase.from("group_messages").insert({ group_id: selectedGroup.id, user_id: user.id, content });
     fetchMessages(selectedGroup.id);
+    setIsSendingFile(false);
   };
 
   const handleCreateAnnouncement = async () => {
@@ -200,7 +232,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       const fileName = `ann-${Date.now()}.${file.name.split('.').pop()}`;
       const { error } = await supabase.storage.from('announcement_videos').upload(fileName, file);
       if (!error) {
-        const { data } = await supabase.storage.from('announcement_videos').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('announcement_videos').getPublicUrl(fileName);
         videoUrl = data.publicUrl;
       }
     }
@@ -208,6 +240,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     setAnnTitle(""); setAnnDesc(""); setAnnVideo(null); setIsCreatingAnn(false); setIsUploadingVideo(false);
     fetchAnnouncements(selectedGroup.id);
   };
+
+  const isImageUrl = (text: string) => /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(text) || text.includes('tenor.com') || text.includes('giphy.com');
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
@@ -239,23 +273,17 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
           <div className="bg-[#0c0c0e] p-8 rounded-3xl w-full max-w-md border border-white/10">
             <h2 className="text-2xl font-bold text-white mb-6">Создать Группу</h2>
-            
             <div className="flex justify-center mb-6">
               <label className="w-24 h-24 rounded-full border-2 border-dashed border-white/20 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden group transition-colors">
-                {newGroupAvatar ? (
-                  <Image src={newGroupAvatar} alt="preview" fill className="object-cover" unoptimized />
-                ) : (
-                  <span className="text-3xl text-zinc-500 group-hover:text-purple-500">+</span>
-                )}
+                {newGroupAvatar ? <Image src={newGroupAvatar} alt="preview" fill className="object-cover" unoptimized /> : <span className="text-3xl text-zinc-500 group-hover:text-purple-500">+</span>}
                 <input type="file" accept="image/*" className="hidden" ref={avatarInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(file) setNewGroupAvatar(URL.createObjectURL(file)); }} />
               </label>
             </div>
-
             <input type="text" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-purple-500" placeholder="Название" />
-            <textarea value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 h-24" placeholder="Описание" />
+            <textarea value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 h-24 focus:outline-none focus:border-purple-500 resize-none" placeholder="Описание" />
             <div className="flex gap-2">
-              <button onClick={() => setIsCreating(false)} className="flex-1 bg-white/10 text-white py-3 rounded-xl font-bold">Отмена</button>
-              <button onClick={handleCreateGroup} className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-bold">Создать</button>
+              <button onClick={() => setIsCreating(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">Отмена</button>
+              <button onClick={handleCreateGroup} className="flex-1 bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-bold transition-colors">Создать</button>
             </div>
           </div>
         </div>
@@ -263,7 +291,6 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
       {selectedGroup && (
         <div className="flex flex-col w-full">
-          {/* Шапка группы - исправлена верстка кнопок */}
           <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-3xl p-6 md:p-10 mb-6 border border-white/10 relative">
             <div className="absolute top-4 right-4 flex gap-2 z-10">
               {isOwner && <button onClick={() => deleteGroup(selectedGroup.id)} className="bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-sm transition-colors">Удалить</button>}
@@ -345,7 +372,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
           )}
 
           {(groupTab === "chat" || groupTab === "staff") && (
-            <div className="bg-black/20 border border-white/10 rounded-3xl h-[60vh] flex flex-col overflow-hidden">
+            <div className="bg-black/20 border border-white/10 rounded-3xl h-[65vh] flex flex-col overflow-hidden relative">
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map(m => (
                   <div key={m.id} className="flex gap-2 items-start">
@@ -354,15 +381,53 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
                     </div>
                     <div className="bg-white/5 p-3 rounded-2xl rounded-tl-none max-w-[80%]">
                       <div className="text-xs text-purple-400 font-bold mb-1">{m.profiles?.username || "Игрок"}</div>
-                      <div className="text-white text-sm">{m.content}</div>
+                      {isImageUrl(m.content) ? (
+                        <img src={m.content} alt="attachment" className="max-h-60 w-auto object-contain rounded-lg mt-1 cursor-pointer" />
+                      ) : (
+                        <div className="text-white text-sm whitespace-pre-wrap break-words">{m.content}</div>
+                      )}
                     </div>
                   </div>
                 ))}
                 <div ref={chatEndRef} />
               </div>
-              <div className="p-4 bg-black/40 border-t border-white/10 flex gap-2">
+              
+              {previewUrl && (
+                <div className="px-4 pb-2">
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-green-500 group">
+                    <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                    <button onClick={() => { setAttachedFile(null); setPreviewUrl(null); }} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-100 transition-opacity">✕</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 bg-black/40 border-t border-white/10 flex gap-2 items-center relative">
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full mb-2 left-0 bg-[#121214] border border-white/10 rounded-2xl p-4 shadow-2xl z-50 w-72 animate-in slide-in-from-bottom-2">
+                    <div className="flex gap-2 mb-3 border-b border-white/10 pb-2">
+                      <button onClick={() => setEmojiTab("emojis")} className={`text-sm font-bold ${emojiTab === "emojis" ? "text-green-400" : "text-zinc-400"}`}>Эмодзи</button>
+                      <button onClick={() => setEmojiTab("gifs")} className={`text-sm font-bold ${emojiTab === "gifs" ? "text-green-400" : "text-zinc-400"}`}>Гифки</button>
+                    </div>
+                    {emojiTab === "emojis" ? (
+                      <div className="grid grid-cols-6 gap-2">{EMOJIS.map(e => (<button key={e} onClick={() => setNewMsg(prev => prev + e)} className="text-2xl hover:bg-white/10 rounded-lg p-1 transition-colors">{e}</button>))}</div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                        {myGifs.map(gif => (
+                          <div key={gif.id} onClick={() => sendMessage(gif.url)} className="cursor-pointer hover:opacity-80 rounded-lg overflow-hidden border border-white/10 h-16 relative group">
+                            <img src={gif.url} alt="gif" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors shrink-0">😊</button>
+                <button onClick={() => fileInputRef.current?.click()} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors shrink-0">📎</button>
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
+                
                 <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 border border-white/20 p-3 rounded-xl text-white outline-none" />
-                <button onClick={sendMessage} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors">Отправить</button>
+                <button onClick={() => sendMessage()} disabled={isSendingFile} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 shrink-0">{isSendingFile ? "..." : "Отправить"}</button>
               </div>
             </div>
           )}
