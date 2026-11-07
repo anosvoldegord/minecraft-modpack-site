@@ -59,6 +59,21 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [newMsg, setNewMsg] = useState("");
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  const handleChatScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    const isBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setShouldAutoScroll(isBottom);
+  };
+
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, shouldAutoScroll]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [requests, setRequests] = useState<any[]>([]);
@@ -91,7 +106,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     }
   }, [selectedGroup, groupTab, user]);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  
 
   const fetchMyGifs = async () => {
     if (!user) return;
@@ -379,7 +394,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
           {(groupTab === "chat" || groupTab === "staff") && (
             <div className="bg-black/20 border border-white/10 rounded-3xl h-[65vh] flex flex-col overflow-hidden relative">
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map(m => (
                   <div key={m.id} className="flex gap-2 items-start">
                     <div className="w-8 h-8 rounded-full bg-zinc-700 relative overflow-hidden shrink-0 mt-1">
