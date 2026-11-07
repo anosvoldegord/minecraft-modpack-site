@@ -615,7 +615,7 @@ export default function Home() {
                     {selectedMod.gallery && selectedMod.gallery.length > 0 ? (
                         selectedMod.gallery.map((img, i) => (
                             <div key={i} className="w-full aspect-video rounded-3xl bg-black/50 relative overflow-hidden border border-white/10 hover:border-green-500/50 transition-all cursor-pointer shadow-xl" onClick={() => setLightboxUrl(getOriginalUrl(img.url))}>
-                                <Image src={img.url} alt={img.title || "Gallery image"} fill className="object-cover" unoptimized />
+                                <img src={getOriginalUrl(img.url)} alt={img.title || "Gallery image"} className="w-full h-full object-cover" loading="lazy" />
                             </div>
                         ))
                     ) : (
