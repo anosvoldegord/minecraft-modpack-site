@@ -245,22 +245,21 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
       {selectedGroup && (
         <div className="fixed inset-0 bg-[#09090b] z-[90] overflow-y-auto w-full h-full flex flex-col animate-in fade-in duration-200">
-          <div className="w-full h-64 relative shrink-0 bg-gradient-to-r from-purple-900 to-indigo-900">
+          <div className="w-full h-64 relative shrink-0 bg-gradient-to-r from-purple-900 to-indigo-900 overflow-hidden">
              <div className="absolute inset-0 bg-black/40"></div>
              <button onClick={() => setSelectedGroup(null)} className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 w-10 h-10 rounded-full flex items-center justify-center transition-colors backdrop-blur-md z-10">✕</button>
-             <div className="absolute bottom-6 left-6 md:left-10 flex items-end gap-6">
-                <div className="w-32 h-32 rounded-full bg-zinc-800 relative overflow-hidden border-4 border-[#09090b] shadow-2xl shrink-0">
+             <div className="absolute bottom-4 left-4 md:bottom-6 md:left-10 flex items-end gap-4 md:gap-6 pr-4 w-full">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full shrink-0 bg-zinc-800 relative overflow-hidden border-4 border-[#09090b] shadow-2xl shrink-0">
                   {selectedGroup.avatar_url ? <Image src={selectedGroup.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl">👥</div>}
                 </div>
-                <div className="mb-2">
-                  <h1 className="text-3xl md:text-5xl font-black text-white drop-shadow-2xl">{selectedGroup.name}</h1>
-                  <p className="text-zinc-300 text-sm md:text-base mt-2 max-w-2xl">{selectedGroup.description}</p>
+                <div className="mb-2 min-w-0 flex-1"> <h1 className="text-2xl md:text-5xl truncate font-black text-white drop-shadow-2xl">{selectedGroup.name}</h1>
+                  <p className="text-zinc-300 text-sm md:text-base mt-2 max-w-2xl line-clamp-2">{selectedGroup.description}</p>
                 </div>
              </div>
           </div>
           
           <div className="max-w-5xl mx-auto w-full px-4 md:px-8 py-10 flex-1">
-            <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-4">
               <h2 className="text-2xl font-bold text-white">Анонсы и Новости</h2>
               {(user?.id === selectedGroup.owner_id) && (
                 <button onClick={() => setIsCreatingAnn(true)} className="bg-purple-500 hover:bg-purple-400 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm">+ Создать анонс</button>
