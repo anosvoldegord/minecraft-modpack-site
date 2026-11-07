@@ -50,10 +50,14 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   }, [user]);
 
   const fetchGroups = async () => {
-    const { data: allGroups } = await supabase.from("groups").select("*, profiles(username, avatar_url)").order("created_at", { ascending: false });
-    if (allGroups) {
+    // 1. Сначала получаем сами группы (без профилей, чтобы не сработал RLS)
+    const { data: allGroups, error } = await supabase.from("groups").select("*").order("created_at", { ascending: false });
+    
+    if (allGroups && !error) {
+      // 2. Отдельно получаем подписки
       const { data: subs } = await supabase.from("group_subscriptions").select("*");
       
+      // 3. Собираем данные
       const mappedGroups = allGroups.map((g: any) => {
         const groupSubs = subs?.filter((s: any) => s.group_id === g.id) || [];
         const isSub = user ? groupSubs.some((s: any) => s.user_id === user.id) : false;
@@ -61,9 +65,11 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
         return {
           ...g,
           subscribers_count: groupSubs.length,
-          is_subscribed: isSub
+          is_subscribed: isSub,
+          profiles: { username: "Игрок" } // Заглушка для автора, чтобы не крашить сайт
         };
       });
+      
       setGroups(mappedGroups);
 
       if (user) {
@@ -108,7 +114,6 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     setIsCreating(false);
     setIsUploading(false);
     
-    // Принудительно перезагружаем страницу, чтобы группа точно появилась
     window.location.reload();
   };
 
@@ -138,7 +143,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       const fileName = `ann-${Date.now()}.${file.name.split('.').pop()}`;
       const { error } = await supabase.storage.from('announcement_videos').upload(fileName, file);
       if (!error) {
-        const { data } = supabase.storage.from('announcement_videos').getPublicUrl(fileName);
+        const { data } = await supabase.storage.from('announcement_videos').getPublicUrl(fileName);
         videoUrl = data.publicUrl;
       }
     }
