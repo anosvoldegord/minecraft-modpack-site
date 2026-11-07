@@ -1,8 +1,8 @@
-﻿import { MetadataRoute } from 'next';
+import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://minecraft-modpack-site-ser-gorlachev7-p7b9.onreza.app';
-
+  const baseUrl = 'https://minecraft-modpack-site.layero.app';
+  
   return [
     {
       url: baseUrl,
@@ -11,10 +11,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${baseUrl}/catalog`, // Если у тебя есть отдельные страницы, их тоже можно добавить
+      url: `${baseUrl}/catalog`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
-    }
-  ];
+    },
+    // Добавь сюда другие страницы, если нужно (например, /docs/offer)
+    {
+      url: `${baseUrl}/docs/offer`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+  ]
 }
