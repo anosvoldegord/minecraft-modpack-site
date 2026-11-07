@@ -11,16 +11,16 @@ type Group = {
   description: string;
   avatar_url: string;
   created_at: string;
-  profiles?: { username: string; avatar_url: string };
   subscribers_count?: number;
   is_subscribed?: boolean;
+  subscription_status?: string;
+  role?: string;
 };
 
 type Announcement = {
   id: string;
   title: string;
   description: string;
-  cover_url: string;
   video_url: string;
   created_at: string;
 };
@@ -45,7 +45,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const [newGroupAvatar, setNewGroupAvatar] = useState<string | null>(null);
   
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [groupTab, setGroupTab] = useState<"announcements" | "chat">("announcements");
+  const [groupTab, setGroupTab] = useState<"announcements" | "chat" | "staff" | "requests">("announcements");
   
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isCreatingAnn, setIsCreatingAnn] = useState(false);
@@ -59,34 +59,61 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
   const [newMsg, setNewMsg] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchGroups();
-  }, [user]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
+  const [isMember, setIsMember] = useState(false);
+
+  useEffect(() => { fetchGroups(); }, [user]);
 
   useEffect(() => {
-    if (selectedGroup && groupTab === "chat") {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 3000);
-      return () => clearInterval(interval);
+    if (selectedGroup) {
+      setIsOwner(selectedGroup.owner_id === user?.id);
+      setIsMember(selectedGroup.role === 'member' || selectedGroup.owner_id === user?.id);
+      fetchAnnouncements(selectedGroup.id);
+      if (isOwner) fetchRequests(selectedGroup.id);
+      
+      if (groupTab === "chat" || groupTab === "staff") {
+        fetchMessages(selectedGroup.id);
+        const interval = setInterval(() => fetchMessages(selectedGroup.id), 3000);
+        return () => clearInterval(interval);
+      }
     }
-  }, [selectedGroup, groupTab]);
+  }, [selectedGroup, groupTab, user]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const fetchGroups = async () => {
-    const { data: allGroups, error } = await supabase.from("groups").select("*").order("created_at", { ascending: false });
-    if (allGroups && !error) {
+    const { data: allGroups } = await supabase.from("groups").select("*").order("created_at", { ascending: false });
+    if (allGroups) {
       const { data: subs } = await supabase.from("group_subscriptions").select("*");
-      const mappedGroups = allGroups.map((g: any) => {
-        const groupSubs = subs?.filter((s: any) => s.group_id === g.id) || [];
-        const isSub = user ? groupSubs.some((s: any) => s.user_id === user.id) : false;
-        return { ...g, subscribers_count: groupSubs.length, is_subscribed: isSub, profiles: { username: "Игрок" } };
+      const mapped = allGroups.map((g: any) => {
+        const mySub = subs?.find((s: any) => s.group_id === g.id && s.user_id === user?.id);
+        return { 
+          ...g, 
+          subscribers_count: subs?.filter((s:any) => s.group_id === g.id).length || 0,
+          is_subscribed: !!mySub,
+          subscription_status: mySub?.status,
+          role: mySub?.role
+        };
       });
-      setGroups(mappedGroups);
-      if (user) setMyGroups(mappedGroups.filter((g: any) => g.owner_id === user.id || g.is_subscribed));
+      setGroups(mapped);
+      if (user) setMyGroups(mapped.filter((g: any) => g.owner_id === user.id || g.is_subscribed));
     }
+  };
+
+  const fetchAnnouncements = async (gId: string) => {
+    const { data } = await supabase.from("group_announcements").select("*").eq("group_id", gId).order("created_at", { ascending: false });
+    if (data) setAnnouncements(data);
+  };
+
+  const fetchMessages = async (gId: string) => {
+    const { data } = await supabase.from("group_messages").select("*, profiles(username, avatar_url, title)").eq("group_id", gId).order("created_at", { ascending: true });
+    if (data) setMessages(data);
+  };
+
+  const fetchRequests = async (gId: string) => {
+    const { data } = await supabase.from("group_subscriptions").select("*, profiles(*)").eq("group_id", gId).eq("status", "pending");
+    if (data) setRequests(data);
   };
 
   const handleCreateGroup = async () => {
@@ -110,29 +137,42 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     window.location.reload();
   };
 
-  const toggleSubscription = async (groupId: string, isSubbed: boolean, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (!user) return;
-    if (isSubbed) await supabase.from("group_subscriptions").delete().eq("group_id", groupId).eq("user_id", user.id);
-    else await supabase.from("group_subscriptions").insert({ group_id: groupId, user_id: user.id });
-    
-    if (selectedGroup && selectedGroup.id === groupId) {
-      setSelectedGroup({ ...selectedGroup, is_subscribed: !isSubbed, subscribers_count: (selectedGroup.subscribers_count || 0) + (isSubbed ? -1 : 1) });
-    }
+  const deleteGroup = async (gId: string) => {
+    if (!confirm("Вы уверены, что хотите УДАЛИТЬ группу? Это действие необратимо.")) return;
+    await supabase.from("groups").delete().eq("id", gId);
+    setSelectedGroup(null);
     fetchGroups();
   };
 
-  const openGroup = async (group: Group) => {
-    setSelectedGroup(group);
-    setGroupTab("announcements");
-    const { data } = await supabase.from("group_announcements").select("*").eq("group_id", group.id).order("created_at", { ascending: false });
-    if (data) setAnnouncements(data);
+  const handleSubscribe = async (g: Group) => {
+    if (!user) return alert("Войдите в аккаунт!");
+    if (g.owner_id === user.id) return;
+    if (g.is_subscribed) {
+      await supabase.from("group_subscriptions").delete().eq("group_id", g.id).eq("user_id", user.id);
+      fetchGroups();
+    } else {
+      await supabase.from("group_subscriptions").insert({ group_id: g.id, user_id: user.id, status: "approved", role: "subscriber" });
+      fetchGroups();
+    }
   };
 
-  const fetchMessages = async () => {
-    if (!selectedGroup) return;
-    const { data } = await supabase.from("group_messages").select("*").eq("group_id", selectedGroup.id).order("created_at", { ascending: true });
-    if (data) setMessages(data);
+  const requestMembership = async () => {
+    if (!user || !selectedGroup) return;
+    await supabase.from("group_subscriptions").upsert({ group_id: selectedGroup.id, user_id: user.id, status: "pending", role: "subscriber" }, { onConflict: 'group_id,user_id' });
+    alert("Заявка в участники отправлена!");
+    fetchGroups();
+    setSelectedGroup({ ...selectedGroup, subscription_status: "pending" });
+  };
+
+  const handleRequest = async (reqId: string, userId: string, approve: boolean) => {
+    if (approve) {
+      await supabase.from("group_subscriptions").update({ status: "approved", role: "member" }).eq("id", reqId);
+      alert("Участник принят!");
+    } else {
+      await supabase.from("group_subscriptions").delete().eq("id", reqId);
+    }
+    if (selectedGroup) fetchRequests(selectedGroup.id);
+    fetchGroups();
   };
 
   const sendMessage = async () => {
@@ -140,7 +180,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     const content = newMsg.trim();
     setNewMsg("");
     await supabase.from("group_messages").insert({ group_id: selectedGroup.id, user_id: user.id, content });
-    fetchMessages();
+    fetchMessages(selectedGroup.id);
   };
 
   const handleCreateAnnouncement = async () => {
@@ -158,48 +198,29 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
     }
     await supabase.from("group_announcements").insert({ group_id: selectedGroup.id, title: annTitle.trim(), description: annDesc.trim(), video_url: videoUrl });
     setAnnTitle(""); setAnnDesc(""); setAnnVideo(null); setIsCreatingAnn(false); setIsUploadingVideo(false);
-    const { data } = await supabase.from("group_announcements").select("*").eq("group_id", selectedGroup.id).order("created_at", { ascending: false });
-    if (data) setAnnouncements(data);
+    fetchAnnouncements(selectedGroup.id);
   };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
       {!selectedGroup && (
         <>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-lg">Гейм Студии</h2>
-              <p className="text-zinc-400 text-sm mt-1">Создавайте группы и собирайте подписчиков.</p>
-            </div>
-            {user && <button onClick={() => setIsCreating(true)} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)]">+ Создать группу</button>}
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Гейм Студии</h2>
+            {user && <button onClick={() => setIsCreating(true)} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-2xl font-bold shadow-lg">+ Создать</button>}
           </div>
-
           <div className="flex gap-2 border-b border-white/10 mb-6 pb-2">
-            <button onClick={() => setActiveTab("all")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${activeTab === "all" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Все группы</button>
-            {user && <button onClick={() => setActiveTab("my")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${activeTab === "my" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Мои подписки</button>}
+            <button onClick={() => setActiveTab("all")} className={`px-4 py-2 rounded-xl font-bold ${activeTab === "all" ? "bg-white/20 text-white" : "text-zinc-400"}`}>Все</button>
+            {user && <button onClick={() => setActiveTab("my")} className={`px-4 py-2 rounded-xl font-bold ${activeTab === "my" ? "bg-white/20 text-white" : "text-zinc-400"}`}>Мои</button>}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {(activeTab === "all" ? groups : myGroups).map(group => (
-              <div key={group.id} className="bg-[#121214]/80 backdrop-blur-md border border-white/10 rounded-3xl flex flex-col shadow-xl text-white relative overflow-hidden cursor-pointer hover:border-purple-500/50 transition-all hover:-translate-y-1" onClick={() => openGroup(group)}>
-                <div className="p-6 flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-zinc-800 relative overflow-hidden border border-white/10 shrink-0">
-                      {group.avatar_url ? <Image src={group.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-2xl">👥</div>}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-xl font-bold truncate">{group.name}</h3>
-                      <div className="text-xs text-zinc-400 truncate">Автор: {group.profiles?.username || "Игрок"}</div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-zinc-300 line-clamp-2">{group.description || "Без описания"}</p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                    <div className="text-xs text-zinc-400"><span className="text-purple-400 font-bold">{group.subscribers_count}</span> подписчиков</div>
-                    <button onClick={(e) => toggleSubscription(group.id, !!group.is_subscribed, e)} className={`px-4 py-2 rounded-xl font-bold text-xs transition-colors ${group.is_subscribed ? "bg-white/10 hover:bg-white/20 text-zinc-300" : "bg-purple-500 hover:bg-purple-400 text-white"}`}>
-                      {group.is_subscribed ? "Отписаться" : "Подписаться"}
-                    </button>
-                  </div>
+              <div key={group.id} onClick={() => { setSelectedGroup(group); setGroupTab("announcements"); }} className="bg-[#121214] border border-white/10 p-6 rounded-3xl cursor-pointer hover:border-purple-500/50 transition-all">
+                <div className="flex gap-4 items-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-zinc-800 relative overflow-hidden">{group.avatar_url && <Image src={group.avatar_url} alt="av" fill className="object-cover" unoptimized />}</div>
+                  <div><h3 className="text-lg font-bold text-white">{group.name}</h3><div className="text-xs text-zinc-400">{group.subscribers_count} подписчиков</div></div>
                 </div>
+                <p className="text-sm text-zinc-400 line-clamp-2">{group.description || "Нет описания"}</p>
               </div>
             ))}
           </div>
@@ -207,114 +228,117 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       )}
 
       {isCreating && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4" onClick={() => setIsCreating(false)}>
-          <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl w-full max-w-md p-6 md:p-8" onClick={e => e.stopPropagation()}>
-            <h2 className="text-2xl font-black text-white mb-6">Создать Группу</h2>
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <label className="w-24 h-24 rounded-full border-2 border-dashed border-white/20 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden group">
-                  {newGroupAvatar ? <Image src={newGroupAvatar} alt="preview" fill className="object-cover" unoptimized /> : <span className="text-3xl text-zinc-500 group-hover:text-purple-500">+</span>}
-                  <input type="file" accept="image/*" className="hidden" ref={avatarInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(file) setNewGroupAvatar(URL.createObjectURL(file)); }} />
-                </label>
-              </div>
-              <div><label className="text-sm text-zinc-400 mb-1 block">Название</label><input type="text" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white" placeholder="Название" /></div>
-              <div><label className="text-sm text-zinc-400 mb-1 block">Описание</label><textarea value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white h-24 resize-none" placeholder="Описание" /></div>
-              <button onClick={handleCreateGroup} disabled={isUploading || !newGroupName.trim()} className="w-full bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50 mt-4">{isUploading ? "Создание..." : "Создать"}</button>
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0e] p-8 rounded-3xl w-full max-w-md border border-white/10">
+            <h2 className="text-2xl font-bold text-white mb-6">Создать Группу</h2>
+            <input type="text" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4" placeholder="Название" />
+            <textarea value={newGroupDesc} onChange={e => setNewGroupDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 h-24" placeholder="Описание" />
+            <div className="flex gap-2">
+              <button onClick={() => setIsCreating(false)} className="flex-1 bg-white/10 text-white py-3 rounded-xl font-bold">Отмена</button>
+              <button onClick={handleCreateGroup} className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-bold">Создать</button>
             </div>
           </div>
         </div>
       )}
 
       {selectedGroup && (
-        <div className="flex flex-col w-full animate-in fade-in duration-200">
-          {/* Красивая шапка группы */}
-          <div className="w-full relative shrink-0 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-3xl overflow-hidden mb-6 p-6 md:p-10 shadow-2xl border border-white/10">
-             <button onClick={() => setSelectedGroup(null)} className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 px-4 py-2 rounded-xl transition-colors backdrop-blur-md z-10 font-bold text-sm">← Назад</button>
-             <div className="flex flex-col md:flex-row items-center md:items-end gap-6 relative z-10">
-                <div className="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-zinc-800 relative overflow-hidden border-4 border-[#09090b] shadow-2xl shrink-0">
-                  {selectedGroup.avatar_url ? <Image src={selectedGroup.avatar_url} alt="avatar" fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-4xl">👥</div>}
-                </div>
-                <div className="text-center md:text-left min-w-0 flex-1 mb-2">
-                  <h1 className="text-3xl md:text-5xl font-black text-white drop-shadow-2xl truncate">{selectedGroup.name}</h1>
-                  <p className="text-zinc-300 text-sm md:text-base mt-2 line-clamp-2 max-w-2xl mx-auto md:mx-0">{selectedGroup.description}</p>
-                  <div className="text-sm text-zinc-400 mt-2">{selectedGroup.subscribers_count} подписчиков</div>
-                </div>
-                <button onClick={(e) => toggleSubscription(selectedGroup.id, !!selectedGroup.is_subscribed, e)} className={`px-6 py-3 rounded-xl font-bold transition-all shrink-0 mb-2 ${selectedGroup.is_subscribed ? "bg-white/10 hover:bg-white/20 text-white" : "bg-purple-500 hover:bg-purple-400 text-white shadow-lg"}`}>
-                  {selectedGroup.is_subscribed ? "Вы подписаны" : "Подписаться"}
-                </button>
-             </div>
-          </div>
-
-          {/* Вкладки группы */}
-          <div className="flex gap-2 border-b border-white/10 mb-6 pb-2">
-            <button onClick={() => setGroupTab("announcements")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${groupTab === "announcements" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Анонсы и Новости</button>
-            <button onClick={() => setGroupTab("chat")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${groupTab === "chat" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Чат группы</button>
-          </div>
-
-          {/* Вкладка Анонсов */}
-          {groupTab === "announcements" && (
-            <div className="w-full pb-10">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl md:text-2xl font-bold text-white"></h2>
-                {(user?.id === selectedGroup.owner_id) && <button onClick={() => setIsCreatingAnn(true)} className="bg-purple-500 hover:bg-purple-400 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm ml-auto">+ Создать анонс</button>}
+        <div className="flex flex-col w-full">
+          <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-3xl p-6 md:p-10 mb-6 border border-white/10 relative">
+            <button onClick={() => setSelectedGroup(null)} className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-xl font-bold">← Назад</button>
+            {isOwner && <button onClick={() => deleteGroup(selectedGroup.id)} className="absolute top-4 right-28 bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-bold">Удалить</button>}
+            
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="w-28 h-28 rounded-2xl bg-zinc-800 relative overflow-hidden shrink-0 border-4 border-black/50">
+                {selectedGroup.avatar_url && <Image src={selectedGroup.avatar_url} alt="av" fill className="object-cover" unoptimized />}
               </div>
+              <div className="text-center md:text-left flex-1">
+                <h1 className="text-3xl md:text-5xl font-black text-white">{selectedGroup.name}</h1>
+                <p className="text-zinc-300 mt-2">{selectedGroup.description}</p>
+              </div>
+              {!isOwner && (
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => handleSubscribe(selectedGroup)} className={`px-6 py-3 rounded-xl font-bold ${selectedGroup.is_subscribed ? "bg-white/10 text-white" : "bg-green-500 text-black"}`}>
+                    {selectedGroup.is_subscribed ? "Отписаться" : "Подписаться"}
+                  </button>
+                  {!isMember && selectedGroup.subscription_status !== "pending" && (
+                    <button onClick={requestMembership} className="px-6 py-2 rounded-xl bg-purple-600 text-white font-bold text-sm">Подать заявку в разрабы</button>
+                  )}
+                  {selectedGroup.subscription_status === "pending" && (
+                    <div className="text-center text-xs text-yellow-400 font-bold bg-black/30 p-2 rounded-lg">Заявка на рассмотрении</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
+          <div className="flex flex-wrap gap-2 border-b border-white/10 mb-6 pb-2">
+            <button onClick={() => setGroupTab("announcements")} className={`px-4 py-2 rounded-xl font-bold ${groupTab === "announcements" ? "bg-white/20 text-white" : "text-zinc-400"}`}>Анонсы</button>
+            <button onClick={() => setGroupTab("chat")} className={`px-4 py-2 rounded-xl font-bold ${groupTab === "chat" ? "bg-white/20 text-white" : "text-zinc-400"}`}>Общий чат</button>
+            {isMember && <button onClick={() => setGroupTab("staff")} className={`px-4 py-2 rounded-xl font-bold ${groupTab === "staff" ? "bg-red-500/20 text-red-400" : "text-zinc-400"}`}>Штаб (Разрабы)</button>}
+            {isOwner && <button onClick={() => setGroupTab("requests")} className={`px-4 py-2 rounded-xl font-bold ${groupTab === "requests" ? "bg-white/20 text-white" : "text-zinc-400"}`}>Заявки ({requests.length})</button>}
+          </div>
+
+          {groupTab === "announcements" && (
+            <div>
+              {isOwner && <button onClick={() => setIsCreatingAnn(true)} className="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold mb-4">+ Создать анонс</button>}
               {isCreatingAnn && (
-                <div className="bg-[#121214] border border-white/10 p-4 md:p-6 rounded-3xl mb-8 space-y-4">
-                  <h3 className="text-lg font-bold text-white">Новый анонс</h3>
-                  <input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white" placeholder="Заголовок" />
-                  <textarea value={annDesc} onChange={e => setAnnDesc(e.target.value)} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white h-24 resize-none" placeholder="Описание" />
-                  <div>
-                    <label className="text-sm text-zinc-400 mb-2 block">Видео-обзор (MP4)</label>
-                    <input type="file" accept="video/mp4" ref={videoInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(file) setAnnVideo(file.name); }} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-purple-500 file:text-white hover:file:bg-purple-400" />
-                    {annVideo && <div className="text-xs text-green-400 mt-2">Выбрано: {annVideo}</div>}
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={() => setIsCreatingAnn(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold transition-colors">Отмена</button>
-                    <button onClick={handleCreateAnnouncement} disabled={isUploadingVideo || !annTitle.trim()} className="flex-1 bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-bold transition-colors disabled:opacity-50">{isUploadingVideo ? "Загрузка..." : "Опубликовать"}</button>
+                <div className="bg-[#121214] p-6 rounded-3xl mb-6 space-y-4">
+                  <input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Заголовок" className="w-full bg-black/50 p-3 rounded-xl text-white" />
+                  <textarea value={annDesc} onChange={e => setAnnDesc(e.target.value)} placeholder="Описание" className="w-full bg-black/50 p-3 rounded-xl text-white h-24" />
+                  <input type="file" ref={videoInputRef} accept="video/mp4" onChange={(e) => setAnnVideo(e.target.files?.[0]?.name || null)} className="text-white" />
+                  <div className="flex gap-2">
+                    <button onClick={() => setIsCreatingAnn(false)} className="bg-white/10 text-white px-4 py-2 rounded-xl">Отмена</button>
+                    <button onClick={handleCreateAnnouncement} className="bg-green-500 text-black px-4 py-2 rounded-xl font-bold">Опубликовать</button>
                   </div>
                 </div>
               )}
-
-              <div className="space-y-6">
-                {announcements.map(ann => (
-                  <div key={ann.id} className="bg-[#121214] border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col gap-4">
-                    <h3 className="text-xl md:text-2xl font-bold text-white">{ann.title}</h3>
-                    <p className="text-zinc-300 whitespace-pre-wrap text-sm md:text-base">{ann.description}</p>
-                    {ann.video_url && (
-                      <div className="w-full max-w-3xl aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
-                        <video src={ann.video_url} controls className="w-full h-full object-contain" />
-                      </div>
-                    )}
-                    <div className="text-xs text-zinc-500 mt-2 border-t border-white/5 pt-4">{new Date(ann.created_at).toLocaleString()}</div>
-                  </div>
-                ))}
-                {announcements.length === 0 && <div className="text-zinc-500 text-center py-10">В этой группе пока нет анонсов.</div>}
-              </div>
+              {announcements.map(ann => (
+                <div key={ann.id} className="bg-[#121214] p-6 rounded-3xl mb-4">
+                  <h3 className="text-xl font-bold text-white">{ann.title}</h3>
+                  <p className="text-zinc-300 mt-2">{ann.description}</p>
+                  {ann.video_url && <video src={ann.video_url} controls className="w-full max-w-2xl rounded-xl mt-4" />}
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Вкладка Чата */}
-          {groupTab === "chat" && (
-            <div className="w-full flex flex-col bg-black/20 rounded-3xl border border-white/10 overflow-hidden h-[60vh]">
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-                {messages.length === 0 && <div className="text-center text-zinc-500 mt-10">Начните общение в группе!</div>}
+          {groupTab === "requests" && isOwner && (
+             <div className="space-y-4">
+               {requests.length === 0 && <div className="text-zinc-500">Нет активных заявок.</div>}
+               {requests.map(req => (
+                 <div key={req.id} className="bg-[#121214] p-4 rounded-2xl flex items-center justify-between border border-white/10">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-full bg-zinc-800 relative overflow-hidden">{req.profiles?.avatar_url && <Image src={req.profiles.avatar_url} alt="av" fill className="object-cover" unoptimized />}</div>
+                     <span className="text-white font-bold">{req.profiles?.username || "Игрок"}</span>
+                   </div>
+                   <div className="flex gap-2">
+                     <button onClick={() => handleRequest(req.id, req.user_id, true)} className="bg-green-500 text-black px-3 py-1 rounded-lg font-bold text-sm">Принять</button>
+                     <button onClick={() => handleRequest(req.id, req.user_id, false)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold text-sm">Отклонить</button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+          )}
+
+          {(groupTab === "chat" || groupTab === "staff") && (
+            <div className="bg-black/20 border border-white/10 rounded-3xl h-[60vh] flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map(m => (
-                  <div key={m.id} className={`flex ${m.user_id === user?.id ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] md:max-w-[70%] p-3 rounded-2xl ${m.user_id === user?.id ? "bg-purple-600 text-white rounded-br-none" : "bg-zinc-800 text-white rounded-bl-none"}`}>
-                      <div className="text-xs text-zinc-300 mb-1 font-bold">{m.user_id === user?.id ? "Вы" : "Участник"}</div>
-                      <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
-                      <div className="text-[10px] mt-1 text-right opacity-50">{new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div key={m.id} className="flex gap-2 items-start">
+                    <div className="w-8 h-8 rounded-full bg-zinc-700 relative overflow-hidden shrink-0 mt-1">
+                      {m.profiles?.avatar_url && <Image src={m.profiles.avatar_url} alt="av" fill className="object-cover" unoptimized />}
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-2xl rounded-tl-none max-w-[80%]">
+                      <div className="text-xs text-purple-400 font-bold mb-1">{m.profiles?.username || "Игрок"}</div>
+                      <div className="text-white text-sm">{m.content}</div>
                     </div>
                   </div>
                 ))}
                 <div ref={chatEndRef} />
               </div>
-              <div className="p-4 border-t border-white/10 bg-black/40">
-                <div className="flex gap-2">
-                  <input type="text" value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder="Написать в чат группы..." className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 text-white" />
-                  <button onClick={sendMessage} disabled={!newMsg.trim()} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold disabled:opacity-50">Отправить</button>
-                </div>
+              <div className="p-4 bg-black/40 border-t border-white/10 flex gap-2">
+                <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 p-3 rounded-xl text-white outline-none" />
+                <button onClick={sendMessage} className="bg-purple-500 text-white px-6 py-3 rounded-xl font-bold">Отправить</button>
               </div>
             </div>
           )}
