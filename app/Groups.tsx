@@ -70,7 +70,7 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
       setIsOwner(selectedGroup.owner_id === user?.id);
       setIsMember(selectedGroup.role === 'member' || selectedGroup.owner_id === user?.id);
       fetchAnnouncements(selectedGroup.id);
-      if (isOwner) fetchRequests(selectedGroup.id);
+      if (selectedGroup.owner_id === user?.id) fetchRequests(selectedGroup.id);
       
       if (groupTab === "chat" || groupTab === "staff") {
         fetchMessages(selectedGroup.id);
@@ -139,9 +139,13 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
   const deleteGroup = async (gId: string) => {
     if (!confirm("Вы уверены, что хотите УДАЛИТЬ группу? Это действие необратимо.")) return;
-    await supabase.from("groups").delete().eq("id", gId);
-    setSelectedGroup(null);
-    fetchGroups();
+    const { error } = await supabase.from("groups").delete().eq("id", gId);
+    if (error) {
+      alert("Ошибка удаления: " + error.message);
+    } else {
+      alert("Группа удалена!");
+      window.location.reload();
+    }
   };
 
   const handleSubscribe = async (g: Group) => {
@@ -158,10 +162,14 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
   const requestMembership = async () => {
     if (!user || !selectedGroup) return;
-    await supabase.from("group_subscriptions").upsert({ group_id: selectedGroup.id, user_id: user.id, status: "pending", role: "subscriber" }, { onConflict: 'group_id,user_id' });
-    alert("Заявка в участники отправлена!");
-    fetchGroups();
-    setSelectedGroup({ ...selectedGroup, subscription_status: "pending" });
+    const { error } = await supabase.from("group_subscriptions").upsert({ group_id: selectedGroup.id, user_id: user.id, status: "pending", role: "subscriber" }, { onConflict: 'group_id,user_id' });
+    if (error) {
+      alert("Ошибка заявки: " + error.message);
+    } else {
+      alert("Заявка в участники отправлена!");
+      fetchGroups();
+      setSelectedGroup({ ...selectedGroup, subscription_status: "pending" });
+    }
   };
 
   const handleRequest = async (reqId: string, userId: string, approve: boolean) => {
@@ -243,25 +251,29 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
 
       {selectedGroup && (
         <div className="flex flex-col w-full">
+          {/* Шапка группы - исправлена верстка кнопок */}
           <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-3xl p-6 md:p-10 mb-6 border border-white/10 relative">
-            <button onClick={() => setSelectedGroup(null)} className="absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-xl font-bold">← Назад</button>
-            {isOwner && <button onClick={() => deleteGroup(selectedGroup.id)} className="absolute top-4 right-28 bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-bold">Удалить</button>}
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              {isOwner && <button onClick={() => deleteGroup(selectedGroup.id)} className="bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-sm transition-colors">Удалить</button>}
+              <button onClick={() => setSelectedGroup(null)} className="bg-black/50 hover:bg-black/80 text-white px-4 py-2 rounded-xl font-bold text-sm transition-colors">← Назад</button>
+            </div>
             
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="w-28 h-28 rounded-2xl bg-zinc-800 relative overflow-hidden shrink-0 border-4 border-black/50">
+            <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mt-8 md:mt-0">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-zinc-800 relative overflow-hidden shrink-0 border-4 border-black/50">
                 {selectedGroup.avatar_url && <Image src={selectedGroup.avatar_url} alt="av" fill className="object-cover" unoptimized />}
               </div>
-              <div className="text-center md:text-left flex-1">
-                <h1 className="text-3xl md:text-5xl font-black text-white">{selectedGroup.name}</h1>
-                <p className="text-zinc-300 mt-2">{selectedGroup.description}</p>
+              <div className="text-center md:text-left flex-1 min-w-0">
+                <h1 className="text-2xl md:text-5xl font-black text-white truncate">{selectedGroup.name}</h1>
+                <p className="text-zinc-300 mt-2 text-sm md:text-base line-clamp-2">{selectedGroup.description}</p>
               </div>
+              
               {!isOwner && (
-                <div className="flex flex-col gap-2">
-                  <button onClick={() => handleSubscribe(selectedGroup)} className={`px-6 py-3 rounded-xl font-bold ${selectedGroup.is_subscribed ? "bg-white/10 text-white" : "bg-green-500 text-black"}`}>
+                <div className="flex flex-col gap-2 shrink-0 md:mb-1 w-full md:w-auto">
+                  <button onClick={() => handleSubscribe(selectedGroup)} className={`px-6 py-3 rounded-xl font-bold transition-colors ${selectedGroup.is_subscribed ? "bg-white/10 text-white" : "bg-green-500 hover:bg-green-400 text-black"}`}>
                     {selectedGroup.is_subscribed ? "Отписаться" : "Подписаться"}
                   </button>
                   {!isMember && selectedGroup.subscription_status !== "pending" && (
-                    <button onClick={requestMembership} className="px-6 py-2 rounded-xl bg-purple-600 text-white font-bold text-sm">Подать заявку в разрабы</button>
+                    <button onClick={requestMembership} className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-colors">Подать заявку в разрабы</button>
                   )}
                   {selectedGroup.subscription_status === "pending" && (
                     <div className="text-center text-xs text-yellow-400 font-bold bg-black/30 p-2 rounded-lg">Заявка на рассмотрении</div>
@@ -282,21 +294,21 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
             <div>
               {isOwner && <button onClick={() => setIsCreatingAnn(true)} className="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold mb-4">+ Создать анонс</button>}
               {isCreatingAnn && (
-                <div className="bg-[#121214] p-6 rounded-3xl mb-6 space-y-4">
-                  <input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Заголовок" className="w-full bg-black/50 p-3 rounded-xl text-white" />
-                  <textarea value={annDesc} onChange={e => setAnnDesc(e.target.value)} placeholder="Описание" className="w-full bg-black/50 p-3 rounded-xl text-white h-24" />
-                  <input type="file" ref={videoInputRef} accept="video/mp4" onChange={(e) => setAnnVideo(e.target.files?.[0]?.name || null)} className="text-white" />
+                <div className="bg-[#121214] p-6 rounded-3xl mb-6 space-y-4 border border-white/10">
+                  <input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Заголовок" className="w-full bg-black/50 border border-white/20 p-3 rounded-xl text-white outline-none" />
+                  <textarea value={annDesc} onChange={e => setAnnDesc(e.target.value)} placeholder="Описание" className="w-full bg-black/50 border border-white/20 p-3 rounded-xl text-white h-24 outline-none" />
+                  <input type="file" ref={videoInputRef} accept="video/mp4" onChange={(e) => setAnnVideo(e.target.files?.[0]?.name || null)} className="text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-purple-500 file:text-white" />
                   <div className="flex gap-2">
-                    <button onClick={() => setIsCreatingAnn(false)} className="bg-white/10 text-white px-4 py-2 rounded-xl">Отмена</button>
-                    <button onClick={handleCreateAnnouncement} className="bg-green-500 text-black px-4 py-2 rounded-xl font-bold">Опубликовать</button>
+                    <button onClick={() => setIsCreatingAnn(false)} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition-colors">Отмена</button>
+                    <button onClick={handleCreateAnnouncement} disabled={isUploadingVideo} className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-xl font-bold transition-colors disabled:opacity-50">{isUploadingVideo ? "Загрузка..." : "Опубликовать"}</button>
                   </div>
                 </div>
               )}
               {announcements.map(ann => (
-                <div key={ann.id} className="bg-[#121214] p-6 rounded-3xl mb-4">
+                <div key={ann.id} className="bg-[#121214] border border-white/10 p-6 rounded-3xl mb-4">
                   <h3 className="text-xl font-bold text-white">{ann.title}</h3>
                   <p className="text-zinc-300 mt-2">{ann.description}</p>
-                  {ann.video_url && <video src={ann.video_url} controls className="w-full max-w-2xl rounded-xl mt-4" />}
+                  {ann.video_url && <video src={ann.video_url} controls className="w-full max-w-2xl rounded-xl mt-4 border border-white/10" />}
                 </div>
               ))}
             </div>
@@ -312,8 +324,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
                      <span className="text-white font-bold">{req.profiles?.username || "Игрок"}</span>
                    </div>
                    <div className="flex gap-2">
-                     <button onClick={() => handleRequest(req.id, req.user_id, true)} className="bg-green-500 text-black px-3 py-1 rounded-lg font-bold text-sm">Принять</button>
-                     <button onClick={() => handleRequest(req.id, req.user_id, false)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold text-sm">Отклонить</button>
+                     <button onClick={() => handleRequest(req.id, req.user_id, true)} className="bg-green-500 hover:bg-green-400 text-black px-3 py-1 rounded-lg font-bold text-sm transition-colors">Принять</button>
+                     <button onClick={() => handleRequest(req.id, req.user_id, false)} className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded-lg font-bold text-sm transition-colors">Отклонить</button>
                    </div>
                  </div>
                ))}
@@ -337,8 +349,8 @@ export default function Groups({ user, profile }: { user: any, profile: any }) {
                 <div ref={chatEndRef} />
               </div>
               <div className="p-4 bg-black/40 border-t border-white/10 flex gap-2">
-                <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 p-3 rounded-xl text-white outline-none" />
-                <button onClick={sendMessage} className="bg-purple-500 text-white px-6 py-3 rounded-xl font-bold">Отправить</button>
+                <input type="text" value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." className="flex-1 bg-black/50 border border-white/20 p-3 rounded-xl text-white outline-none" />
+                <button onClick={sendMessage} className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-3 rounded-xl font-bold transition-colors">Отправить</button>
               </div>
             </div>
           )}
