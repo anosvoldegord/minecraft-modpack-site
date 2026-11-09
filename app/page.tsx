@@ -604,7 +604,7 @@ let filteredCatalog = catalog.filter((pack: any) => {
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
         {/* Кнопка разворота панели (появляется только если панель закрыта) */}
         {!isSidebarOpen && (
-          <button onClick={() => setIsSidebarOpen(true)} className="fixed top-4 left-4 z-50 bg-black/60 hover:bg-black/80 border border-white/20 text-white p-2.5 rounded-xl backdrop-blur-md transition-all flex items-center gap-2" title="Развернуть панель">
+          <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-[-24px] hover:left-0 z-50 bg-black/40 hover:bg-black/80 border border-white/10 text-zinc-300 hover:text-white p-1.5 rounded-r-xl backdrop-blur-md transition-all duration-300 flex items-center justify-center w-8 h-14 shadow-lg group" title="Развернуть панель">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </button>
         )}
