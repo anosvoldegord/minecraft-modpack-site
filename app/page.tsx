@@ -275,6 +275,17 @@ export default function Home() {
   const getVersionKey = (version: string, loader: string) => `${version}__${loader}`;
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
+
+  // Синхронизация звука видео Афиши после ремаунта / переключения вкладок
+  useEffect(() => {
+    if (view !== "afisha") return;
+    const v = afishaVideoRef.current;
+    if (!v) return;
+    v.muted = isAfishaMuted;
+    if (!isAfishaMuted) {
+      v.play().catch(() => {});
+    }
+  }, [view, isAfishaMuted]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
   useEffect(() => {
