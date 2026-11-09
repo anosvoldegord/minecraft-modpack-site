@@ -697,7 +697,14 @@ let filteredCatalog = catalog.filter((pack: any) => {
 
     <div className="bg-[#121214] p-6 rounded-3xl border border-white/10">
       <h3 className="text-xl font-bold text-white mb-4">Настройки выплат</h3>
-      <p className="text-sm text-zinc-400 mb-4">Чтобы продавать сборки, вам нужно зарегистрироваться как самозанятый и получить ShopId в ЮKassa.</p>
+      <div className="text-sm text-zinc-400 mb-4 space-y-2">
+  <p>Чтобы продавать сборки и получать деньги автоматически, вам нужно подключиться к ЮKassa как продавец и получить <strong>ShopId</strong>.</p>
+  <ul className="list-disc pl-4 space-y-1 text-xs">
+    <li><strong>ИП на НПД</strong> — самый простой и надежный вариант. Налог 4-6%, нет отчетности и взносов.</li>
+    <li><strong>Самозанятый (физлицо)</strong> — тоже можно, но ЮKassa больше не формирует чеки автоматически. Вам придется самостоятельно выдавать чеки в приложении «Мой налог».</li>
+  </ul>
+  <p className="text-xs mt-2">После получения ShopId вставьте его в поле ниже. Платежи будут распределяться автоматически: 80% вам, 20% — комиссия платформы.</p>
+</div>
       <label className="text-sm text-zinc-400 mb-2 block font-bold">Ваш ShopId (ЮKassa)</label>
       <div className="flex gap-2">
         <input type="text" placeholder="Введите ShopId..." value={profile?.yookassa_shop_id || ""} onChange={(e) => setProfile({...profile, yookassa_shop_id: e.target.value})} className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm" />
