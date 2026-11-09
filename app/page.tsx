@@ -564,11 +564,11 @@ let filteredCatalog = catalog.filter((pack: any) => {
         ::-webkit-scrollbar-thumb:hover { background: rgba(34, 197, 94, 0.6); }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-  <video ref={afishaVideoRef} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-40">
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black">
+  <video ref={afishaVideoRef} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
     <source src="/bg-afisha.mp4" type="video/mp4" />
   </video>
-  <div className="absolute inset-0 bg-black/60"></div>
+  <div className="absolute inset-0 bg-black/30"></div>
 </div>
       {isLoggingIn && <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center"><div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div><h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход...</h2></div>}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
@@ -587,13 +587,29 @@ let filteredCatalog = catalog.filter((pack: any) => {
         </div>
         {view === "mods" && (<><div className="px-6 pb-2 flex justify-between items-center text-sm font-bold text-zinc-400"><span>Мои сборки</span><button onClick={() => createNewPack()} className="text-white hover:text-green-400 text-lg" title="Создать">+</button></div><div className="flex-1 overflow-y-auto px-3 space-y-2 min-h-0 pb-4">{modpacks.map((pack: any) => (<div key={pack.id} onClick={() => { setActivePackId(pack.id); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`relative group p-4 rounded-2xl cursor-pointer border border-transparent transition-all ${activePackId === pack.id ? "bg-white/20 border-white/20 shadow-lg" : "hover:bg-white/10"}`}>{editingPackId === pack.id ? <input autoFocus value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={saveRename} onKeyDown={(e) => e.key === "Enter" && saveRename()} className="bg-black/50 border border-green-500/50 rounded-lg px-2 py-1 text-sm w-full outline-none text-white" /> : <div className="font-bold text-sm truncate pr-14 text-white">{pack.name}</div>}<div className="text-xs text-zinc-300 mt-1">{pack.gameVersion} • {pack.loader.toUpperCase()}</div><div className="absolute top-4 right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={(e) => startRenaming(pack.id, pack.name, e)} className="text-zinc-400 hover:text-white p-1 rounded-md hover:bg-white/20">✎</button><button onClick={(e) => deletePack(pack.id, e)} className="text-zinc-400 hover:text-red-500 p-1 rounded-md hover:bg-white/20">✕</button></div></div>))}</div></>)}
         
-        <div className="px-5 pb-4 flex flex-col gap-2 text-xs text-zinc-500">
-          <a href="/docs/offer" className="hover:text-green-400 transition-colors">Публичная оферта</a>
-          <a href="/docs/privacy" className="hover:text-green-400 transition-colors">Политика конфиденциальности</a>
-          <a href="/docs/how-it-works" className="hover:text-green-400 transition-colors">Как это работает</a>
-          <a href="/requisites" className="hover:text-green-400 transition-colors">Реквизиты</a>
+                <div className="px-5 pb-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 text-xs text-zinc-500">
+            <a href="/docs/offer" className="hover:text-green-400 transition-colors">Публичная оферта</a>
+            <a href="/docs/privacy" className="hover:text-green-400 transition-colors">Политика конфиденциальности</a>
+            <a href="/docs/how-it-works" className="hover:text-green-400 transition-colors">Как это работает</a>
+            <a href="/requisites" className="hover:text-green-400 transition-colors">Реквизиты</a>
+          </div>
+          <button
+            onClick={() => {
+              const v = afishaVideoRef.current;
+              if (!v) return;
+              const nextMuted = !v.muted;
+              v.muted = nextMuted;
+              if (!nextMuted) { v.play().catch(() => {}); }
+              setIsAfishaMuted(nextMuted);
+            }}
+            className="w-full mt-2 text-left px-4 py-2 rounded-xl font-bold transition-colors bg-white/5 hover:bg-white/10 text-zinc-300 flex items-center justify-between border border-white/10"
+          >
+            <span>Фоновый звук</span>
+            <span className="text-lg">{isAfishaMuted ? "🔇" : "🔊"}</span>
+          </button>
         </div>
-        <div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
+<div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
@@ -637,34 +653,9 @@ let filteredCatalog = catalog.filter((pack: any) => {
         {view === "shop" && (user ? (<Shop user={user} processPayment={processPayment} />) : (<div className="flex-1 flex items-center justify-center p-8"><div className="bg-[#121214] border border-white/10 rounded-3xl p-10 text-center max-w-md"><h2 className="text-2xl font-black text-white mb-4">Магазин доступен после входа</h2><p className="text-zinc-400 mb-6">Войдите через GitHub или Google, чтобы покупать и открывать предметы.</p><div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black px-4 py-3 rounded-xl font-bold w-full">Войти через Google</button></div></div></div>))}
         {view === "afisha" && (
   <div className="flex-1 overflow-y-auto relative p-4 md:p-8 min-h-[calc(100dvh-4rem)]">
-    <video
-      ref={afishaVideoRef}
-      id="afisha-video"
-      autoPlay
-      loop
-      muted
-      playsInline
-      className="fixed inset-0 w-full h-full object-cover z-0"
-    >
-      <source src="/bg-afisha.mp4" type="video/mp4" />
-    </video>
-    <div className="fixed inset-0 bg-black/55 z-0 pointer-events-none"></div>
     <div className="max-w-6xl mx-auto relative z-10">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600 drop-shadow-lg">Афиша обновлений</h2>
-        <button
-          onClick={() => {
-            const v = afishaVideoRef.current;
-            if (!v) return;
-            const nextMuted = !v.muted;
-            v.muted = nextMuted;
-            if (!nextMuted) { v.play().catch(() => {}); }
-            setIsAfishaMuted(nextMuted);
-          }}
-          className="bg-black/60 hover:bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm backdrop-blur-md"
-        >
-          {isAfishaMuted ? "🔇 Включить звук" : "🔊 Выключить звук"}
-        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-[#121214]/80 backdrop-blur-md border border-blue-500/30 rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-1 transition-all group">
