@@ -45,3 +45,8 @@ next-env.d.ts
 *.bak2
 *.tmp
 *.log
+
+# Backups
+*.bak
+*.bak2
+*.bak3
