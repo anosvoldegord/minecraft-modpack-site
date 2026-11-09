@@ -194,6 +194,8 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [isAfishaMuted, setIsAfishaMuted] = useState(true);
+  const afishaVideoRef = useRef<HTMLVideoElement>(null);
 
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -619,23 +621,34 @@ let filteredCatalog = catalog.filter((pack: any) => {
         {view === "shop" && (user ? (<Shop user={user} processPayment={processPayment} />) : (<div className="flex-1 flex items-center justify-center p-8"><div className="bg-[#121214] border border-white/10 rounded-3xl p-10 text-center max-w-md"><h2 className="text-2xl font-black text-white mb-4">Магазин доступен после входа</h2><p className="text-zinc-400 mb-6">Войдите через GitHub или Google, чтобы покупать и открывать предметы.</p><div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black px-4 py-3 rounded-xl font-bold w-full">Войти через Google</button></div></div></div>))}
         {view === "afisha" && (
   <div className="flex-1 overflow-y-auto relative p-4 md:p-8 min-h-[calc(100dvh-4rem)]">
-    <video id="afisha-video" autoPlay loop muted playsInline className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30">
+    <video
+      ref={afishaVideoRef}
+      id="afisha-video"
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="fixed inset-0 w-full h-full object-cover z-0"
+    >
       <source src="/bg-afisha.mp4" type="video/mp4" />
     </video>
-    <div className="fixed inset-0 bg-black/60 -z-10"></div>
+    <div className="fixed inset-0 bg-black/55 z-0 pointer-events-none"></div>
     <div className="max-w-6xl mx-auto relative z-10">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600 drop-shadow-lg">Афиша обновлений</h2>
-        <button onClick={() => {
-                  const video = document.getElementById('afisha-video') as HTMLVideoElement;
-                  if (video) { 
-                    video.muted = !video.muted; 
-                    const btn = document.getElementById('sound-btn');
-                    if (btn) btn.innerText = video.muted ? "🔇 Включить звук" : "🔊 Выключить звук";
-                  } 
-                }} id="sound-btn" className="bg-black/50 hover:bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm backdrop-blur-md">
-                  🔇 Включить звук
-                </button>
+        <button
+          onClick={() => {
+            const v = afishaVideoRef.current;
+            if (!v) return;
+            const nextMuted = !v.muted;
+            v.muted = nextMuted;
+            if (!nextMuted) { v.play().catch(() => {}); }
+            setIsAfishaMuted(nextMuted);
+          }}
+          className="bg-black/60 hover:bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm backdrop-blur-md"
+        >
+          {isAfishaMuted ? "🔇 Включить звук" : "🔊 Выключить звук"}
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-[#121214]/80 backdrop-blur-md border border-blue-500/30 rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-1 transition-all group">
@@ -654,7 +667,6 @@ let filteredCatalog = catalog.filter((pack: any) => {
     </div>
   </div>
 )}
-
         {view === "profile" && user && (<div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center"><div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl"><div className="w-full lg:w-1/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center h-fit"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-40 h-40" /><div className="text-center mt-4 mb-6"><h2 className="text-2xl font-black text-white">{profile?.username || "Игрок"}</h2><div className="mt-3 mb-2 flex justify-center"><TitleBadge titleName={profile?.title || "Новичок"} size="lg" /></div><div className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">{profile?.role === 'admin' ? 'Администратор' : profile?.role === 'moderator' ? 'Модератор' : 'Пользователь'}</div></div><div className="w-full space-y-4"><div><label className="text-sm text-zinc-400 mb-1 block">Аватарка</label><input type="file" id="avatar-upload" accept="image/*" onChange={uploadAvatar} className="hidden" /><label htmlFor="avatar-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-bold transition-colors w-full text-center border border-white/20 block">{isUploading ? "Загрузка..." : "Выбрать фото"}</label></div><div><label className="text-sm text-zinc-400 mb-1 block">Никнейм</label><input type="text" value={profile?.username || ""} onChange={(e) => setProfile({...profile, username: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white" /></div><div><label className="text-sm text-zinc-400 mb-1 block">О себе</label><textarea value={profile?.bio || ""} onChange={(e) => setProfile({...profile, bio: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 text-white text-sm h-24 resize-none" placeholder="Расскажите о себе..."></textarea></div><button onClick={() => saveProfile({ username: profile.username, bio: profile.bio })} className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-xl transition-colors mt-4">Сохранить изменения</button></div></div><div className="w-full lg:w-2/3 bg-black/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col min-h-[500px]"><h3 className="text-2xl font-black text-white mb-6">Инвентарь</h3><div className="flex gap-2 border-b border-white/10 mb-6 pb-2"><button onClick={() => setProfileTab("frames")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "frames" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Рамки</button><button onClick={() => setProfileTab("titles")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "titles" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Титулы</button>
             <button onClick={() => setProfileTab("earnings")} className={`px-4 py-2 rounded-xl font-bold transition-colors ${profileTab === "earnings" ? "bg-white/20 text-white" : "text-zinc-400 hover:text-white"}`}>Заработок</button>
           </div>
