@@ -626,7 +626,16 @@ let filteredCatalog = catalog.filter((pack: any) => {
     <div className="max-w-6xl mx-auto relative z-10">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600 drop-shadow-lg">Афиша обновлений</h2>
-        <button onClick={() => { const video = document.getElementById('afisha-video') as HTMLVideoElement; if (video) { video.muted = !video.muted; } }} className="bg-black/50 hover:bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm backdrop-blur-md">🔊 Звук</button>
+        <button onClick={() => {
+                  const video = document.getElementById('afisha-video') as HTMLVideoElement;
+                  if (video) { 
+                    video.muted = !video.muted; 
+                    const btn = document.getElementById('sound-btn');
+                    if (btn) btn.innerText = video.muted ? "🔇 Включить звук" : "🔊 Выключить звук";
+                  } 
+                }} id="sound-btn" className="bg-black/50 hover:bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition-colors text-sm backdrop-blur-md">
+                  🔇 Включить звук
+                </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-[#121214]/80 backdrop-blur-md border border-blue-500/30 rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-1 transition-all group">
