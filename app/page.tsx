@@ -601,7 +601,7 @@ let filteredCatalog = catalog.filter((pack: any) => {
 <div className="p-5 mt-auto">{user ? (<div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center gap-3"><AvatarWithFrame url={profile?.avatar_url} frame={profile?.frame} size="w-10 h-10" /><div className="flex-1 min-w-0"><div className="text-green-400 text-xs mb-0.5">Вы вошли:</div><div className="truncate font-bold text-sm text-white">{profile?.username || user.email}</div></div><button onClick={logout} className="text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs transition-colors">Выйти</button></div>) : (<div className="flex flex-col gap-2"><button onClick={() => login('github')} className="bg-[#24292e] hover:bg-[#2f363d] border border-white/20 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через GitHub</button><button onClick={() => login('google')} className="bg-white hover:bg-gray-200 text-black border border-white/20 px-4 py-3 rounded-xl font-bold w-full shadow-lg transition-colors">Войти через Google</button></div>)}</div>
       </aside>
 
-      <main className={`flex-1 flex flex-col min-w-0 relative z-10 w-full transition-all duration-300 ${!isSidebarOpen ? "pl-10 md:pl-12" : ""}`}>
+      <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
         {/* Кнопка разворота панели (появляется только если панель закрыта) */}
         {!isSidebarOpen && (
           <button onClick={() => setIsSidebarOpen(true)} className="fixed top-4 left-4 z-50 bg-black/60 hover:bg-black/80 border border-white/20 text-white p-2.5 rounded-xl backdrop-blur-md transition-all flex items-center gap-2" title="Развернуть панель">
