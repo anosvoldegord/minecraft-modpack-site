@@ -1,0 +1,56 @@
+=========================================
+ПРОЕКТ: ModBuilder (Сборщик модов для Minecraft)
+СТЕК: Next.js 16 (App Router), React, TailwindCSS, Supabase (Auth, DB, Storage), Layero (хостинг).
+АВТОР: Не программист. Требует готовых скриптов PowerShell.
+=========================================
+
+🛑 ЖЕЛЕЗНЫЕ ПРАВИЛА ДЛЯ ИИ:
+1. НИКОГДА не трогай globals.css, tailwind.config.ts, postcss.config.mjs, next.config.ts.
+2. Работаем ТОЛЬКО с app/page.tsx и новыми компонентами в папке app/.
+3. Весь код давать через Here-String ($code = @' ... '@) и записывать через [System.IO.File]::WriteAllText с кодировкой UTF8 (без BOM!).
+4. Всегда указывать типы в TypeScript (.find((s: string) => ...), .map((r: any) => ...)).
+5. После любых правок напоминать про деплой: npm run build -> git add . -> git commit -> git push.
+6. Если ошибка БД "Could not find column" -> выполнить NOTIFY pgrst, 'reload schema';
+7. Перед изменением БД просить сделать бэкап.
+8. Рискованные фичи делать в ветке dev, проверять и только потом мержить в main.
+
+🗄️ АРХИТЕКТУРА БАЗЫ ДАННЫХ (Supabase):
+- profiles: (id, username, avatar_url, title, frame, role, bio, owned_titles[], owned_items[], coins, last_gacha_pull, balance, payout_method, kassa_shop_id, payout_details, balance_available)
+- modpacks: (id, user_id, name, game_version, loader, artifacts jsonb, artifacts_by_version jsonb, cover_url, description, screenshots[], video_url, published_id, price)
+- published_packs: (id, user_id, name, game_version, loader, artifacts jsonb, downloads, likes, rating, cover_url, description, screenshots[], video_url, bumped_until, price)
+- pack_downloads: (id, pack_id, user_id) - защита от накрутки
+- pack_likes, pack_ratings, comments
+- friendships: (sender_id, receiver_id, status)
+- messages: (sender_id, receiver_id, content) - личные сообщения
+- user_gifs: (user_id, url, is_global)
+- groups: (id, owner_id, name, description, avatar_url)
+- group_subscriptions: (id, group_id, user_id, status, role)
+- group_announcements: (id, group_id, title, description, cover_url, video_url)
+- announcement_likes: (id, announcement_id, user_id)
+- group_messages: (id, group_id, user_id, content, chat_type) - chat_type разделяет "general" и "staff"
+- payout_requests: (id, user_id, amount, status)
+- RPC: register_pack_download(p_pack_id, p_user_id)
+
+📂 СТРУКТУРА ФАЙЛОВ (Ветка dev):
+- app/page.tsx: Основной файл (Сборщик модов, Каталог, Профиль, Друзья, Админка). Огромный.
+- app/layout.tsx: Шрифты (заменены на локальные app/fonts/Inter-Regular.woff2).
+- app/supabase.ts: Клиент Supabase.
+- app/Pet.tsx: Интерактивный котик (следит за мышкой, спит).
+- app/Afisha.tsx: Новостная лента (пока тестовая).
+- app/Groups.tsx: Группы (создание, чаты general/staff, заявки, файлы, гифки).
+- app/Shop.tsx: Магазин (Бусты 99р, Рамки 199р, Титулы 299р).
+- app/Catalog.tsx: Каталог (вынесен отдельно, но пока не подключен в page.tsx, используется старый).
+- app/api/payments/route.ts: API для ЮKassa (сейчас там тестовая заглушка, которая всегда возвращает success).
+- public/robots.txt, app/sitemap.ts: SEO (жестко привязаны к https://minecraft-modpack-site.layero.app).
+
+💡 ТЕКУЩИЙ СТАТУС И ЧТО ДЕЛАЛИ:
+1. ЮKassa: Ждем проверку. Им нужны фиксированные цены на сайте. Сделали Shop.tsx (99/199/299). В API добавлена заглушка для теста.
+2. Группы: Сделали, но было решено УБРАТЬ из меню на время, чтобы не мешали. Код Groups.tsx сохранен.
+3. Ветки: Работаем в ветке dev. В main только стабильный код.
+
+🛠️ ЧТО НУЖНО СДЕЛАТЬ (Next Steps):
+1. Убедиться, что в page.tsx кнопка "Магазин" работает без авторизации.
+2. Подключить app/Catalog.tsx (новый каталог с ценами) в page.tsx, заменив старый кусок.
+3. Сделать "Афишу" умной (чтобы собирала новости из групп).
+4. Сделать личный кабинет автора (кнопка "Вывести средства").
+5. Интегрировать реальную ЮKassa (когда придут ключи).
