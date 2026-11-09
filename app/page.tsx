@@ -564,7 +564,12 @@ let filteredCatalog = catalog.filter((pack: any) => {
         ::-webkit-scrollbar-thumb:hover { background: rgba(34, 197, 94, 0.6); }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="fixed inset-0 z-0"><div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/bg.png')" }}></div><div className="absolute inset-0 bg-black/60"></div></div>
+      <div className="fixed inset-0 z-0 pointer-events-none">
+  <video ref={afishaVideoRef} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-40">
+    <source src="/bg-afisha.mp4" type="video/mp4" />
+  </video>
+  <div className="absolute inset-0 bg-black/60"></div>
+</div>
       {isLoggingIn && <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center"><div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div><h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход...</h2></div>}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
 
@@ -719,7 +724,12 @@ let filteredCatalog = catalog.filter((pack: any) => {
     <li><strong>ИП на НПД</strong> — самый простой и надежный вариант. Налог 4-6%, нет отчетности и взносов.</li>
     <li><strong>Самозанятый (физлицо)</strong> — тоже можно, но ЮKassa больше не формирует чеки автоматически. Вам придется самостоятельно выдавать чеки в приложении «Мой налог».</li>
   </ul>
-  <p className="text-xs mt-2">После получения ShopId вставьте его в поле ниже. Платежи будут распределяться автоматически: 80% вам, 20% — комиссия платформы.</p>
+  <p className="text-xs mt-2">После получения ShopId вставьте его в поле ниже. Платежи будут распределяться автоматически: <strong>{
+    (profile?.total_sales || 0) >= 50001 ? "81" :
+    (profile?.total_sales || 0) >= 30001 ? "80" :
+    (profile?.total_sales || 0) >= 15001 ? "79" :
+    (profile?.total_sales || 0) >= 5001 ? "78" : "77"
+  }% вам</strong>, остальное — комиссия платформы.</p>
 </div>
       <label className="text-sm text-zinc-400 mb-2 block font-bold">Ваш ShopId (ЮKassa)</label>
       <div className="flex gap-2">
