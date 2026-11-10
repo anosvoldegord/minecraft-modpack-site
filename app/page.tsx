@@ -196,6 +196,7 @@ export default function Home() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isAfishaMuted, setIsAfishaMuted] = useState(true);
   const afishaVideoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
