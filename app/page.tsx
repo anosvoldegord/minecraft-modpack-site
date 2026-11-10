@@ -293,6 +293,22 @@ useEffect(() => {
     video.play().catch(() => {});
   }
 }, [isAfishaMuted, profile?.profile_bg_type]);
+
+  // Ресинк видео при возврате на вкладку (браузер троттлит неактивные вкладки -> рассинхрон)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      const video = afishaVideoRef.current;
+      if (!video) return;
+      if (profile?.profile_bg_type === "image") return;
+      try {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      } catch {}
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
   useEffect(() => {
@@ -627,8 +643,7 @@ let filteredCatalog = catalog.filter((pack: any) => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
-        {isLoaded && profile?.profile_bg_type === "video" && profile?.profile_bg ? (<video autoPlay loop muted={true} playsInline className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"><source src={profile.profile_bg} type="video/mp4" /></video>) : null}
-{isLoaded && profile?.profile_bg_type === "image" && profile?.profile_bg ? (<div className="fixed inset-0 w-full h-full bg-cover bg-center z-0 pointer-events-none" style={{ backgroundImage: `url(${profile.profile_bg})` }}></div>) : null}
+        {isLoaded && profile?.profile_bg_type === "image" && profile?.profile_bg ? (<div className="fixed inset-0 w-full h-full bg-cover bg-center z-0 pointer-events-none" style={{ backgroundImage: `url(${profile.profile_bg})` }}></div>) : null}
 {/* Кнопка разворота панели (появляется только если панель закрыта) */}
         {!isSidebarOpen && (
           <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-[-24px] hover:left-0 z-50 bg-black/40 hover:bg-black/80 border border-white/10 text-zinc-300 hover:text-white p-1.5 rounded-r-xl backdrop-blur-md transition-all duration-300 flex items-center justify-center w-8 h-14 shadow-lg group" title="Развернуть панель">
