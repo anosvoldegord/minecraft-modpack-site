@@ -278,13 +278,8 @@ export default function Home() {
 
   // Синхронизация звука видео Афиши после ремаунта / переключения вкладок
   useEffect(() => {
-    if (view !== "afisha") return;
-    const v = afishaVideoRef.current;
-    if (!v) return;
-    v.muted = isAfishaMuted;
-    if (!isAfishaMuted) {
-      v.play().catch(() => {});
-    }
+    // Управление звуком перенесено в тег <audio>. 
+    // Видео всегда без звука, чтобы не было рассинхрона и двойного звука.
   }, [view, isAfishaMuted, profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
