@@ -611,7 +611,7 @@ let filteredCatalog = catalog.filter((pack: any) => {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full">
-        {isLoaded && profile?.profile_bg_type === "video" && profile?.profile_bg ? (<video autoPlay loop muted={profile?.profile_bg_type === "image" ? true : isAfishaMuted} playsInline className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"><source src={profile.profile_bg} type="video/mp4" /></video>) : null}
+        {isLoaded && profile?.profile_bg_type === "video" && profile?.profile_bg ? (<video autoPlay loop muted={true} playsInline className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"><source src={profile.profile_bg} type="video/mp4" /></video>) : null}
 {isLoaded && profile?.profile_bg_type === "image" && profile?.profile_bg ? (<div className="fixed inset-0 w-full h-full bg-cover bg-center z-0 pointer-events-none" style={{ backgroundImage: `url(${profile.profile_bg})` }}></div>) : null}
 {/* Кнопка разворота панели (появляется только если панель закрыта) */}
         {!isSidebarOpen && (
