@@ -277,10 +277,28 @@ export default function Home() {
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
 
-  // Синхронизация звука видео Афиши после ремаунта / переключения вкладок
+  // Синхронизация звука
   useEffect(() => {
-    // Управление звуком перенесено в тег <audio>. 
-    // Видео всегда без звука, чтобы не было рассинхрона и двойного звука.
+    const audio = audioRef.current;
+    const video = afishaVideoRef.current;
+    if (!audio) return;
+
+    // Если выбрана картинка, звука нет
+    if (profile?.profile_bg_type === "image") {
+      audio.pause();
+      return;
+    }
+
+    // Настраиваем звук
+    audio.muted = isAfishaMuted;
+
+    // Если звук включен, запускаем и синхронизируем время с видео
+    if (!isAfishaMuted) {
+      if (video) {
+        audio.currentTime = video.currentTime;
+      }
+      audio.play().catch(() => {});
+    }
   }, [view, isAfishaMuted, profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
