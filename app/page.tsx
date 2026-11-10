@@ -327,7 +327,16 @@ export default function Home() {
 
   const fetchFriends = async () => { if (!user) return; try { const { data: sent } = await supabase.from('friendships').select('*').eq('sender_id', user.id); const { data: received } = await supabase.from('friendships').select('*').eq('receiver_id', user.id); const relations = [...(sent || []), ...(received || [])]; const accepted = relations.filter((r: any) => r.status === 'accepted'); const pending = relations.filter((r: any) => r.status === 'pending' && r.receiver_id === user.id); const friendIds = accepted.map((r: any) => r.sender_id === user.id ? r.receiver_id : r.sender_id); if (friendIds.length > 0) { const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendIds); setFriends(friendIds.map((id: string) => profiles?.find((pr: any) => pr.id === id) || { id, username: 'Неизвестный', avatar_url: null, title: 'Новичок', frame: 'default' })); } else setFriends([]); const reqIds = pending.map((r: any) => r.sender_id); if (reqIds.length > 0) { const { data: profs } = await supabase.from('profiles').select('*').in('id', reqIds); setRequests(pending.map((req: any) => ({ ...req, profile: profs?.find((pr: any) => pr.id === req.sender_id) || { id: req.sender_id, username: 'Неизвестный', avatar_url: null, title: 'Новичок', frame: 'default' } }))); } else setRequests([]); } catch(e) {} };
   const fetchSuggestedUsers = async () => { if (!user) return; const { data } = await supabase.from('profiles').select('*').neq('id', user.id).limit(20); if (data) setSuggestedUsers(data); };
-  const searchUsers = async (q: string) => { setSearchQuery(q); if (q.length < 2) { setSearchResults([]); return; } const { data } = await supabase.from('profiles').select('*').ilike('username', `%${q}%`).neq('id', user?.id).limit(10); setSearchResults(data || []); };
+  const searchUsers = async (q: string) => { 
+  setSearchQuery(q); 
+  if (q.length < 2) { setSearchResults([]); return; } 
+  const { data } = await supabase.from('profiles').select('*').ilike('username', `%${q}%`).neq('id', user?.id).limit(10); 
+  if (data) {
+    // Фильтруем тех, кто уже в друзьях
+    const filtered = data.filter((u: any) => !friends.some(f => f.id === u.id));
+    setSearchResults(filtered); 
+  }
+};
   const sendFriendRequest = async (receiverId: string) => { await supabase.from('friendships').insert({ sender_id: user.id, receiver_id: receiverId, status: 'pending' }); showToast("Заявка отправлена!", "success"); setSearchQuery(""); setSearchResults([]); };
   const acceptRequest = async (id: string) => { await supabase.from('friendships').update({ status: 'accepted' }).eq('id', id); showToast("Теперь вы друзья!", "success"); await fetchFriends(); };
   const removeFriend = async (friendId: string, e: React.MouseEvent) => { e.stopPropagation(); if (!confirm("Удалить из друзей?")) return; await supabase.from('friendships').delete().eq('sender_id', user.id).eq('receiver_id', friendId); await supabase.from('friendships').delete().eq('sender_id', friendId).eq('receiver_id', user.id); if (activeChat?.id === friendId) setActiveChat(null); fetchFriends(); showToast("Пользователь удален", "success"); };
