@@ -285,7 +285,7 @@ export default function Home() {
     if (!isAfishaMuted) {
       v.play().catch(() => {});
     }
-  }, [view, isAfishaMuted]);
+  }, [view, isAfishaMuted, profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
   useEffect(() => {
