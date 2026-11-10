@@ -275,18 +275,24 @@ export default function Home() {
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
 
-  // Перезапуск фонового видео при смене фона/типа фона
+  // Управление фоновым видео.
+// ВАЖНО: view в зависимостях НЕТ — иначе музыка сбрасывается при смене вкладок.
 useEffect(() => {
   const video = afishaVideoRef.current;
   if (!video) return;
+  // При картинке видео уже удалено из DOM (условный рендер), pause() — страховка
   if (profile?.profile_bg_type === "image") {
     video.pause();
     return;
   }
-  video.currentTime = 0;
+  // muted управляется state, без перезапуска
   video.muted = isAfishaMuted;
-  video.play().catch(() => {});
-}, [view, isAfishaMuted, profile?.profile_bg_type]);
+  // Перезапуск ТОЛЬКО при смене типа фона (video <-> image),
+  // а не при смене вкладки
+  if (video.paused) {
+    video.play().catch(() => {});
+  }
+}, [isAfishaMuted, profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
   useEffect(() => {
