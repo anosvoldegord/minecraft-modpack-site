@@ -196,8 +196,6 @@ export default function Home() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isAfishaMuted, setIsAfishaMuted] = useState(true);
   const afishaVideoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef(0);
@@ -277,29 +275,18 @@ export default function Home() {
 
   useEffect(() => { setPageInput(currentPage.toString()); }, [currentPage]);
 
-  // Синхронизация звука
-  useEffect(() => {
-    const audio = audioRef.current;
-    const video = afishaVideoRef.current;
-    if (!audio) return;
-
-    // Если выбрана картинка, звука нет
-    if (profile?.profile_bg_type === "image") {
-      audio.pause();
-      return;
-    }
-
-    // Настраиваем звук
-    audio.muted = isAfishaMuted;
-
-    // Если звук включен, запускаем и синхронизируем время с видео
-    if (!isAfishaMuted) {
-      if (video) {
-        audio.currentTime = video.currentTime;
-      }
-      audio.play().catch(() => {});
-    }
-  }, [view, isAfishaMuted, profile?.profile_bg_type]);
+  // Перезапуск фонового видео при смене фона/типа фона
+useEffect(() => {
+  const video = afishaVideoRef.current;
+  if (!video) return;
+  if (profile?.profile_bg_type === "image") {
+    video.pause();
+    return;
+  }
+  video.currentTime = 0;
+  video.muted = isAfishaMuted;
+  video.play().catch(() => {});
+}, [view, isAfishaMuted, profile?.profile_bg_type]);
   useEffect(() => { if (viewingPack) fetchComments(viewingPack.id); }, [viewingPack]);
   
   useEffect(() => {
@@ -587,13 +574,21 @@ let filteredCatalog = catalog.filter((pack: any) => {
         ::-webkit-scrollbar-thumb:hover { background: rgba(34, 197, 94, 0.6); }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className={`fixed inset-0 z-0 pointer-events-none bg-black transition-opacity duration-500 ${isLoaded && profile?.profile_bg_type && profile?.profile_bg_type !== "default" ? "opacity-0 hidden" : "opacity-100"}`}>
-  <video ref={afishaVideoRef} autoPlay loop muted={true} playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
+      {isLoaded && profile?.profile_bg_type !== "image" && (
+<div className="fixed inset-0 z-0 pointer-events-none bg-black">
+  <video
+    ref={afishaVideoRef}
+    autoPlay
+    loop
+    muted={isAfishaMuted}
+    playsInline
+    className="absolute inset-0 w-full h-full object-cover opacity-60"
+  >
     <source src="/bg-afisha.mp4" type="video/mp4" />
   </video>
-  
-      <div className="absolute inset-0 bg-black/30"></div>
+  <div className="absolute inset-0 bg-black/30"></div>
 </div>
+)}
       {isLoggingIn && <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center"><div className="w-16 h-16 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-6"></div><h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Вход...</h2></div>}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
 
@@ -636,14 +631,7 @@ let filteredCatalog = catalog.filter((pack: any) => {
         )}
         {view === "mods" && (<><header className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-4 bg-black/30 backdrop-blur-xl z-20"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-4 w-full md:w-auto"><input type="text" placeholder="Поиск модов..." value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 md:flex-none md:w-96 bg-black/30 border border-white/20 rounded-2xl px-6 py-3 text-sm focus:outline-none focus:border-green-500/50 focus:bg-black/50 transition-all text-white placeholder-zinc-400" /></div><div className="flex flex-wrap gap-2 shrink-0 w-full md:w-auto">
 <button
-  onClick={() => {
-    const v = afishaVideoRef.current;
-    if (!v) return;
-    const nextMuted = !v.muted;
-    v.muted = nextMuted;
-    if (!nextMuted) { v.play().catch(() => {}); }
-    setIsAfishaMuted(nextMuted);
-  }}
+  onClick={() => setIsAfishaMuted((prev: boolean) => !prev)}
   className="bg-black/30 hover:bg-white/10 border border-white/20 text-white px-4 py-3 rounded-2xl font-bold transition-colors flex items-center justify-center min-w-[56px]"
   title="Фоновый звук"
 >
